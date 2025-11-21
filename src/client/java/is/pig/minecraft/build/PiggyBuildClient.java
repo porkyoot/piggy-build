@@ -52,7 +52,7 @@ public class PiggyBuildClient implements ClientModInitializer {
 
             // 4. Appel magique
             Matrix4f mat = poseStack.last().pose();
-            ShapeRenderer.drawRing(builderFill, mat, Direction.Axis.X, radius, r, g, b, a);
+            ShapeRenderer.drawSphere(builderFill, mat, radius, r, g, b, a);
 
             poseStack.popPose();
 
