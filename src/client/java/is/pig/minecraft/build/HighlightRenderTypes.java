@@ -27,7 +27,7 @@ public final class HighlightRenderTypes {
             .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
             .setTextureState(new RenderStateShard.TextureStateShard(HIGHLIGHT_TEXTURE, false, false))
             .setDepthTestState(RenderStateShard.NO_DEPTH_TEST) // Wallhack on
-            .setCullState(RenderStateShard.CULL)
+            .setCullState(RenderStateShard.NO_CULL)
             .setWriteMaskState(RenderStateShard.COLOR_WRITE)
             .createCompositeState(false)
     );
