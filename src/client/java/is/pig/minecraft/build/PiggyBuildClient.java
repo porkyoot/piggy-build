@@ -29,7 +29,8 @@ public class PiggyBuildClient implements ClientModInitializer {
     // On met la touche en public static pour y accéder depuis le Screen
     public static KeyMapping triggerKey;
     
-    private static BlockPos frozenPos = null;
+	private static BlockPos frozenPos = null;
+	private static Direction.Axis frozenAxis = Direction.Axis.Y;
     private static double currentRadius = 4.0;
     
     // NOUVEAU : La forme actuelle
@@ -87,10 +88,12 @@ public class PiggyBuildClient implements ClientModInitializer {
 
             // On ouvre SEULEMENT si la touche vient d'être appuyée ET qu'aucun menu n'est ouvert
             if (isKeyDown && !wasKeyDown && client.screen == null) {
-                
+                BlockHitResult hit = (BlockHitResult) client.hitResult;
                 // Capture de la position
-                if (client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK) {
-                    frozenPos = ((BlockHitResult)client.hitResult).getBlockPos();
+				if (hit != null && hit.getType() == HitResult.Type.BLOCK) {
+					
+					frozenPos = hit.getBlockPos();
+					frozenAxis = hit.getDirection().getAxis();
                 }
 
                 // Ouverture du menu
@@ -116,7 +119,6 @@ public class PiggyBuildClient implements ClientModInitializer {
             VertexConsumer builderFill = bufferSource.getBuffer(HighlightRenderTypes.HIGHLIGHT_TYPE);
             
             float r = 0f, g = 1f, b = 0.9f, a = 0.4f;
-            Direction.Axis axis = Direction.Axis.Y;
 
             double renderX = frozenPos.getX() - cameraPos.x;
             double renderY = frozenPos.getY() - cameraPos.y;
@@ -133,14 +135,14 @@ public class PiggyBuildClient implements ClientModInitializer {
                     ShapeRenderer.drawBlock(builderFill, mat, 0, 0, 0, r, g, b, a);
                     break;
                 case LINE:
-                    ShapeRenderer.drawLine(builderFill, mat, axis, currentRadius, r, g, b, a);
+                    ShapeRenderer.drawLine(builderFill, mat, frozenAxis, currentRadius, r, g, b, a);
                     break;
                 case SPHERE:
                     ShapeRenderer.drawSphere(builderFill, mat, currentRadius, r, g, b, a);
                     break;
                 case RING:
                 default:
-                    ShapeRenderer.drawRing(builderFill, mat, axis, currentRadius, r, g, b, a);
+                    ShapeRenderer.drawRing(builderFill, mat, frozenAxis, currentRadius, r, g, b, a);
                     break;
             }
 
