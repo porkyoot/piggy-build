@@ -7,7 +7,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents; // <--- IMPORT IMPORTANT
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -26,53 +26,88 @@ public class PiggyBuildClient implements ClientModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("piggy-build");
 
-    private static KeyMapping triggerKey;
+    // On met la touche en public static pour y accéder depuis le Screen
+    public static KeyMapping triggerKey;
     
-    // On rend cette variable 'volatile' pour éviter des soucis entre les Threads (Logic vs Render)
-    private static volatile BlockPos frozenPos = null;
+    private static BlockPos frozenPos = null;
+    private static double currentRadius = 4.0;
+    
+    // NOUVEAU : La forme actuelle
+    private static BuildShape currentShape = BuildShape.RING;
+    
+    private boolean wasKeyDown = false;
+
+    // Setter utilisé par le menu radial pour changer la forme
+	public static void setCurrentShape(BuildShape shape) {
+		currentShape = shape;
+		// Petit feedback dans la chatbar
+		Minecraft.getInstance().player.displayClientMessage(
+				net.minecraft.network.chat.Component.literal("Forme : " + shape.getDisplayName()), true);
+	}
+	
+	public static void modifyRadius(int amount) {
+        currentRadius += amount;
+        if (currentRadius < 1.0) currentRadius = 1.0;
+        if (currentRadius > 64.0) currentRadius = 64.0;
+        
+        // Feedback
+        Minecraft.getInstance().player.displayClientMessage(
+            net.minecraft.network.chat.Component.literal("Rayon : " + (int)currentRadius), true
+        );
+    }
 
     @Override
     public void onInitializeClient() {
-        LOGGER.info("Ehlo from Piggy Build !");
-
-        // 1. Enregistrement de la touche
+        // 1. Touche X
         triggerKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-            "key.piggy_build.trigger",
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_X, 
-            "category.piggy_build"
+            "key.piggy_build.trigger", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_X, "category.piggy_build"
         ));
 
-        // 2. BOUCLE LOGIQUE (20 fois par seconde)
-        // C'est ici qu'on gère les Inputs proprement
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            // Si on est en jeu et que la touche est appuyée
-            if (client.player != null && triggerKey.isDown()) {
+        // 2. MOLETTE (Avec ton Mixin existant)
+        MouseScrollCallback.EVENT.register((amount) -> {
+            if (triggerKey.isDown()) {
+                if (amount > 0) currentRadius += 1.0;
+                else if (amount < 0) currentRadius -= 1.0;
+                if (currentRadius < 1.0) currentRadius = 1.0;
+                if (currentRadius > 32.0) currentRadius = 32.0;
                 
-                // On regarde ce que le joueur vise
-                if (client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK) {
-                    BlockHitResult hit = (BlockHitResult) client.hitResult;
-                    frozenPos = hit.getBlockPos();
-                    
-                    // Log toutes les 20 ticks (1 sec) pour ne pas spammer
-                    if (client.player.tickCount % 20 == 0) {
-                        LOGGER.info("INPUT DETECTÉ ! Position gelée en : " + frozenPos);
-                    }
-                }
+                Minecraft.getInstance().player.displayClientMessage(
+                    net.minecraft.network.chat.Component.literal("Rayon : " + (int)currentRadius), true
+                );
+                return true; 
             }
+            return false;
         });
 
-        // 3. BOUCLE DE RENDU (Chaque frame)
-        // Ici, on ne fait QUE dessiner la dernière position connue
-        WorldRenderEvents.LAST.register(context -> {
-            
-            // Si aucune position n'est définie, on ne dessine rien
-            if (frozenPos == null) {
-                return;
+       // 3. LOGIQUE TICK : OUVERTURE DU MENU
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (client.player == null) return;
+
+            boolean isKeyDown = triggerKey.isDown();
+
+            // On ouvre SEULEMENT si la touche vient d'être appuyée ET qu'aucun menu n'est ouvert
+            if (isKeyDown && !wasKeyDown && client.screen == null) {
+                
+                // Capture de la position
+                if (client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK) {
+                    frozenPos = ((BlockHitResult)client.hitResult).getBlockPos();
+                }
+
+                // Ouverture du menu
+                client.setScreen(new RadialMenuScreen(currentShape));
             }
+            
+            wasKeyDown = isKeyDown;
+        });
+
+        // 4. RENDU MONDE
+        WorldRenderEvents.LAST.register(context -> {
+            if (frozenPos == null) return;
 
             Minecraft minecraft = Minecraft.getInstance();
-
+            // Si le menu radial est ouvert, on dessine quand même la forme en temps réel
+            // pour que le joueur voie ce qu'il sélectionne.
+            
             Camera camera = context.camera();
             Vec3 cameraPos = camera.getPosition();
             PoseStack poseStack = context.matrixStack();
@@ -81,7 +116,6 @@ public class PiggyBuildClient implements ClientModInitializer {
             VertexConsumer builderFill = bufferSource.getBuffer(HighlightRenderTypes.HIGHLIGHT_TYPE);
             
             float r = 0f, g = 1f, b = 0.9f, a = 0.4f;
-            double radius = 4.0;
             Direction.Axis axis = Direction.Axis.Y;
 
             double renderX = frozenPos.getX() - cameraPos.x;
@@ -90,13 +124,27 @@ public class PiggyBuildClient implements ClientModInitializer {
 
             poseStack.pushPose();
             poseStack.translate(renderX, renderY, renderZ);
-
             Matrix4f mat = poseStack.last().pose();
             
-            ShapeRenderer.drawRing(builderFill, mat, axis, radius, r, g, b, a);
+            // CHOIX DU DESSIN SELON L'ENUM
+            switch (currentShape) {
+                case BLOCK:
+                    // Juste un bloc au centre (0,0,0)
+                    ShapeRenderer.drawBlock(builderFill, mat, 0, 0, 0, r, g, b, a);
+                    break;
+                case LINE:
+                    ShapeRenderer.drawLine(builderFill, mat, axis, currentRadius, r, g, b, a);
+                    break;
+                case SPHERE:
+                    ShapeRenderer.drawSphere(builderFill, mat, currentRadius, r, g, b, a);
+                    break;
+                case RING:
+                default:
+                    ShapeRenderer.drawRing(builderFill, mat, axis, currentRadius, r, g, b, a);
+                    break;
+            }
 
             poseStack.popPose();
-            
             bufferSource.endBatch(HighlightRenderTypes.HIGHLIGHT_TYPE);
         });
     }

@@ -138,6 +138,27 @@ public class ShapeRenderer {
         return distSq <= maxSq && distSq > minSq;
     }
 
+    /**
+     * Dessine une ligne de blocs le long de l'axe.
+     * Longueur = Radius * 2 (de -radius à +radius)
+     */
+    public static void drawLine(VertexConsumer builder, Matrix4f mat, Axis axis, double radius, float r, float g, float b, float a) {
+        int len = (int) Math.ceil(radius);
+
+        for (int i = -len; i <= len; i++) {
+            // Coordonnées selon l'axe
+            int x = 0, y = 0, z = 0;
+            switch (axis) {
+                case X: x = i; break;
+                case Y: y = i; break;
+                case Z: z = i; break;
+            }
+            
+            // On dessine le bloc complet (comme pour BLOCK)
+            drawBlock(builder, mat, x, y, z, r, g, b, a);
+        }
+    }
+
     // --- DESSIN DES FACES (Inchangé) ---
 
     public static void drawBlock(VertexConsumer builder, Matrix4f mat, int x, int y, int z, float r, float g, float b, float a) {
