@@ -9,11 +9,11 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.core.Direction;
 
 public class PiggyBuildClient implements ClientModInitializer {
 
@@ -27,69 +27,37 @@ public class PiggyBuildClient implements ClientModInitializer {
             }
 
             BlockHitResult hit = (BlockHitResult) minecraft.hitResult;
-            BlockPos pos = hit.getBlockPos();
+            BlockPos pos = hit.getBlockPos(); // Le centre
 
             Camera camera = context.camera();
             Vec3 cameraPos = camera.getPosition();
-
             PoseStack poseStack = context.matrixStack();
-            poseStack.pushPose();
-            //poseStack.translate(x, y, z);
-
             MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
 
-            // 1. Fill with texture
+            // 1. Récupération du buffer (avec Texture ou juste couleur selon ton HighlightRenderTypes)
             VertexConsumer builderFill = bufferSource.getBuffer(HighlightRenderTypes.HIGHLIGHT_TYPE);
-            //Matrix4f mat = poseStack.last().pose();
             
-            // 2. Tinted cyan
-			float r = 0f, g = 1f, b = 0.9f, a = 0.4f;
-			int radius = 4;
-            
-			//BoxRenderer.drawBoxFill(builderFill, mat, r, g, b, a);
-			
-			// --- BOUCLE DE DESSIN ---
-            // On scanne un carré autour du centre
-            for (int x = -radius; x <= radius; x++) {
-                for (int z = -radius; z <= radius; z++) {
-                    
-                    double distanceSq = (x * x) + (z * z);
-                    
-                    // 1. Rayon Extérieur (Le bord max)
-                    double maxDist = radius * radius;
-                    
-                    // 2. Rayon Intérieur (Le trou au milieu)
-                    // Si on enlève 1.0, on aura un cercle d'environ 1 bloc d'épaisseur.
-                    // Si tu veux un cercle plus épais, mets (radius - 2.0).
-                    double innerRadius = radius - 1.0;
-                    if (innerRadius < 0) innerRadius = 0; // Sécurité
-                    double minDist = innerRadius * innerRadius;
+            // 2. Configuration
+            float r = 0f, g = 1f, b = 0.9f, a = 0.4f;
+            double radius = 4.0;
 
-                    // LOGIQUE CERCLE :
-                    // On dessine si on est PLUS PETIT que le max ET PLUS GRAND que le min
-                    if (distanceSq <= maxDist && distanceSq > minDist) {
-                        
-                        double renderX = (pos.getX() + x) - cameraPos.x;
-                        double renderY = pos.getY() - cameraPos.y;
-                        double renderZ = (pos.getZ() + z) - cameraPos.z;
+            // 3. Positionnement au CENTRE du bloc visé
+            // On se place une seule fois, et ShapeRenderer dessine autour (offsets relatifs)
+            double renderX = pos.getX() - cameraPos.x;
+            double renderY = pos.getY() - cameraPos.y;
+            double renderZ = pos.getZ() - cameraPos.z;
 
-                        poseStack.pushPose();
-                        poseStack.translate(renderX, renderY, renderZ);
-                        
-                        Matrix4f mat = poseStack.last().pose();
+            poseStack.pushPose();
+            poseStack.translate(renderX, renderY, renderZ);
 
-                        // On dessine la boite pour ce bloc
-                        BoxRenderer.drawBoxFill(builderFill, mat, r, g, b, a);
-
-                        poseStack.popPose();
-                    }
-                }
-            }
-
-            bufferSource.endBatch(HighlightRenderTypes.HIGHLIGHT_TYPE);
-            bufferSource.endBatch(RenderType.lines());
+            // 4. Appel magique
+            Matrix4f mat = poseStack.last().pose();
+            ShapeRenderer.drawRing(builderFill, mat, Direction.Axis.X, radius, r, g, b, a);
 
             poseStack.popPose();
+
+            // Fin du batch
+            bufferSource.endBatch(HighlightRenderTypes.HIGHLIGHT_TYPE);
         });
     }
 }
