@@ -62,14 +62,14 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
     
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        // Si on est sur l'élément central, on ne fait rien (comme demandé précédemment)
+        // If we're on the center item, do nothing (as requested earlier)
         if (selectedItem == centerItem) {
             return false;
         }
 
-        // Si un callback de scroll est défini et qu'il y a du mouvement
+        // If a scroll callback is defined and there is movement
         if (onScrollCallback != null && scrollY != 0) {
-            // On appelle le contrôleur. S'il renvoie true, on considère l'événement comme géré.
+            // Call the controller. If it returns true, consider the event handled.
             if (onScrollCallback.test(scrollY)) {
                 return true;
             }

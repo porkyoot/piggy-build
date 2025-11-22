@@ -35,32 +35,32 @@ public class FlexiblePlacementHandler {
     }
 
     public InteractionResult onUseBlock(Minecraft client, InteractionHand hand, BlockHitResult hitResult) {
-        // 1. IMPORTANT : On ne touche à rien côté serveur !
-        // UseBlockCallback est appelé sur les deux côtés. On veut agir uniquement sur le client
-        // pour envoyer un paquet de placement modifié.
+        // 1. IMPORTANT: Do not modify server-side!
+        // UseBlockCallback is invoked on both sides. We only act on the client
+        // to send a modified placement packet.
         if (client.level != null && !client.level.isClientSide) {
             return InteractionResult.PASS;
         }
 
-        // 2. Protection Récursion
+        // 2. Recursion protection
         if (this.isPlacing) return InteractionResult.PASS;
 
-        // 3. Vérifications Basiques
+        // 3. Basic checks
         if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
         if (!InputController.flexibleKey.isDown()) return InteractionResult.PASS;
 
         Direction offset = PlacementCalculator.getOffsetDirection(hitResult);
         if (offset == null) return InteractionResult.PASS; // Centre -> Vanilla
 
-        // --- LOGIQUE DE PLACEMENT FORCÉ ---
+        // --- FORCED PLACEMENT LOGIC ---
         
-        // On affiche le délai pour info, mais on ne s'arrête plus à cause de lui
-        // LOGGER.info("Délai avant forçage : " + ((MinecraftAccessorMixin) client).getRightClickDelay());
+        // Log the delay for information, but do not stop on it
+        // LOGGER.info("Delay before forcing: " + ((MinecraftAccessorMixin) client).getRightClickDelay());
 
         BlockPos pos = hitResult.getBlockPos();
         Vec3 center = Vec3.atCenterOf(pos);
         
-        // Calcul précis du point d'impact sur la nouvelle face (Offset)
+        // Precise calculation of the impact point on the new face (offset)
         Vec3 newHitPos = center.add(
             offset.getStepX() * 0.5,
             offset.getStepY() * 0.5,
@@ -72,29 +72,30 @@ public class FlexiblePlacementHandler {
         try {
             this.isPlacing = true;
             
-            // LE FIX : On écrase le délai. On force le passage.
+
+            // FIX: Override the delay to force the action.
             ((MinecraftAccessorMixin) client).setRightClickDelay(0);
 
-            // On exécute l'action avec notre Faux Clic
+            // Execute the action with our fake click
             InteractionResult result = client.gameMode.useItemOn(client.player, hand, newHit);
 
             if (result.consumesAction()) {
                 if (result.shouldSwing()) client.player.swing(hand);
                 
-                // Succès : On remet le délai à 4 pour éviter le spam APRÈS notre action
+                // Success: restore delay to 4 to avoid spam AFTER our action
                 ((MinecraftAccessorMixin) client).setRightClickDelay(4);
                 
                 return InteractionResult.SUCCESS; // Stop Vanilla
             }
             
         } catch (Exception e) {
-            LOGGER.error("Erreur placement flexible", e);
+            LOGGER.error("Flexible placement error", e);
         } finally {
             this.isPlacing = false;
         }
 
-        // Si ça a raté (ex: bloc dans le chemin), on met quand même le délai
-        // et on renvoie FAIL pour empêcher le clic Vanilla sur la face d'origine.
+        // If it failed (e.g. block in the way), restore the delay and
+        // return FAIL to prevent the vanilla click on the original face.
         ((MinecraftAccessorMixin) client).setRightClickDelay(4);
         return InteractionResult.FAIL; 
     }

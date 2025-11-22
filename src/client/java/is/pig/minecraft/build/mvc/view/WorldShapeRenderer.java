@@ -25,7 +25,7 @@ public class WorldShapeRenderer {
     }
 
     /**
-     * Restauration de la logique complète pour l'Anneau (Ring)
+     * Restore full logic for the Ring
      */
     public static void drawRing(VertexConsumer builder, Matrix4f mat, Axis axis, double radius, float r, float g, float b, float a) {
         double innerRadius = Math.max(0, radius - 1.0);
@@ -88,7 +88,7 @@ public class WorldShapeRenderer {
     }
 
     /**
-     * Restauration de la logique complète pour la Sphère
+     * Restore full logic for the Sphere
      */
     public static void drawSphere(VertexConsumer builder, Matrix4f mat, double radius, float r, float g, float b, float a) {
         double innerRadius = Math.max(0, radius - 1.0);

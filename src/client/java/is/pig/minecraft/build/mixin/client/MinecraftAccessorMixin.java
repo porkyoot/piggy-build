@@ -6,11 +6,11 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(Minecraft.class)
 public interface MinecraftAccessorMixin {
-    // Permet de lire le délai
+    // Allows reading the right-click delay
     @Accessor("rightClickDelay")
     int getRightClickDelay();
 
-    // Permet de modifier le délai (C'est ça qu'on veut !)
+    // Allows modifying the right-click delay (used to force clicks)
     @Accessor("rightClickDelay")
     void setRightClickDelay(int delay);
 }

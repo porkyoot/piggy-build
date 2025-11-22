@@ -21,17 +21,17 @@ public class PlacementCalculator {
         Vec3 hitPos = hit.getLocation();
         BlockPos p = hit.getBlockPos();
 
-        // 1. Calcul des coordonnées locales
+        // 1. Calculate local coordinates
         double x = hitPos.x - p.getX();
         double y = hitPos.y - p.getY();
         double z = hitPos.z - p.getZ();
 
-        // 2. Calcul de UV
+        // 2. Calculate UV
         double[] uv = getFaceUV(p, hitPos, face);
         double u = uv[0];
         double v = uv[1];
 
-        // 3. Calcul des distances
+        // 3. Calculate distances
         double distTop = v;
         double distBottom = 1.0 - v;
         double distLeft = u;
@@ -39,8 +39,8 @@ public class PlacementCalculator {
 
         double min = Math.min(Math.min(distTop, distBottom), Math.min(distLeft, distRight));
 
-        // 4. Détermination du résultat
-        Direction result = null; // Par défaut CENTER
+        // 4. Determine result
+        Direction result = null; // Default: CENTER
 
         if (min > CENTER_MARGIN) {
             result = null;
@@ -54,12 +54,12 @@ public class PlacementCalculator {
             result = getDirectionFromRotation(face, -90);
         }
 
-        // --- LOGGING CORRIGÉ ---
+        // --- LOGGING FIXED ---
         long now = System.currentTimeMillis();
-        // On logue si le résultat change ou toutes les 2 secondes pour ne pas spammer
+        // Log when the result changes or every 2 seconds to avoid spamming
         if (result != lastResult || (now - lastLogTime > 2000)) {
             
-            // CORRECTION : On utilise String.format pour formater proprement les chiffres
+            // NOTE: Use String.format for neat number formatting
             String logMessage = String.format(
                 "Math Debug -> Face: %s | Local(x:%.2f, y:%.2f, z:%.2f) => UV(u:%.2f, v:%.2f) => Result: %s", 
                 face, x, y, z, u, v, (result == null ? "CENTER" : result)
@@ -74,7 +74,7 @@ public class PlacementCalculator {
         return result;
     }
 
-    // --- HELPERS (Restent inchangés) ---
+    // --- HELPERS (unchanged) ---
 
     public static float getTextureRotation(Direction face, Direction offset) {
         if (getDirectionFromRotation(face, 0) == offset) return 0;

@@ -26,18 +26,18 @@ public class PiggyBuildClient implements ClientModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("piggy-build");
 
-    // Le contrôleur gère les entrées (Clavier, Souris, Tick)
+    // The controller manages input (keyboard, mouse, tick)
     private final InputController controller = new InputController();
 
     @Override
     public void onInitializeClient() {
-        // 1. Chargement de la configuration
+        // 1. Load configuration
         PiggyConfig.load();
 
-        // 2. Initialisation du contrôleur
+        // 2. Initialize controller
         controller.initialize();
 
-        // 3. Boucle de Rendu (Visualisation)
+        // 3. Render loop (visualization)
         WorldRenderEvents.LAST.register(context -> {
             Minecraft mc = Minecraft.getInstance();
             Camera camera = context.camera();
@@ -45,33 +45,33 @@ public class PiggyBuildClient implements ClientModInitializer {
             PoseStack stack = context.matrixStack();
             MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
 
-            // --- PARTIE 1 : VISUALISATION DES FORMES (Cercle, Sphère...) ---
+            // --- PART 1: RENDER BUILD SHAPES (Circle, Sphere...) ---
             renderBuildShapes(mc, cameraPos, stack, buffers);
 
-            // --- PARTIE 2 : PLACEMENT FLEXIBLE (Overlay sur face) ---
+            // --- PART 2: FLEXIBLE PLACEMENT (face overlay) ---
             renderFlexiblePlacement(mc, cameraPos, stack, buffers);
         });
     }
 
     /**
-     * Gère le rendu de la forme figée (BuildSession).
+     * Handles rendering of the fixed shape (BuildSession).
      */
     private void renderBuildShapes(Minecraft mc, Vec3 cameraPos, PoseStack stack, MultiBufferSource.BufferSource buffers) {
         BuildSession session = BuildSession.getInstance();
         
-        // Si aucune position n'est figée, on ne dessine pas de forme
+        // If no anchor position is set, don't draw any shape
         if (!session.isActive()) return;
 
         VertexConsumer builder = buffers.getBuffer(HighlightRenderType.TYPE);
 
-        // Récupération des couleurs depuis la config
+        // Retrieve colors from the config
         PiggyConfig config = PiggyConfig.getInstance();
         float r = config.getRedFloat();
         float g = config.getGreenFloat();
         float b = config.getBlueFloat();
         float a = config.getAlphaFloat();
 
-        // Calcul de la position relative à la caméra
+        // Calculate position relative to the camera
         double rx = session.getAnchorPos().getX() - cameraPos.x;
         double ry = session.getAnchorPos().getY() - cameraPos.y;
         double rz = session.getAnchorPos().getZ() - cameraPos.z;
@@ -79,7 +79,7 @@ public class PiggyBuildClient implements ClientModInitializer {
         stack.pushPose();
         stack.translate(rx, ry, rz);
 
-        // Délégation au renderer géométrique
+        // Delegate to geometric renderer
         switch (session.getShape()) {
             case BLOCK -> WorldShapeRenderer.drawBlock(builder, stack.last().pose(), 0, 0, 0, r, g, b, a);
             case LINE -> WorldShapeRenderer.drawLine(builder, stack.last().pose(), session.getAnchorAxis(), session.getRadius(), r, g, b, a);
@@ -88,12 +88,12 @@ public class PiggyBuildClient implements ClientModInitializer {
         }
 
         stack.popPose();
-        // Envoi du batch pour la transparence
+        // Send the batch for transparency
         buffers.endBatch(HighlightRenderType.TYPE);
     }
 
     /**
-     * Gère le rendu de l'overlay de placement (PlacementSession).
+     * Handles rendering of the placement overlay (PlacementSession).
      */
     private void renderFlexiblePlacement(Minecraft mc, Vec3 cameraPos, PoseStack stack, MultiBufferSource.BufferSource buffers) {
         PlacementSession session = PlacementSession.getInstance();

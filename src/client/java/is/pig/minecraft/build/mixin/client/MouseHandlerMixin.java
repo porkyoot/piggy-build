@@ -13,12 +13,12 @@ public class MouseHandlerMixin {
 
     @Inject(method = "onScroll", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;isSpectator()Z"), cancellable = true)
     private void onMouseScroll(long window, double horizontal, double vertical, CallbackInfo ci) {
-        // On déclenche notre événement
-        // Si vertical != 0 (il y a un scroll)
+        // Fire our event
+        // If vertical != 0 (there is a scroll)
         if (vertical != 0) {
             boolean cancelled = MouseScrollCallback.EVENT.invoker().onScroll(vertical);
             if (cancelled) {
-                ci.cancel(); // On empêche Minecraft de changer l'item dans la main
+                ci.cancel(); // Prevent Minecraft from changing the held item
             }
         }
     }

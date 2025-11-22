@@ -10,16 +10,16 @@ public interface MouseScrollCallback {
             for (MouseScrollCallback listener : listeners) {
                 boolean result = listener.onScroll(amount);
                 if (result) {
-                    return true; // Si un listener renvoie true, on annule le scroll vanilla
+                    return true; // If a listener returns true, cancel the vanilla scroll
                 }
             }
             return false;
         });
 
     /**
-     * Appelé lors du scroll de la souris.
-     * @param amount La quantité de scroll (positif = haut, négatif = bas)
-     * @return true pour annuler le comportement par défaut (changer d'item), false pour laisser faire.
+     * Called when the mouse is scrolled.
+     * @param amount The scroll amount (positive = up, negative = down)
+     * @return true to cancel the default behavior (changing the selected item), false to allow it.
      */
     boolean onScroll(double amount);
 }
