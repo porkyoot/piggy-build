@@ -19,7 +19,7 @@
 			"is.pig.minecraft.build.PiggyBuild"
 		],
 		"client": [
-			"is.pig.minecraft.build.PiggyBuildClient"
+			"is.pig.minecraft.build.PiggyBuildMod"
 		],
 		"fabric-datagen": [
 			"is.pig.minecraft.build.PiggyBuildDataGenerator"

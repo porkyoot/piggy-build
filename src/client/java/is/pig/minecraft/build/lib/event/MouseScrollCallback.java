@@ -1,4 +1,4 @@
-package is.pig.minecraft.build;
+package is.pig.minecraft.build.lib.event;
 
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;

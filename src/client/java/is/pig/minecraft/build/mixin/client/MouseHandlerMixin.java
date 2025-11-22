@@ -1,11 +1,12 @@
 package is.pig.minecraft.build.mixin.client;
 
-import is.pig.minecraft.build.MouseScrollCallback;
 import net.minecraft.client.MouseHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import is.pig.minecraft.build.lib.event.MouseScrollCallback;
 
 @Mixin(MouseHandler.class)
 public class MouseHandlerMixin {
