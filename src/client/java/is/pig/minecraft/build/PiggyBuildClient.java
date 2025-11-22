@@ -1,5 +1,8 @@
 package is.pig.minecraft.build;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import is.pig.minecraft.build.config.PiggyConfig;
@@ -20,6 +23,8 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 public class PiggyBuildClient implements ClientModInitializer {
+
+    public static final Logger LOGGER = LoggerFactory.getLogger("piggy-build");
 
     // Le contrôleur gère les entrées (Clavier, Souris, Tick)
     private final InputController controller = new InputController();

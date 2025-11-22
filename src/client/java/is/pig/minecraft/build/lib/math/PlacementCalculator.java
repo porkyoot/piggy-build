@@ -5,11 +5,12 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import is.pig.minecraft.build.PiggyBuildClient;
 
 public class PlacementCalculator {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger("piggy-math");
+    private static final Logger LOGGER = PiggyBuildClient.LOGGER;
     private static final double CENTER_MARGIN = 0.25;
 
     private static Direction lastResult = null;

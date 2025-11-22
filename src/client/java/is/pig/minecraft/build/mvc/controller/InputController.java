@@ -35,7 +35,7 @@ public class InputController {
         flexibleKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
             "Flexible Block Placement", 
             InputConstants.Type.MOUSE, 
-            GLFW.GLFW_MOUSE_BUTTON_4, 
+            GLFW.GLFW_MOUSE_BUTTON_5, 
             "Piggy Build"
         ));
     }
