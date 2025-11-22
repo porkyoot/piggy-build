@@ -77,48 +77,52 @@ public class FlexiblePlacementRenderer {
     }
 
     private static float calculateTextureRotation(Direction face, Direction offset) {
-        if (face == Direction.UP) {
-            if (offset == Direction.NORTH)
-                return 180;
-            if (offset == Direction.SOUTH)
-                return 0;
-            if (offset == Direction.EAST)
-                return 90;
-            if (offset == Direction.WEST)
-                return -90;
-        }
-        if (face == Direction.DOWN) {
-            if (offset == Direction.NORTH) return 0;
-            if (offset == Direction.SOUTH) return 180;
-            if (offset == Direction.EAST) return 90;
-            if (offset == Direction.WEST) return -90;
-        }
-        if (face == Direction.NORTH) {
-            if (offset == Direction.UP) return 0;
-            if (offset == Direction.DOWN) return 180;
-            if (offset == Direction.EAST) return -90;
-            if (offset == Direction.WEST) return 90;
-        }
-        if (face == Direction.SOUTH) {
-            if (offset == Direction.UP) return 0;
-            if (offset == Direction.DOWN) return 180;
-            if (offset == Direction.EAST) return 90; 
-            if (offset == Direction.WEST) return -90; 
-        }
-        if (face == Direction.WEST) {
-            if (offset == Direction.UP) return 0;
-            if (offset == Direction.DOWN) return 180;
-            if (offset == Direction.NORTH) return -90;
-            if (offset == Direction.SOUTH) return 90;
-        }
-        if (face == Direction.EAST) {
-            if (offset == Direction.UP) return 0;
-            if (offset == Direction.DOWN) return 180;
-            if (offset == Direction.NORTH) return 90;
-            if (offset == Direction.SOUTH) return -90;
-        }
-        return 0;
-    }
+    return switch (face) {
+        case UP -> switch (offset) {
+            case NORTH -> 180;
+            case SOUTH -> 0;
+            case EAST -> 90;
+            case WEST -> -90;
+            default -> 0;
+        };
+        case DOWN -> switch (offset) {
+            case NORTH -> 0;
+            case SOUTH -> 180;
+            case EAST -> 90;
+            case WEST -> -90;
+            default -> 0;
+        };
+        case NORTH -> switch (offset) {
+            case UP -> 0;
+            case DOWN -> 180;
+            case EAST -> -90;
+            case WEST -> 90;
+            default -> 0;
+        };
+        case SOUTH -> switch (offset) {
+            case UP -> 0;
+            case DOWN -> 180;
+            case EAST -> 90;
+            case WEST -> -90;
+            default -> 0;
+        };
+        case WEST -> switch (offset) {
+            case UP -> 0;
+            case DOWN -> 180;
+            case NORTH -> -90;
+            case SOUTH -> 90;
+            default -> 0;
+        };
+        case EAST -> switch (offset) {
+            case UP -> 0;
+            case DOWN -> 180;
+            case NORTH -> 90;
+            case SOUTH -> -90;
+            default -> 0;
+        };
+        default -> 0;
+    };
+}
     
     // Public accessors for textures (used in Client)
     public static ResourceLocation getArrowTexture() { return ARROW_TEXTURE; }

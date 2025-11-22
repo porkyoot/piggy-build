@@ -11,8 +11,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.toasts.SystemToast;
-import net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.BlockHitResult;
@@ -28,11 +26,6 @@ public class InputController {
     public static KeyMapping triggerKey;
     public static KeyMapping flexibleKey;
     private boolean wasKeyDown = false;
-
-    // State for Debug Toast to avoid spam
-    private Direction lastFace = null;
-    private Direction lastOffset = null;
-    private boolean wasFlexActive = false;
 
     public void initialize() {
         triggerKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
@@ -72,34 +65,12 @@ public class InputController {
             if (client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK) {
                 BlockHitResult hit = (BlockHitResult) client.hitResult;
                 
-                Direction currentFace = hit.getDirection();
                 Direction offset = PlacementCalculator.getOffsetDirection(hit);
                 
                 PlacementSession.getInstance().setCurrentOffset(offset);
-
-                // --- DEBUG TOAST LOGIC ---
-                boolean stateChanged = (currentFace != lastFace) || (offset != lastOffset);
-                
-                if (stateChanged) {
-                    String offsetText = (offset == null) ? "CENTER" : offset.name();
-                    
-                    // CORRECTION ICI : SystemToast.Id (et non SystemToastIds)
-                    SystemToast.add(
-                        client.getToasts(),
-                        SystemToastId.PERIODIC_NOTIFICATION, // <--- CHANGEMENT ICI
-                        Component.literal("Face: " + currentFace.name()),
-                        Component.literal("Direction: " + offsetText)
-                    );
-
-                    lastFace = currentFace;
-                    lastOffset = offset;
-                }
             } else {
                 PlacementSession.getInstance().setCurrentOffset(null);
             }
-        } else {
-            lastFace = null;
-            lastOffset = null;
         }
     }
 
