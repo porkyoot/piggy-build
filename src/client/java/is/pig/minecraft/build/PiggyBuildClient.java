@@ -122,11 +122,19 @@ public class PiggyBuildClient implements ClientModInitializer {
             stack.pushPose();
             stack.translate(rx, ry, rz);
 
+            // Pass configured overlay color (placement-specific)
+            PiggyConfig config = PiggyConfig.getInstance();
+            float rr = config.getPlacementRedFloat();
+            float gg = config.getPlacementGreenFloat();
+            float bb = config.getPlacementBlueFloat();
+            float aa = config.getPlacementAlphaFloat();
+
             FlexiblePlacementRenderer.render(
-                overlayBuilder, 
-                stack, 
-                hit.getDirection(), 
-                offset // Can be null
+                overlayBuilder,
+                stack,
+                hit.getDirection(),
+                offset, // Can be null
+                rr, gg, bb, aa
             );
 
             stack.popPose();

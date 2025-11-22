@@ -25,7 +25,9 @@ public class PiggyConfig {
             .create();
 
     // --- CONFIG FIELDS ---
-    private Color highlightColor = new Color(0, 255, 230, 100); // Teal default
+    private Color highlightColor = new Color(0, 255, 230, 100); // Teal default (shape selector)
+    // Separate color for the flexible placement overlay
+    private Color placementOverlayColor = new Color(0, 255, 230, 100); // same default
 
     // --- GETTERS / SETTERS ---
     public static PiggyConfig getInstance() {
@@ -42,10 +44,23 @@ public class PiggyConfig {
         this.highlightColor = highlightColor;
     }
 
+    public Color getPlacementOverlayColor() {
+        return placementOverlayColor;
+    }
+
+    public void setPlacementOverlayColor(Color placementOverlayColor) {
+        this.placementOverlayColor = placementOverlayColor;
+    }
+
     public float getRedFloat() { return highlightColor.getRed() / 255.0f; }
     public float getGreenFloat() { return highlightColor.getGreen() / 255.0f; }
     public float getBlueFloat() { return highlightColor.getBlue() / 255.0f; }
     public float getAlphaFloat() { return highlightColor.getAlpha() / 255.0f; }
+
+    public float getPlacementRedFloat() { return placementOverlayColor.getRed() / 255.0f; }
+    public float getPlacementGreenFloat() { return placementOverlayColor.getGreen() / 255.0f; }
+    public float getPlacementBlueFloat() { return placementOverlayColor.getBlue() / 255.0f; }
+    public float getPlacementAlphaFloat() { return placementOverlayColor.getAlpha() / 255.0f; }
 
     // --- PERSISTENCE ---
     public static void load() {

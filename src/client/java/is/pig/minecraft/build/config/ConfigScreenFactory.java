@@ -30,6 +30,18 @@ public class ConfigScreenFactory {
                     .controller(opt -> ColorControllerBuilder.create(opt)
                         .allowAlpha(true)) // Allow transparency editing
                     .build())
+                // --- PLACEMENT OVERLAY COLOR PICKER ---
+                .option(Option.<Color>createBuilder()
+                    .name(Component.literal("Placement Overlay Color"))
+                    .description(OptionDescription.of(Component.literal("The color and opacity of the flexible placement overlay.")))
+                    .binding(
+                        new Color(0, 255, 230, 100), // Default
+                        config::getPlacementOverlayColor, // Getter
+                        config::setPlacementOverlayColor  // Setter
+                    )
+                    .controller(opt -> ColorControllerBuilder.create(opt)
+                        .allowAlpha(true))
+                    .build())
                 .build())
 
             .save(PiggyConfig::save) // Auto-save when closing

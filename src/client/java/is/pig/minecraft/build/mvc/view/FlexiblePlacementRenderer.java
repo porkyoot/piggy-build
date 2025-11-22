@@ -19,6 +19,12 @@ public class FlexiblePlacementRenderer {
     
     private static final float EPSILON = 0.005f;
 
+    // Default overlay color (white) — configurable at runtime
+    private static float DEFAULT_R = 1.0f;
+    private static float DEFAULT_G = 1.0f;
+    private static float DEFAULT_B = 1.0f;
+    private static float DEFAULT_A = 1.0f;
+
     // We need a RenderType that allows changing textures dynamically or create two RenderTypes.
     // Since RenderType.create is static/immutable regarding texture, we will create a helper method
     // to get the RenderType for a specific texture.
@@ -39,6 +45,17 @@ public class FlexiblePlacementRenderer {
      * @param offset can be NULL (Center) or a Direction (Edge)
      */
     public static void render(VertexConsumer builder, PoseStack stack, Direction face, Direction offset) {
+        render(builder, stack, face, offset, DEFAULT_R, DEFAULT_G, DEFAULT_B, DEFAULT_A);
+    }
+
+    /**
+     * Render overlay with explicit color components.
+     * @param r red 0..1
+     * @param g green 0..1
+     * @param b blue 0..1
+     * @param a alpha 0..1
+     */
+    public static void render(VertexConsumer builder, PoseStack stack, Direction face, Direction offset, float r, float g, float b, float a) {
         if (face == null) return;
 
         stack.pushPose();
@@ -70,10 +87,10 @@ public class FlexiblePlacementRenderer {
         float max = size;
 
         // Note: The builder MUST correspond to the texture used (handled in Client)
-        builder.addVertex(mat, min, 0, min).setUv(0, 0).setColor(1f, 1f, 1f, 1f);
-        builder.addVertex(mat, min, 0, max).setUv(0, 1).setColor(1f, 1f, 1f, 1f);
-        builder.addVertex(mat, max, 0, max).setUv(1, 1).setColor(1f, 1f, 1f, 1f);
-        builder.addVertex(mat, max, 0, min).setUv(1, 0).setColor(1f, 1f, 1f, 1f);
+        builder.addVertex(mat, min, 0, min).setUv(0, 0).setColor(r, g, b, a);
+        builder.addVertex(mat, min, 0, max).setUv(0, 1).setColor(r, g, b, a);
+        builder.addVertex(mat, max, 0, max).setUv(1, 1).setColor(r, g, b, a);
+        builder.addVertex(mat, max, 0, min).setUv(1, 0).setColor(r, g, b, a);
 
         stack.popPose();
     }
