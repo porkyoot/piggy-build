@@ -34,16 +34,20 @@ public class PiggyBuildClient implements ClientModInitializer {
     private static BuildShape currentShape = BuildShape.RING;
     private boolean wasKeyDown = false;
 
-    // --- CONFIGURATION COULEUR (Teal par défaut) ---
-    // Tu pourras brancher un fichier de config ici plus tard
+    // --- CONFIGURATION COULEUR ---
     public static float HIGHLIGHT_RED = 0.0f;
     public static float HIGHLIGHT_GREEN = 1.0f;
     public static float HIGHLIGHT_BLUE = 0.9f;
-    public static float HIGHLIGHT_ALPHA = 0.4f; // Transparence dans le monde
+    public static float HIGHLIGHT_ALPHA = 0.4f; 
 
     // --- GETTERS / SETTERS ---
     public static BuildShape getShape() { return currentShape; }
-    public static void setShape(BuildShape shape) { currentShape = shape; }
+    
+    public static void setShape(BuildShape shape) { 
+        currentShape = shape; 
+        // PAS de popup ici
+    }
+    
     public static double getCurrentRadius() { return currentRadius; }
     
     public static void modifyRadius(int amount) {
@@ -51,11 +55,7 @@ public class PiggyBuildClient implements ClientModInitializer {
         if (currentRadius < 1.0) currentRadius = 1.0;
         if (currentRadius > 64.0) currentRadius = 64.0;
         
-        if (Minecraft.getInstance().player != null) {
-            Minecraft.getInstance().player.displayClientMessage(
-                net.minecraft.network.chat.Component.literal("Rayon : " + (int)currentRadius), true
-            );
-        }
+        // PAS de popup ici
     }
 
     @Override
@@ -98,7 +98,6 @@ public class PiggyBuildClient implements ClientModInitializer {
 
             VertexConsumer builderFill = bufferSource.getBuffer(HighlightRenderTypes.HIGHLIGHT_TYPE);
             
-            // Utilisation de la config couleur
             float r = HIGHLIGHT_RED;
             float g = HIGHLIGHT_GREEN;
             float b = HIGHLIGHT_BLUE;
