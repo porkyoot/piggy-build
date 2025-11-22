@@ -1,6 +1,8 @@
 package is.pig.minecraft.build.mvc.view;
 
 import com.mojang.blaze3d.vertex.*;
+
+import is.pig.minecraft.build.lib.math.PlacementCalculator;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
@@ -54,7 +56,7 @@ public class FlexiblePlacementRenderer {
         // 4. Handle Rotation vs Center
         if (offset != null) {
             // EDGE CASE: Rotate arrow
-            float rotationAngle = calculateTextureRotation(face, offset);
+            float rotationAngle = PlacementCalculator.getTextureRotation(face, offset);
             stack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(rotationAngle));
         } else {
             // CENTER CASE: No rotation needed (or fixed rotation)
@@ -75,54 +77,6 @@ public class FlexiblePlacementRenderer {
 
         stack.popPose();
     }
-
-    private static float calculateTextureRotation(Direction face, Direction offset) {
-    return switch (face) {
-        case UP -> switch (offset) {
-            case NORTH -> 180;
-            case SOUTH -> 0;
-            case EAST -> 90;
-            case WEST -> -90;
-            default -> 0;
-        };
-        case DOWN -> switch (offset) {
-            case NORTH -> 0;
-            case SOUTH -> 180;
-            case EAST -> 90;
-            case WEST -> -90;
-            default -> 0;
-        };
-        case NORTH -> switch (offset) {
-            case UP -> 0;
-            case DOWN -> 180;
-            case EAST -> -90;
-            case WEST -> 90;
-            default -> 0;
-        };
-        case SOUTH -> switch (offset) {
-            case UP -> 0;
-            case DOWN -> 180;
-            case EAST -> 90;
-            case WEST -> -90;
-            default -> 0;
-        };
-        case WEST -> switch (offset) {
-            case UP -> 0;
-            case DOWN -> 180;
-            case NORTH -> -90;
-            case SOUTH -> 90;
-            default -> 0;
-        };
-        case EAST -> switch (offset) {
-            case UP -> 0;
-            case DOWN -> 180;
-            case NORTH -> 90;
-            case SOUTH -> -90;
-            default -> 0;
-        };
-        default -> 0;
-    };
-}
     
     // Public accessors for textures (used in Client)
     public static ResourceLocation getArrowTexture() { return ARROW_TEXTURE; }
