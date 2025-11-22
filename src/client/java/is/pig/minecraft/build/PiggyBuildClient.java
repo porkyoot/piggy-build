@@ -26,97 +26,71 @@ public class PiggyBuildClient implements ClientModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("piggy-build");
 
-    // On met la touche en public static pour y accéder depuis le Screen
     public static KeyMapping triggerKey;
     
-	private static BlockPos frozenPos = null;
-	private static Direction.Axis frozenAxis = Direction.Axis.Y;
+    private static BlockPos frozenPos = null;
+    private static Direction.Axis frozenAxis = Direction.Axis.Y;
     private static double currentRadius = 4.0;
-    
-    // NOUVEAU : La forme actuelle
     private static BuildShape currentShape = BuildShape.RING;
-    
     private boolean wasKeyDown = false;
 
-    // GETTER
-    public static BuildShape getShape() {
-        return currentShape;
-    }
+    // --- CONFIGURATION COULEUR (Teal par défaut) ---
+    // Tu pourras brancher un fichier de config ici plus tard
+    public static float HIGHLIGHT_RED = 0.0f;
+    public static float HIGHLIGHT_GREEN = 1.0f;
+    public static float HIGHLIGHT_BLUE = 0.9f;
+    public static float HIGHLIGHT_ALPHA = 0.4f; // Transparence dans le monde
 
-    // SETTER (Silencieux pour le temps réel)
-    public static void setShape(BuildShape shape) {
-        currentShape = shape;
-    }
+    // --- GETTERS / SETTERS ---
+    public static BuildShape getShape() { return currentShape; }
+    public static void setShape(BuildShape shape) { currentShape = shape; }
+    public static double getCurrentRadius() { return currentRadius; }
     
-    public static double getCurrentRadius() {
-        return currentRadius;
-    }
-	
-	public static void modifyRadius(int amount) {
+    public static void modifyRadius(int amount) {
         currentRadius += amount;
         if (currentRadius < 1.0) currentRadius = 1.0;
         if (currentRadius > 64.0) currentRadius = 64.0;
         
-        // Feedback
-        Minecraft.getInstance().player.displayClientMessage(
-            net.minecraft.network.chat.Component.literal("Rayon : " + (int)currentRadius), true
-        );
+        if (Minecraft.getInstance().player != null) {
+            Minecraft.getInstance().player.displayClientMessage(
+                net.minecraft.network.chat.Component.literal("Rayon : " + (int)currentRadius), true
+            );
+        }
     }
 
     @Override
     public void onInitializeClient() {
-        // 1. Touche X
         triggerKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
             "key.piggy_build.trigger", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_X, "category.piggy_build"
         ));
 
-        // 2. MOLETTE (Avec ton Mixin existant)
         MouseScrollCallback.EVENT.register((amount) -> {
             if (triggerKey.isDown()) {
-                if (amount > 0) currentRadius += 1.0;
-                else if (amount < 0) currentRadius -= 1.0;
-                if (currentRadius < 1.0) currentRadius = 1.0;
-                if (currentRadius > 128.0) currentRadius = 128.0;
-                
-                Minecraft.getInstance().player.displayClientMessage(
-                    net.minecraft.network.chat.Component.literal("Rayon : " + (int)currentRadius), true
-                );
+                modifyRadius(amount > 0 ? 1 : -1);
                 return true; 
             }
             return false;
         });
 
-       // 3. LOGIQUE TICK : OUVERTURE DU MENU
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null) return;
-
             boolean isKeyDown = triggerKey.isDown();
 
-            // On ouvre SEULEMENT si la touche vient d'être appuyée ET qu'aucun menu n'est ouvert
             if (isKeyDown && !wasKeyDown && client.screen == null) {
-                BlockHitResult hit = (BlockHitResult) client.hitResult;
-                // Capture de la position
-				if (hit != null && hit.getType() == HitResult.Type.BLOCK) {
-					
-					frozenPos = hit.getBlockPos();
-					frozenAxis = hit.getDirection().getAxis();
+                if (client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK) {
+                    BlockHitResult hit = (BlockHitResult) client.hitResult;
+                    frozenPos = hit.getBlockPos();
+                    frozenAxis = hit.getDirection().getAxis();
                 }
-
-                // Ouverture du menu
                 client.setScreen(new RadialMenuScreen(currentShape));
             }
-            
             wasKeyDown = isKeyDown;
         });
 
-        // 4. RENDU MONDE
         WorldRenderEvents.LAST.register(context -> {
             if (frozenPos == null) return;
 
             Minecraft minecraft = Minecraft.getInstance();
-            // Si le menu radial est ouvert, on dessine quand même la forme en temps réel
-            // pour que le joueur voie ce qu'il sélectionne.
-            
             Camera camera = context.camera();
             Vec3 cameraPos = camera.getPosition();
             PoseStack poseStack = context.matrixStack();
@@ -124,7 +98,11 @@ public class PiggyBuildClient implements ClientModInitializer {
 
             VertexConsumer builderFill = bufferSource.getBuffer(HighlightRenderTypes.HIGHLIGHT_TYPE);
             
-            float r = 0f, g = 1f, b = 0.9f, a = 0.4f;
+            // Utilisation de la config couleur
+            float r = HIGHLIGHT_RED;
+            float g = HIGHLIGHT_GREEN;
+            float b = HIGHLIGHT_BLUE;
+            float a = HIGHLIGHT_ALPHA;
 
             double renderX = frozenPos.getX() - cameraPos.x;
             double renderY = frozenPos.getY() - cameraPos.y;
@@ -134,10 +112,8 @@ public class PiggyBuildClient implements ClientModInitializer {
             poseStack.translate(renderX, renderY, renderZ);
             Matrix4f mat = poseStack.last().pose();
             
-            // CHOIX DU DESSIN SELON L'ENUM
             switch (currentShape) {
                 case BLOCK:
-                    // Juste un bloc au centre (0,0,0)
                     ShapeRenderer.drawBlock(builderFill, mat, 0, 0, 0, r, g, b, a);
                     break;
                 case LINE:
