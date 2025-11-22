@@ -3,6 +3,8 @@ package is.pig.minecraft.build.lib.ui;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+
+import is.pig.minecraft.build.config.PiggyConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -155,12 +157,18 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         // Render Radial Segments
         double anglePerItem = (2 * Math.PI) / radialItems.size();
         for (int i = 0; i < radialItems.size(); i++) {
-            boolean hovered = (radialItems.get(i) == selectedItem);
             // Colors could be extracted to a Config object in the future
-            float r = hovered ? 0f : 1f; 
-            float g = hovered ? 1f : 1f;
-            float b = hovered ? 0.9f : 1f;
-            float a = hovered ? 0.5f : 0.15f;
+            float r = 1f; 
+            float g = 1f; 
+            float b = 1f; 
+            float a = 0.3f;
+            if ((radialItems.get(i) == selectedItem)) { // if hovered
+             PiggyConfig config = PiggyConfig.getInstance();
+             r = config.getRedFloat();
+             g = config.getGreenFloat();
+             b = config.getBlueFloat();
+             a = 0.6f;
+            }
 
             double start = (i * anglePerItem) - Math.toRadians(90);
             double end = ((i + 1) * anglePerItem) - Math.toRadians(90);
@@ -223,12 +231,22 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
     private void drawItemIcon(GuiGraphics graphics, T item, int x, int y) {
         boolean selected = (item == selectedItem);
         RenderSystem.enableBlend();
+        
         if(selected) {
-             // Apply selection tint (Teal)
-             RenderSystem.setShaderColor(0f, 1f, 0.9f, 1f);
+             // Use Config Color for Tinting
+             PiggyConfig config = PiggyConfig.getInstance();
+             RenderSystem.setShaderColor(
+                 config.getRedFloat(), 
+                 config.getGreenFloat(), 
+                 config.getBlueFloat(), 
+                 1.0f // Keep icon fully opaque, just tinted
+             );
+        } else {
+             RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
         }
+        
         graphics.blit(item.getIconLocation(selected), x, y, 0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f); // Reset
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
         RenderSystem.disableBlend();
     }
 

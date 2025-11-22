@@ -3,13 +3,13 @@
 	"id": "piggy-build",
 	"version": "${version}",
 	"name": "Piggy Build",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "A simple mod to help with building in Minecraft.",
 	"authors": [
-		"Me!"
+		"Étoile @porkyoot"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://pig.is/",
+		"sources": "https://github.com/porkyoot/piggy-build"
 	},
 	"license": "CC0-1.0",
 	"icon": "assets/piggy-build/icon.png",
@@ -19,10 +19,13 @@
 			"is.pig.minecraft.build.PiggyBuild"
 		],
 		"client": [
-			"is.pig.minecraft.build.PiggyBuildMod"
+			"is.pig.minecraft.build.PiggyBuildClient"
 		],
 		"fabric-datagen": [
 			"is.pig.minecraft.build.PiggyBuildDataGenerator"
+		],
+		"modmenu": [
+		"is.pig.minecraft.build.integration.ModMenuIntegration"
 		]
 	},
 	"mixins": [
@@ -36,9 +39,10 @@
 		"fabricloader": ">=0.18.1",
 		"minecraft": "~1.21.1",
 		"java": ">=21",
-		"fabric-api": "*"
+		"fabric-api": "*",
+		"yet_another_config_lib_v3": ">=3.6.1+1.21-fabric"
 	},
 	"suggests": {
-		"another-mod": "*"
+		"modmenu": ">=11.0.3"
 	}
 }

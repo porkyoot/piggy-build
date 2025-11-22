@@ -25,7 +25,7 @@ public class InputController {
 
     public void initialize() {
         triggerKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-            "key.piggy_build.trigger", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_X, "category.piggy_build"
+            "Shape Selector", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_X, "category.piggy_build"
         ));
 
         // Mixin Scroll (In-Game)

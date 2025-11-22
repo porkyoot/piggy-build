@@ -1,17 +1,19 @@
 package is.pig.minecraft.build;
 
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.PoseStack;
+import is.pig.minecraft.build.config.PiggyConfig; // <--- IMPORT
 import is.pig.minecraft.build.mvc.controller.InputController;
 import is.pig.minecraft.build.mvc.model.BuildSession;
 import is.pig.minecraft.build.mvc.view.HighlightRenderType;
 import is.pig.minecraft.build.mvc.view.WorldShapeRenderer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.phys.Vec3;
 
-public class PiggyBuildMod implements ClientModInitializer {
+public class PiggyBuildClient implements ClientModInitializer {
 
     private final InputController controller = new InputController();
 
@@ -19,20 +21,27 @@ public class PiggyBuildMod implements ClientModInitializer {
     public void onInitializeClient() {
         // 1. Initialize Controller (Inputs)
         controller.initialize();
+        
+        // 2. Load Config
+        PiggyConfig.load();
 
-        // 2. Register Renderer (View)
+        // 3. Register Renderer (View)
         WorldRenderEvents.LAST.register(context -> {
             BuildSession session = BuildSession.getInstance();
             if (!session.isActive()) return;
 
             Minecraft mc = Minecraft.getInstance();
             Vec3 cameraPos = context.camera().getPosition();
-            var stack = context.matrixStack();
+            PoseStack stack = context.matrixStack();
             MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
             VertexConsumer builder = buffers.getBuffer(HighlightRenderType.TYPE);
 
-            // Config Colors (Teal)
-            float r = 0f, g = 1f, b = 0.9f, a = 0.4f;
+            // --- USE CONFIG HERE ---
+            PiggyConfig config = PiggyConfig.getInstance();
+            float r = config.getRedFloat();
+            float g = config.getGreenFloat();
+            float b = config.getBlueFloat();
+            float a = config.getAlphaFloat();
 
             // Calculate relative position
             double rx = session.getAnchorPos().getX() - cameraPos.x;
@@ -42,7 +51,7 @@ public class PiggyBuildMod implements ClientModInitializer {
             stack.pushPose();
             stack.translate(rx, ry, rz);
 
-            // Delegate to ShapeRenderer based on State
+            // Delegate to ShapeRenderer
             switch (session.getShape()) {
                 case BLOCK -> WorldShapeRenderer.drawBlock(builder, stack.last().pose(), 0, 0, 0, r, g, b, a);
                 case LINE -> WorldShapeRenderer.drawLine(builder, stack.last().pose(), session.getAnchorAxis(), session.getRadius(), r, g, b, a);
