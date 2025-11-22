@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
 
 public class InputController {
@@ -54,7 +53,7 @@ public class InputController {
 
         // 3. Use Block (Right Click) -> Delegated to Placement Handler
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> 
-            placementHandler.onUseBlock(Minecraft.getInstance(), hand, hitResult)
+            placementHandler.onUseBlock(player, world, hand, hitResult)
         );
     }
 }

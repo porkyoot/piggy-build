@@ -62,7 +62,7 @@ public class PlacementCalculator {
             // NOTE: Use String.format for neat number formatting
             String logMessage = String.format(
                 "Math Debug -> Face: %s | Local(x:%.2f, y:%.2f, z:%.2f) => UV(u:%.2f, v:%.2f) => Result: %s", 
-                face, x, y, z, u, v, (result == null ? "CENTER" : result)
+                face, x, y, z, u, v, (result == null ? "center" : result)
             );
             
             LOGGER.info(logMessage);
