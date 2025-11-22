@@ -1,18 +1,24 @@
 package is.pig.minecraft.build;
 
+import net.minecraft.resources.ResourceLocation;
+
 public enum BuildShape {
-    BLOCK("Bloc Unique"), // Sera au centre
-    LINE("Ligne"),        // Radial 1
-    RING("Cercle"),       // Radial 2
-    SPHERE("Sphère");     // Radial 3
+    // On définit les noms de fichiers associés
+    BLOCK("block"),
+    LINE("line"),
+    RING("ring"),
+    SPHERE("sphere");
 
-    private final String displayName;
+    private final ResourceLocation iconNormal;
+    private final ResourceLocation iconSelected;
 
-    BuildShape(String displayName) {
-        this.displayName = displayName;
+    BuildShape(String fileName) {
+        // On pré-calcule les chemins pour ne pas le refaire à chaque image (Performance)
+        this.iconNormal = ResourceLocation.fromNamespaceAndPath("piggy-build", "textures/gui/" + fileName + ".png");
+        this.iconSelected = ResourceLocation.fromNamespaceAndPath("piggy-build", "textures/gui/" + fileName + "_selected.png");
     }
 
-    public String getDisplayName() {
-        return displayName;
+    public ResourceLocation getIcon(boolean isSelected) {
+        return isSelected ? iconSelected : iconNormal;
     }
 }

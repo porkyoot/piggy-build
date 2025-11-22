@@ -38,13 +38,19 @@ public class PiggyBuildClient implements ClientModInitializer {
     
     private boolean wasKeyDown = false;
 
-    // Setter utilisé par le menu radial pour changer la forme
-	public static void setCurrentShape(BuildShape shape) {
-		currentShape = shape;
-		// Petit feedback dans la chatbar
-		Minecraft.getInstance().player.displayClientMessage(
-				net.minecraft.network.chat.Component.literal("Forme : " + shape.getDisplayName()), true);
-	}
+    // GETTER
+    public static BuildShape getShape() {
+        return currentShape;
+    }
+
+    // SETTER (Silencieux pour le temps réel)
+    public static void setShape(BuildShape shape) {
+        currentShape = shape;
+    }
+    
+    public static double getCurrentRadius() {
+        return currentRadius;
+    }
 	
 	public static void modifyRadius(int amount) {
         currentRadius += amount;
@@ -70,7 +76,7 @@ public class PiggyBuildClient implements ClientModInitializer {
                 if (amount > 0) currentRadius += 1.0;
                 else if (amount < 0) currentRadius -= 1.0;
                 if (currentRadius < 1.0) currentRadius = 1.0;
-                if (currentRadius > 32.0) currentRadius = 32.0;
+                if (currentRadius > 128.0) currentRadius = 128.0;
                 
                 Minecraft.getInstance().player.displayClientMessage(
                     net.minecraft.network.chat.Component.literal("Rayon : " + (int)currentRadius), true
