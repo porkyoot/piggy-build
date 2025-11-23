@@ -6,6 +6,11 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.phys.BlockHitResult;
+
 import org.lwjgl.glfw.GLFW;
 
 public class InputController {
@@ -45,15 +50,26 @@ public class InputController {
 
         // 2. Client Tick -> Delegated to both handlers
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.player == null) return;
-            
+            if (client.player == null)
+                return;
+
             menuHandler.onTick(client);
             placementHandler.onTick(client);
         });
 
         // 3. Use Block (Right Click) -> Delegated to Placement Handler
-        UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> 
-            placementHandler.onUseBlock(player, world, hand, hitResult)
-        );
+        UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
+            if (world.isClientSide && hand == InteractionHand.MAIN_HAND) {
+                Minecraft client = Minecraft.getInstance();
+                BlockHitResult modified = placementHandler.onUseBlock(client, hitResult);
+
+                if (modified != null) {
+                    // Store it for the mixin to use
+                    FlexiblePlacementHandler.setModifiedHitResult(modified);
+                }
+            }
+
+            return InteractionResult.PASS; // Always pass - let vanilla handle it
+        });
     }
 }
