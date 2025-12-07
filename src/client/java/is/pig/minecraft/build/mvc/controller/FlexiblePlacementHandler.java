@@ -129,8 +129,24 @@ public class FlexiblePlacementHandler {
 
         // Store the target position for next placement
         if (result != null) {
-            session.setLastPlacedPos(result.getBlockPos());
-            PiggyBuildClient.LOGGER.debug("[Handler] Stored last placed pos: " + result.getBlockPos());
+            // For correct chaining:
+            // 1. If we clicked ON a block (Flexible/Vanilla), the NEW block is at
+            // pos.relative(face)
+            // 2. If we targeted a neighbor (Adjacent), the NEW block is implicitly there or
+            // relative to it
+
+            BlockPos nextPos = result.getBlockPos();
+
+            // If the hit result targets the same position as the input (common in Flexible
+            // mode),
+            // and we're placing on a face, the next block will be at that face offset.
+            if (nextPos.equals(pos)) {
+                nextPos = nextPos.relative(result.getDirection());
+            }
+
+            session.setLastPlacedPos(nextPos);
+            PiggyBuildClient.LOGGER.debug("[Handler] Stored last placed pos: " + nextPos + " (derived from result: "
+                    + result.getBlockPos() + ")");
         }
 
         return result;
