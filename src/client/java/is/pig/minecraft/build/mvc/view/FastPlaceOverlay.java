@@ -18,7 +18,7 @@ public class FastPlaceOverlay {
             "textures/gui/speed_indicator.png");
     private static final int ICON_SIZE = 16;
 
-    private static boolean lastState = false;
+    private static Boolean lastState = null; // Use Boolean to detect first render
     private static long lastPlaceTime = 0;
 
     /**
@@ -37,6 +37,11 @@ public class FastPlaceOverlay {
             return;
 
         boolean isActive = PiggyConfig.getInstance().isFastPlaceEnabled();
+
+        // Initialize lastState on first render to match config
+        if (lastState == null) {
+            lastState = isActive;
+        }
 
         // Track state changes
         if (isActive != lastState) {

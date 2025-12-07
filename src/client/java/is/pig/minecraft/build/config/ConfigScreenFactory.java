@@ -56,7 +56,6 @@ public class ConfigScreenFactory {
                     .description(OptionDescription.of(
                         Component.literal("Minimum delay between block placements"),
                         Component.literal(""),
-                        Component.literal("0ms = Instant (fastest)"),
                         Component.literal("50ms = 20 blocks/second"),
                         Component.literal("100ms = 10 blocks/second"),
                         Component.literal("200ms = 5 blocks/second")
@@ -67,7 +66,7 @@ public class ConfigScreenFactory {
                         config::setFastPlaceDelayMs
                     )
                     .controller(opt -> IntegerSliderControllerBuilder.create(opt)
-                        .range(0, 500)
+                        .range(50, 500)
                         .step(10)
                         .formatValue(value -> Component.literal(value + " ms"))
                     )

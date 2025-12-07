@@ -9,6 +9,9 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Handles fast block breaking when fast placement is active and player is in
  * creative mode.
@@ -17,6 +20,10 @@ import net.minecraft.world.phys.HitResult;
 public class FastBreakHandler {
 
     private long lastBreakTime = 0;
+
+    // Track recently broken blocks to prevent ghost blocks
+    private final Map<BlockPos, Long> recentlyBroken = new HashMap<>();
+    private static final long GHOST_PREVENTION_MS = 100; // Don't re-break same block for 100ms
 
     /**
      * Called every client tick to handle fast breaking logic
@@ -36,6 +43,10 @@ public class FastBreakHandler {
             return;
         }
 
+        // Clean up old entries from recently broken map
+        long currentTime = System.currentTimeMillis();
+        recentlyBroken.entrySet().removeIf(entry -> currentTime - entry.getValue() > GHOST_PREVENTION_MS);
+
         // Try to break blocks continuously
         tryFastBreak(client);
     }
@@ -53,8 +64,18 @@ public class FastBreakHandler {
             return;
         }
 
-        // Check if enough time has passed since last break
+        BlockPos blockPos = blockHit.getBlockPos();
+
+        // Don't break the same block we just broke (ghost block prevention)
         long currentTime = System.currentTimeMillis();
+        if (recentlyBroken.containsKey(blockPos)) {
+            long timeSinceBreak = currentTime - recentlyBroken.get(blockPos);
+            if (timeSinceBreak < GHOST_PREVENTION_MS) {
+                return; // Skip this block, it was recently broken
+            }
+        }
+
+        // Check if enough time has passed since last break
         long minDelay = PiggyConfig.getInstance().getFastPlaceDelayMs();
 
         if (currentTime - lastBreakTime < minDelay) {
@@ -78,13 +99,22 @@ public class FastBreakHandler {
         BlockPos blockPos = hitResult.getBlockPos();
 
         try {
+            // Verify the block exists client-side before trying to break it
+            if (client.level.getBlockState(blockPos).isAir()) {
+                PiggyBuildClient.LOGGER.debug("[FastBreak] Block at {} is already air (ghost block), skipping",
+                        blockPos);
+                return;
+            }
+
             // In creative mode, we can instantly destroy blocks
-            // Use continueDestroyBlock which handles creative mode properly
             boolean success = client.gameMode.destroyBlock(blockPos);
 
             if (success) {
                 // Update last break time
                 lastBreakTime = System.currentTimeMillis();
+
+                // Track this position to prevent re-breaking
+                recentlyBroken.put(blockPos.immutable(), lastBreakTime);
 
                 // Swing animation
                 player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);

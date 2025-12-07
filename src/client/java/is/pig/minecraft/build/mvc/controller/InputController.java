@@ -48,8 +48,8 @@ public class InputController {
 
         fastPlaceKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "Fast Block Placement",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_LEFT_CONTROL,
+                InputConstants.Type.MOUSE,
+                GLFW.GLFW_MOUSE_BUTTON_6,
                 "Piggy Build"));
     }
 

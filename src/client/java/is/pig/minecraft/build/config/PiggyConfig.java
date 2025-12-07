@@ -29,7 +29,7 @@ public class PiggyConfig {
     private Color placementOverlayColor = new Color(0, 255, 230, 100);
     
     // Fast placement settings
-    private int fastPlaceDelayMs = 0;
+    private int fastPlaceDelayMs = 100;
     private boolean fastPlaceEnabled = false;
 
     // --- GETTERS / SETTERS ---

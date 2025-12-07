@@ -102,8 +102,25 @@ public class FastPlacementHandler {
             // Use the main hand for placement
             InteractionHand hand = InteractionHand.MAIN_HAND;
 
-            // Perform the placement through the game mode
-            InteractionResult result = client.gameMode.useItemOn(player, hand, hitResult);
+            // Check if flexible or adjacent mode is active
+            boolean flexibleActive = InputController.flexibleKey.isDown();
+            boolean adjacentActive = InputController.adjacentKey.isDown();
+
+            BlockHitResult finalHitResult = hitResult;
+
+            // If flexible or adjacent mode is active, modify the hit result
+            if (flexibleActive || adjacentActive) {
+                FlexiblePlacementHandler handler = InputController.getFlexiblePlacementHandler();
+                if (handler != null) {
+                    finalHitResult = handler.modifyHitResult(client, hitResult);
+                    PiggyBuildClient.LOGGER.info("[FastPlace] Using modified hit result from " +
+                            (flexibleActive ? "FLEXIBLE" : "ADJACENT") + " mode");
+                }
+            }
+
+            // Perform the placement through the game mode with the (possibly modified) hit
+            // result
+            InteractionResult result = client.gameMode.useItemOn(player, hand, finalHitResult);
 
             if (result.consumesAction()) {
                 // Update last placement time
