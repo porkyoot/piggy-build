@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import is.pig.minecraft.build.config.PiggyConfig;
+import is.pig.minecraft.build.config.ConfigPersistence;
 import is.pig.minecraft.build.mvc.controller.InputController;
 import is.pig.minecraft.build.mvc.model.BuildSession;
 import is.pig.minecraft.build.mvc.model.PlacementSession;
@@ -34,7 +35,7 @@ public class PiggyBuildClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         // 1. Load configuration
-        PiggyConfig.load();
+        ConfigPersistence.load();
 
         // 2. Initialize controller
         controller.initialize();
@@ -75,10 +76,11 @@ public class PiggyBuildClient implements ClientModInitializer {
 
         // Retrieve colors from the config
         PiggyConfig config = PiggyConfig.getInstance();
-        float r = config.getRedFloat();
-        float g = config.getGreenFloat();
-        float b = config.getBlueFloat();
-        float a = config.getAlphaFloat();
+        float[] rgba = config.getHighlightColor().getComponents(null);
+        float r = rgba[0];
+        float g = rgba[1];
+        float b = rgba[2];
+        float a = rgba[3];
 
         // Calculate position relative to the camera
         double rx = session.getAnchorPos().getX() - cameraPos.x;
@@ -137,10 +139,11 @@ public class PiggyBuildClient implements ClientModInitializer {
 
             // Pass configured overlay color (placement-specific)
             PiggyConfig config = PiggyConfig.getInstance();
-            float rr = config.getPlacementRedFloat();
-            float gg = config.getPlacementGreenFloat();
-            float bb = config.getPlacementBlueFloat();
-            float aa = config.getPlacementAlphaFloat();
+            float[] placementRgba = config.getPlacementOverlayColor().getComponents(null);
+            float rr = placementRgba[0];
+            float gg = placementRgba[1];
+            float bb = placementRgba[2];
+            float aa = placementRgba[3];
 
             FlexiblePlacementRenderer.render(
                     overlayBuilder,

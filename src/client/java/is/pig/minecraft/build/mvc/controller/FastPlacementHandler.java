@@ -2,6 +2,7 @@ package is.pig.minecraft.build.mvc.controller;
 
 import is.pig.minecraft.build.PiggyBuildClient;
 import is.pig.minecraft.build.config.PiggyConfig;
+import is.pig.minecraft.build.config.ConfigPersistence;
 import is.pig.minecraft.build.mixin.client.MinecraftAccessorMixin;
 import is.pig.minecraft.build.mvc.view.FastPlaceOverlay;
 import net.minecraft.client.Minecraft;
@@ -45,12 +46,12 @@ public class FastPlacementHandler {
     private void toggleFastPlace() {
         PiggyConfig config = PiggyConfig.getInstance();
         config.setFastPlaceEnabled(!config.isFastPlaceEnabled());
-        PiggyConfig.save();
+        ConfigPersistence.save();
 
         if (config.isFastPlaceEnabled()) {
-            PiggyBuildClient.LOGGER.info("[FastPlace] Enabled");
+            PiggyBuildClient.LOGGER.debug("[FastPlace] Enabled");
         } else {
-            PiggyBuildClient.LOGGER.info("[FastPlace] Disabled");
+            PiggyBuildClient.LOGGER.debug("[FastPlace] Disabled");
         }
     }
 
@@ -113,7 +114,7 @@ public class FastPlacementHandler {
                 FlexiblePlacementHandler handler = InputController.getFlexiblePlacementHandler();
                 if (handler != null) {
                     finalHitResult = handler.modifyHitResult(client, hitResult);
-                    PiggyBuildClient.LOGGER.info("[FastPlace] Using modified hit result from " +
+                    PiggyBuildClient.LOGGER.debug("[FastPlace] Using modified hit result from " +
                             (flexibleActive ? "FLEXIBLE" : "ADJACENT") + " mode");
                 }
             }

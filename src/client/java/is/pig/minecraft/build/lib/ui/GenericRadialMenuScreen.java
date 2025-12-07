@@ -19,7 +19,9 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
- * A generic Radial Menu Screen that displays a center item and a ring of surrounding items.
+ * A generic Radial Menu Screen that displays a center item and a ring of
+ * surrounding items.
+ * 
  * @param <T> The type of the item (usually an Enum).
  */
 public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
@@ -34,20 +36,20 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
     private final List<T> radialItems;
     private final Consumer<T> onSelectionChanged; // Callback when selection changes
     private final Function<T, Component> extraInfoProvider;
-    private final Runnable onCloseCallback;       // Callback when menu closes
+    private final Runnable onCloseCallback; // Callback when menu closes
     private final InputConstants.Key triggerKey; // The key holding the menu open
     private final Predicate<Double> onScrollCallback;
 
     private T selectedItem;
 
-    public GenericRadialMenuScreen(Component title, 
-                                   T centerItem, 
-                                   List<T> radialItems, 
-                                   T currentSelection, 
-                                   InputConstants.Key triggerKey,
-                                   Consumer<T> onSelectionChanged,
-                                   Runnable onCloseCallback,
-                                   Function<T, Component> extraInfoProvider,
+    public GenericRadialMenuScreen(Component title,
+            T centerItem,
+            List<T> radialItems,
+            T currentSelection,
+            InputConstants.Key triggerKey,
+            Consumer<T> onSelectionChanged,
+            Runnable onCloseCallback,
+            Function<T, Component> extraInfoProvider,
             Predicate<Double> onScrollCallback) {
         super(title);
         this.centerItem = centerItem;
@@ -59,7 +61,7 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         this.extraInfoProvider = extraInfoProvider;
         this.onScrollCallback = onScrollCallback;
     }
-    
+
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         // If we're on the center item, do nothing (as requested earlier)
@@ -78,7 +80,9 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
     }
 
     @Override
-    public boolean isPauseScreen() { return false; }
+    public boolean isPauseScreen() {
+        return false;
+    }
 
     @Override
     public void tick() {
@@ -99,7 +103,8 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
 
     @Override
     public void onClose() {
-        if (onCloseCallback != null) onCloseCallback.run();
+        if (onCloseCallback != null)
+            onCloseCallback.run();
         super.onClose();
     }
 
@@ -116,7 +121,7 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
     private void updateSelection(int mx, int my, int cx, int cy) {
         double dx = mx - cx;
         double dy = my - cy;
-        double dist = Math.sqrt(dx*dx + dy*dy);
+        double dist = Math.sqrt(dx * dx + dy * dy);
 
         T newSelection;
 
@@ -124,7 +129,8 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
             newSelection = centerItem;
         } else {
             double angle = Math.atan2(dy, dx) - Math.toRadians(-90);
-            if (angle < 0) angle += 2 * Math.PI;
+            if (angle < 0)
+                angle += 2 * Math.PI;
 
             double anglePerItem = (2 * Math.PI) / radialItems.size();
             int index = (int) (angle / anglePerItem) % radialItems.size();
@@ -144,12 +150,12 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         PoseStack poseStack = graphics.pose();
         poseStack.pushPose();
         poseStack.translate(0, 0, 10); // Z-offset
-        
+
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableCull();
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        
+
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
         Matrix4f mat = poseStack.last().pose();
@@ -158,16 +164,17 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         double anglePerItem = (2 * Math.PI) / radialItems.size();
         for (int i = 0; i < radialItems.size(); i++) {
             // Colors could be extracted to a Config object in the future
-            float r = 1f; 
-            float g = 1f; 
-            float b = 1f; 
+            float r = 1f;
+            float g = 1f;
+            float b = 1f;
             float a = 0.3f;
             if ((radialItems.get(i) == selectedItem)) { // if hovered
-             PiggyConfig config = PiggyConfig.getInstance();
-             r = config.getRedFloat();
-             g = config.getGreenFloat();
-             b = config.getBlueFloat();
-             a = 0.6f;
+                PiggyConfig config = PiggyConfig.getInstance();
+                float[] rgba = config.getHighlightColor().getComponents(null);
+                r = rgba[0];
+                g = rgba[1];
+                b = rgba[2];
+                a = 0.6f;
             }
 
             double start = (i * anglePerItem) - Math.toRadians(90);
@@ -178,13 +185,14 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         }
 
         // Render Center
-        //boolean centerHovered = (centerItem == selectedItem);
-        //float cr = centerHovered ? 0f : 1f; 
-        //float cg = centerHovered ? 1f : 1f; 
-        //float cb = centerHovered ? 0.9f : 1f; 
-        //float ca = centerHovered ? 0.5f : 0.15f;
-        
-        //drawArc(buffer, mat, cx, cy, 0, INNER_RADIUS - 2, 0, Math.PI * 2, cr, cg, cb, ca);
+        // boolean centerHovered = (centerItem == selectedItem);
+        // float cr = centerHovered ? 0f : 1f;
+        // float cg = centerHovered ? 1f : 1f;
+        // float cb = centerHovered ? 0.9f : 1f;
+        // float ca = centerHovered ? 0.5f : 0.15f;
+
+        // drawArc(buffer, mat, cx, cy, 0, INNER_RADIUS - 2, 0, Math.PI * 2, cr, cg, cb,
+        // ca);
 
         BufferUploader.drawWithShader(buffer.buildOrThrow());
         RenderSystem.enableCull();
@@ -215,11 +223,11 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         // Center Icon
         drawItemIcon(graphics, centerItem, cx - (ICON_SIZE / 2), cy - (ICON_SIZE / 2));
     }
-    
+
     private void drawExtraInfo(GuiGraphics graphics, Component text, int iconX, int iconY, double angleRad) {
-        float textDistance = ICON_SIZE * 0.8f; 
-        int textX = iconX + (ICON_SIZE / 2) + (int)(Math.cos(angleRad) * textDistance);
-        int textY = iconY + (ICON_SIZE / 2) + (int)(Math.sin(angleRad) * textDistance);
+        float textDistance = ICON_SIZE * 0.8f;
+        int textX = iconX + (ICON_SIZE / 2) + (int) (Math.cos(angleRad) * textDistance);
+        int textY = iconY + (ICON_SIZE / 2) + (int) (Math.sin(angleRad) * textDistance);
 
         int textWidth = this.font.width(text);
         textX -= textWidth / 2;
@@ -231,37 +239,43 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
     private void drawItemIcon(GuiGraphics graphics, T item, int x, int y) {
         boolean selected = (item == selectedItem);
         RenderSystem.enableBlend();
-        
-        if(selected) {
-             // Use Config Color for Tinting
-             PiggyConfig config = PiggyConfig.getInstance();
-             RenderSystem.setShaderColor(
-                 config.getRedFloat(), 
-                 config.getGreenFloat(), 
-                 config.getBlueFloat(), 
-                 1.0f // Keep icon fully opaque, just tinted
-             );
+
+        if (selected) {
+            // Use Config Color for Tinting
+            PiggyConfig config = PiggyConfig.getInstance();
+            float[] rgba = config.getHighlightColor().getComponents(null);
+            RenderSystem.setShaderColor(
+                    rgba[0],
+                    rgba[1],
+                    rgba[2],
+                    1.0f // Keep icon fully opaque, just tinted
+            );
         } else {
-             RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
         }
-        
+
         graphics.blit(item.getIconLocation(selected), x, y, 0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
         RenderSystem.disableBlend();
     }
 
-    private void drawArc(VertexConsumer buffer, Matrix4f mat, float cx, float cy, float rIn, float rOut, double start, double end, float r, float g, float b, float a) {
+    private void drawArc(VertexConsumer buffer, Matrix4f mat, float cx, float cy, float rIn, float rOut, double start,
+            double end, float r, float g, float b, float a) {
         int segments = 32;
         double step = (end - start) / segments;
         for (int i = 0; i < segments; i++) {
             double a1 = start + (i * step);
             double a2 = start + ((i + 1) * step);
-            
+
             // Vertices calculation
-            float x1In = (float)(cx + Math.cos(a1)*rIn); float y1In = (float)(cy + Math.sin(a1)*rIn);
-            float x1Out = (float)(cx + Math.cos(a1)*rOut); float y1Out = (float)(cy + Math.sin(a1)*rOut);
-            float x2In = (float)(cx + Math.cos(a2)*rIn); float y2In = (float)(cy + Math.sin(a2)*rIn);
-            float x2Out = (float)(cx + Math.cos(a2)*rOut); float y2Out = (float)(cy + Math.sin(a2)*rOut);
+            float x1In = (float) (cx + Math.cos(a1) * rIn);
+            float y1In = (float) (cy + Math.sin(a1) * rIn);
+            float x1Out = (float) (cx + Math.cos(a1) * rOut);
+            float y1Out = (float) (cy + Math.sin(a1) * rOut);
+            float x2In = (float) (cx + Math.cos(a2) * rIn);
+            float y2In = (float) (cy + Math.sin(a2) * rIn);
+            float x2Out = (float) (cx + Math.cos(a2) * rOut);
+            float y2Out = (float) (cy + Math.sin(a2) * rOut);
 
             // Quad (2 Triangles)
             buffer.addVertex(mat, x1In, y1In, 0).setColor(r, g, b, a);

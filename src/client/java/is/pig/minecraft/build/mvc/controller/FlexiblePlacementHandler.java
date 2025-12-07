@@ -29,12 +29,12 @@ public class FlexiblePlacementHandler {
 
         // Unlock when keys are released
         if (!flexibleDown && wasFlexibleKeyDown) {
-            PiggyBuildClient.LOGGER.info(
+            PiggyBuildClient.LOGGER.debug(
                     "[FlexiblePlacement] Unlocking - flexible key released (was locked: " + session.isLocked() + ")");
             session.unlock();
         }
         if (!adjacentDown && wasAdjacentKeyDown) {
-            PiggyBuildClient.LOGGER.info(
+            PiggyBuildClient.LOGGER.debug(
                     "[FlexiblePlacement] Unlocking - adjacent key released (was locked: " + session.isLocked() + ")");
             session.unlock();
         }
@@ -82,9 +82,9 @@ public class FlexiblePlacementHandler {
 
         PlacementSession session = PlacementSession.getInstance();
 
-        PiggyBuildClient.LOGGER.info("[Handler] Modifying hit result for " + mode + " placement");
+        PiggyBuildClient.LOGGER.debug("[Handler] Modifying hit result for " + mode + " placement");
         PiggyBuildClient.LOGGER
-                .info("[Handler] Session locked: " + session.isLocked() + ", Locked mode: " + session.getLockedMode());
+                .debug("[Handler] Session locked: " + session.isLocked() + ", Locked mode: " + session.getLockedMode());
 
         // 3. DETERMINE OFFSET, FACE, AND POSITION
         Direction offset;
@@ -97,7 +97,7 @@ public class FlexiblePlacementHandler {
             offset = session.getLockedOffset();
             clickedFace = session.getLockedFace();
             pos = session.getLastPlacedPos();
-            PiggyBuildClient.LOGGER.info("[Handler] Using LOCKED offset: " + offset + ", face: " + clickedFace
+            PiggyBuildClient.LOGGER.debug("[Handler] Using LOCKED offset: " + offset + ", face: " + clickedFace
                     + " from last placed pos: " + pos);
         } else {
             // Calculate new offset and face, then lock them for subsequent placements
@@ -105,7 +105,7 @@ public class FlexiblePlacementHandler {
             clickedFace = hitResult.getDirection();
             pos = hitResult.getBlockPos();
             session.lock(offset, clickedFace, mode);
-            PiggyBuildClient.LOGGER.info("[Handler] LOCKING NEW offset: " + offset + ", face: " + clickedFace
+            PiggyBuildClient.LOGGER.debug("[Handler] LOCKING NEW offset: " + offset + ", face: " + clickedFace
                     + " for mode: " + mode + " at pos: " + pos);
         }
 
@@ -114,7 +114,7 @@ public class FlexiblePlacementHandler {
         if (session.isLocked() && clickedFace != hitResult.getDirection()) {
             // Use the locked face instead of the current cursor face
             workingHitResult = BlockPlacer.createHitResult(hitResult.getBlockPos(), clickedFace);
-            PiggyBuildClient.LOGGER.info("[Handler] Overriding hit result face from " + hitResult.getDirection()
+            PiggyBuildClient.LOGGER.debug("[Handler] Overriding hit result face from " + hitResult.getDirection()
                     + " to locked face: " + clickedFace);
         }
 
@@ -130,7 +130,7 @@ public class FlexiblePlacementHandler {
         // Store the target position for next placement
         if (result != null) {
             session.setLastPlacedPos(result.getBlockPos());
-            PiggyBuildClient.LOGGER.info("[Handler] Stored last placed pos: " + result.getBlockPos());
+            PiggyBuildClient.LOGGER.debug("[Handler] Stored last placed pos: " + result.getBlockPos());
         }
 
         return result;
@@ -145,11 +145,11 @@ public class FlexiblePlacementHandler {
         if (offset == null) {
             // CENTER -> PLACE BEHIND (opposite face)
             targetFace = hitResult.getDirection().getOpposite();
-            PiggyBuildClient.LOGGER.info("[Handler] Flexible - BEHIND (Face " + targetFace + ")");
+            PiggyBuildClient.LOGGER.debug("[Handler] Flexible - BEHIND (Face " + targetFace + ")");
         } else {
             // EDGE -> PLACE ON OFFSET FACE
             targetFace = offset;
-            PiggyBuildClient.LOGGER.info("[Handler] Flexible - OFFSET (Face " + targetFace + ")");
+            PiggyBuildClient.LOGGER.debug("[Handler] Flexible - OFFSET (Face " + targetFace + ")");
         }
 
         return BlockPlacer.createHitResult(pos, targetFace);
@@ -162,9 +162,9 @@ public class FlexiblePlacementHandler {
     private BlockHitResult handleAdjacentMode(BlockHitResult hitResult, BlockPos pos, Direction offset) {
         Direction clickedFace = hitResult.getDirection();
 
-        PiggyBuildClient.LOGGER.info("[Handler] Adjacent Mode - Original pos: " + pos);
-        PiggyBuildClient.LOGGER.info("[Handler] Adjacent Mode - Clicked face: " + clickedFace);
-        PiggyBuildClient.LOGGER.info("[Handler] Adjacent Mode - Offset: " + offset);
+        PiggyBuildClient.LOGGER.debug("[Handler] Adjacent Mode - Original pos: " + pos);
+        PiggyBuildClient.LOGGER.debug("[Handler] Adjacent Mode - Clicked face: " + clickedFace);
+        PiggyBuildClient.LOGGER.debug("[Handler] Adjacent Mode - Offset: " + offset);
 
         if (offset == null) {
             // CENTER -> Place TWO blocks away (skipping one)
@@ -172,10 +172,10 @@ public class FlexiblePlacementHandler {
             BlockPos skippedPos = pos.relative(clickedFace, 2);
             Direction placementFace = clickedFace.getOpposite();
 
-            PiggyBuildClient.LOGGER.info("[Handler] Adjacent - STRAIGHT (SKIP ONE)");
-            PiggyBuildClient.LOGGER.info("[Handler] Adjacent - Original: " + pos);
-            PiggyBuildClient.LOGGER.info("[Handler] Adjacent - Skipped to: " + skippedPos);
-            PiggyBuildClient.LOGGER.info("[Handler] Adjacent - Placement face: " + placementFace);
+            PiggyBuildClient.LOGGER.debug("[Handler] Adjacent - STRAIGHT (SKIP ONE)");
+            PiggyBuildClient.LOGGER.debug("[Handler] Adjacent - Original: " + pos);
+            PiggyBuildClient.LOGGER.debug("[Handler] Adjacent - Skipped to: " + skippedPos);
+            PiggyBuildClient.LOGGER.debug("[Handler] Adjacent - Placement face: " + placementFace);
 
             return BlockPlacer.createHitResult(skippedPos, placementFace);
         } else {
@@ -188,7 +188,7 @@ public class FlexiblePlacementHandler {
             Direction placementFace = offset.getOpposite();
 
             PiggyBuildClient.LOGGER
-                    .info("[Handler] Adjacent - DIAGONAL (Face " + placementFace + " at " + diagonalPos + ")");
+                    .debug("[Handler] Adjacent - DIAGONAL (Face " + placementFace + " at " + diagonalPos + ")");
             return BlockPlacer.createHitResult(diagonalPos, placementFace);
         }
     }
