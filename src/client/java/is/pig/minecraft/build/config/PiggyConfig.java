@@ -12,7 +12,7 @@ public class PiggyConfig {
 
     // --- CONFIG FIELDS ---
     private Color highlightColor = new Color(0, 255, 230, 100);
-    private Color placementOverlayColor = new Color(0, 255, 230, 100);
+    private Color placementOverlayColor = new Color(0, 255, 230, 255);
 
     // Fast placement settings
     private int fastPlaceDelayMs = 100;
