@@ -4,12 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import is.pig.minecraft.build.lib.event.MouseScrollCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.phys.BlockHitResult;
 
 import org.lwjgl.glfw.GLFW;
 
@@ -21,7 +16,7 @@ public class InputController {
 
     // Handlers (Logic separation)
     private final ShapeMenuHandler menuHandler = new ShapeMenuHandler();
-    private final FlexiblePlacementHandler placementHandler = new FlexiblePlacementHandler();
+    private static FlexiblePlacementHandler placementHandler = new FlexiblePlacementHandler();
 
     public void initialize() {
         registerKeys();
@@ -57,19 +52,12 @@ public class InputController {
             placementHandler.onTick(client);
         });
 
-        // 3. Use Block (Right Click) -> Delegated to Placement Handler
-        UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
-            if (world.isClientSide && hand == InteractionHand.MAIN_HAND) {
-                Minecraft client = Minecraft.getInstance();
-                BlockHitResult modified = placementHandler.onUseBlock(client, hitResult);
+        // 3. Block placement is now handled via MinecraftClientMixin
+        // The mixin calls getFlexiblePlacementHandler() to modify hit results
+    }
 
-                if (modified != null) {
-                    // Store it for the mixin to use
-                    FlexiblePlacementHandler.setModifiedHitResult(modified);
-                }
-            }
-
-            return InteractionResult.PASS; // Always pass - let vanilla handle it
-        });
+    // Static accessor for the mixin to use
+    public static FlexiblePlacementHandler getFlexiblePlacementHandler() {
+        return placementHandler;
     }
 }

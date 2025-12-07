@@ -4,13 +4,16 @@ import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
+/**
+ * Accessor mixin to get/set the rightClickDelay field in Minecraft.
+ * This is used to control the delay between right-click actions.
+ */
 @Mixin(Minecraft.class)
 public interface MinecraftAccessorMixin {
-    // Allows reading the right-click delay
+    
     @Accessor("rightClickDelay")
     int getRightClickDelay();
-
-    // Allows modifying the right-click delay (used to force clicks)
+    
     @Accessor("rightClickDelay")
     void setRightClickDelay(int delay);
 }

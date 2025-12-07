@@ -3,10 +3,9 @@
 	"package": "is.pig.minecraft.build.mixin.client",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
-		"ExampleClientMixin",
 		"MouseHandlerMixin",
 		"MinecraftAccessorMixin",
-		"MultiPlayerGameModeMixin"
+		"MinecraftClientMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
