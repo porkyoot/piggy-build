@@ -11,7 +11,7 @@ import is.pig.minecraft.build.mvc.controller.InputController;
 import is.pig.minecraft.build.mvc.model.BuildSession;
 import is.pig.minecraft.build.mvc.model.PlacementSession;
 import is.pig.minecraft.build.mvc.view.FastPlaceOverlay;
-import is.pig.minecraft.build.mvc.view.FlexiblePlacementRenderer;
+import is.pig.minecraft.build.mvc.view.DirectionalPlacementRenderer;
 import is.pig.minecraft.build.mvc.view.HighlightRenderType;
 import is.pig.minecraft.build.mvc.view.WorldShapeRenderer;
 import net.fabricmc.api.ClientModInitializer;
@@ -56,8 +56,8 @@ public class PiggyBuildClient implements ClientModInitializer {
             // --- PART 1: RENDER BUILD SHAPES (Circle, Sphere...) ---
             renderBuildShapes(mc, cameraPos, stack, buffers);
 
-            // --- PART 2: FLEXIBLE PLACEMENT (face overlay) ---
-            renderFlexiblePlacement(mc, cameraPos, stack, buffers);
+            // --- PART 2: DIRECTIONAL PLACEMENT (face overlay) ---
+            renderDirectionalPlacement(mc, cameraPos, stack, buffers);
         });
     }
 
@@ -108,7 +108,7 @@ public class PiggyBuildClient implements ClientModInitializer {
     /**
      * Handles rendering of the placement overlay (PlacementSession).
      */
-    private void renderFlexiblePlacement(Minecraft mc, Vec3 cameraPos, PoseStack stack,
+    private void renderDirectionalPlacement(Minecraft mc, Vec3 cameraPos, PoseStack stack,
             MultiBufferSource.BufferSource buffers) {
         PlacementSession session = PlacementSession.getInstance();
 
@@ -124,11 +124,11 @@ public class PiggyBuildClient implements ClientModInitializer {
             // If offset is null -> Center Texture
             // If offset is Direction -> Arrow Texture
             net.minecraft.resources.ResourceLocation tex = (offset == null)
-                    ? FlexiblePlacementRenderer.getCenterTexture()
-                    : FlexiblePlacementRenderer.getArrowTexture();
+                    ? DirectionalPlacementRenderer.getCenterTexture()
+                    : DirectionalPlacementRenderer.getArrowTexture();
 
             // Get specific buffer for this texture
-            VertexConsumer overlayBuilder = buffers.getBuffer(FlexiblePlacementRenderer.getRenderType(tex));
+            VertexConsumer overlayBuilder = buffers.getBuffer(DirectionalPlacementRenderer.getRenderType(tex));
 
             double rx = hit.getBlockPos().getX() - cameraPos.x;
             double ry = hit.getBlockPos().getY() - cameraPos.y;
@@ -145,7 +145,7 @@ public class PiggyBuildClient implements ClientModInitializer {
             float bb = placementRgba[2];
             float aa = placementRgba[3];
 
-            FlexiblePlacementRenderer.render(
+            DirectionalPlacementRenderer.render(
                     overlayBuilder,
                     stack,
                     hit.getDirection(),
@@ -155,7 +155,7 @@ public class PiggyBuildClient implements ClientModInitializer {
             stack.popPose();
 
             // End specific batch
-            buffers.endBatch(FlexiblePlacementRenderer.getRenderType(tex));
+            buffers.endBatch(DirectionalPlacementRenderer.getRenderType(tex));
         }
     }
 }

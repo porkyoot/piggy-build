@@ -12,13 +12,13 @@ public class InputController {
 
     // Static keys accessible by handlers/views
     public static KeyMapping triggerKey;
-    public static KeyMapping flexibleKey;
-    public static KeyMapping adjacentKey;
+    public static KeyMapping directionalKey;
+    public static KeyMapping diagonalKey;
     public static KeyMapping fastPlaceKey;
 
     // Handlers (Logic separation)
     private final ShapeMenuHandler menuHandler = new ShapeMenuHandler();
-    private static FlexiblePlacementHandler placementHandler = new FlexiblePlacementHandler();
+    private static DirectionalPlacementHandler placementHandler = new DirectionalPlacementHandler();
     private final FastPlacementHandler fastPlacementHandler = new FastPlacementHandler();
     private final FastBreakHandler fastBreakHandler = new FastBreakHandler();
 
@@ -34,14 +34,14 @@ public class InputController {
                 GLFW.GLFW_KEY_X,
                 "Piggy Build"));
 
-        flexibleKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "Flexible Block Placement",
+        directionalKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+                "Directional Block Placement",
                 InputConstants.Type.MOUSE,
                 GLFW.GLFW_MOUSE_BUTTON_5,
                 "Piggy Build"));
 
-        adjacentKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "Adjacent Block Placement",
+        diagonalKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+                "Diagonal Block Placement",
                 InputConstants.Type.MOUSE,
                 GLFW.GLFW_MOUSE_BUTTON_4,
                 "Piggy Build"));
@@ -69,11 +69,11 @@ public class InputController {
         });
 
         // 3. Block placement is now handled via MinecraftClientMixin
-        // The mixin calls getFlexiblePlacementHandler() to modify hit results
+        // The mixin calls getDirectionalPlacementHandler() to modify hit results
     }
 
     // Static accessor for the mixin to use
-    public static FlexiblePlacementHandler getFlexiblePlacementHandler() {
+    public static DirectionalPlacementHandler getDirectionalPlacementHandler() {
         return placementHandler;
     }
 }

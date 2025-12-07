@@ -8,19 +8,19 @@ public enum PlacementMode {
      * Normal vanilla placement - no modification
      */
     VANILLA,
-    
+
     /**
-     * Flexible placement - place on edge faces or behind center
+     * Directional placement - place on edge faces or behind center
      * - Edge click: place on that edge's adjacent face
      * - Center click: place behind the block (opposite face)
      */
-    FLEXIBLE,
-    
+    DIRECTIONAL,
+
     /**
-     * Adjacent placement - always place next to the current block
+     * Diagonal placement - always place next to the current block
      * Creates diagonal/stair patterns based on where you click
      * - Edge click: place diagonally adjacent (two faces)
      * - Center click: place directly adjacent on same face
      */
-    ADJACENT
+    DIAGONAL
 }

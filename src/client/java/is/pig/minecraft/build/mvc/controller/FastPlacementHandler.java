@@ -103,19 +103,19 @@ public class FastPlacementHandler {
             // Use the main hand for placement
             InteractionHand hand = InteractionHand.MAIN_HAND;
 
-            // Check if flexible or adjacent mode is active
-            boolean flexibleActive = InputController.flexibleKey.isDown();
-            boolean adjacentActive = InputController.adjacentKey.isDown();
+            // Check if directional or diagonal mode is active
+            boolean directionalActive = InputController.directionalKey.isDown();
+            boolean diagonalActive = InputController.diagonalKey.isDown();
 
             BlockHitResult finalHitResult = hitResult;
 
-            // If flexible or adjacent mode is active, modify the hit result
-            if (flexibleActive || adjacentActive) {
-                FlexiblePlacementHandler handler = InputController.getFlexiblePlacementHandler();
+            // If directional or diagonal mode is active, modify the hit result
+            if (directionalActive || diagonalActive) {
+                DirectionalPlacementHandler handler = InputController.getDirectionalPlacementHandler();
                 if (handler != null) {
                     finalHitResult = handler.modifyHitResult(client, hitResult);
                     PiggyBuildClient.LOGGER.debug("[FastPlace] Using modified hit result from " +
-                            (flexibleActive ? "FLEXIBLE" : "ADJACENT") + " mode");
+                            (directionalActive ? "DIRECTIONAL" : "DIAGONAL") + " mode");
                 }
             }
 
