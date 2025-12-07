@@ -13,6 +13,7 @@ public class InputController {
     // Static keys accessible by handlers/views
     public static KeyMapping triggerKey;
     public static KeyMapping flexibleKey;
+    public static KeyMapping adjacentKey;
 
     // Handlers (Logic separation)
     private final ShapeMenuHandler menuHandler = new ShapeMenuHandler();
@@ -35,6 +36,13 @@ public class InputController {
             "Flexible Block Placement", 
             InputConstants.Type.MOUSE, 
             GLFW.GLFW_MOUSE_BUTTON_5, 
+            "Piggy Build"
+        ));
+        
+        adjacentKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+            "Adjacent Block Placement", 
+            InputConstants.Type.MOUSE, 
+            GLFW.GLFW_MOUSE_BUTTON_4, 
             "Piggy Build"
         ));
     }

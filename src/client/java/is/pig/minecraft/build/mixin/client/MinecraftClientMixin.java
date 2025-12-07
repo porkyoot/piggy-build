@@ -40,9 +40,13 @@ public class MinecraftClientMixin {
         System.out.println("[MIXIN REDIRECT] Intercepted useItemOn call");
         System.out.println("[MIXIN REDIRECT] Original face: " + original.getDirection());
         
-        // Check if we should modify the hit result
-        if (InputController.flexibleKey.isDown() && this.hitResult instanceof BlockHitResult) {
-            System.out.println("[MIXIN REDIRECT] Flexible key is down, modifying...");
+        // Check if we should modify the hit result (flexible OR adjacent mode)
+        boolean flexibleActive = InputController.flexibleKey.isDown();
+        boolean adjacentActive = InputController.adjacentKey.isDown();
+        
+        if ((flexibleActive || adjacentActive) && this.hitResult instanceof BlockHitResult) {
+            String mode = flexibleActive ? "FLEXIBLE" : "ADJACENT";
+            System.out.println("[MIXIN REDIRECT] " + mode + " mode active, modifying...");
             
             Minecraft mc = (Minecraft) (Object) this;
             FlexiblePlacementHandler handler = InputController.getFlexiblePlacementHandler();
@@ -50,6 +54,7 @@ public class MinecraftClientMixin {
             if (handler != null) {
                 BlockHitResult modified = handler.modifyHitResult(mc, original);
                 System.out.println("[MIXIN REDIRECT] Modified face: " + modified.getDirection());
+                System.out.println("[MIXIN REDIRECT] Modified pos: " + modified.getBlockPos());
                 
                 // Call with the MODIFIED hit result
                 return gameMode.useItemOn(player, hand, modified);
