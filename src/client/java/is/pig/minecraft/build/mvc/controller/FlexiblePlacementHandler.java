@@ -97,11 +97,22 @@ public class FlexiblePlacementHandler {
     private BlockHitResult handleAdjacentMode(BlockHitResult hitResult, BlockPos pos, Direction offset) {
         Direction clickedFace = hitResult.getDirection();
         
+        PiggyBuildClient.LOGGER.info("[Handler] Adjacent Mode - Original pos: " + pos);
+        PiggyBuildClient.LOGGER.info("[Handler] Adjacent Mode - Clicked face: " + clickedFace);
+        PiggyBuildClient.LOGGER.info("[Handler] Adjacent Mode - Offset: " + offset);
+        
         if (offset == null) {
-            // CENTER -> Place adjacent on the SAME face (straight out)
-            BlockPos adjacentPos = pos.relative(clickedFace);
-            PiggyBuildClient.LOGGER.info("[Handler] Adjacent - STRAIGHT (Same face at " + adjacentPos + ")");
-            return BlockPlacer.createHitResult(adjacentPos, clickedFace.getOpposite());
+            // CENTER -> Place TWO blocks away (skipping one)
+            // Move TWO positions in the clicked direction
+            BlockPos skippedPos = pos.relative(clickedFace, 2);
+            Direction placementFace = clickedFace.getOpposite();
+            
+            PiggyBuildClient.LOGGER.info("[Handler] Adjacent - STRAIGHT (SKIP ONE)");
+            PiggyBuildClient.LOGGER.info("[Handler] Adjacent - Original: " + pos);
+            PiggyBuildClient.LOGGER.info("[Handler] Adjacent - Skipped to: " + skippedPos);
+            PiggyBuildClient.LOGGER.info("[Handler] Adjacent - Placement face: " + placementFace);
+            
+            return BlockPlacer.createHitResult(skippedPos, placementFace);
         } else {
             // EDGE -> Place diagonally adjacent (combine clicked face + edge direction)
             // First move in the clicked face direction, then in the edge direction
