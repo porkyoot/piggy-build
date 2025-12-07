@@ -9,10 +9,12 @@ import is.pig.minecraft.build.config.PiggyConfig;
 import is.pig.minecraft.build.mvc.controller.InputController;
 import is.pig.minecraft.build.mvc.model.BuildSession;
 import is.pig.minecraft.build.mvc.model.PlacementSession;
+import is.pig.minecraft.build.mvc.view.FastPlaceOverlay;
 import is.pig.minecraft.build.mvc.view.FlexiblePlacementRenderer;
 import is.pig.minecraft.build.mvc.view.HighlightRenderType;
 import is.pig.minecraft.build.mvc.view.WorldShapeRenderer;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -37,7 +39,12 @@ public class PiggyBuildClient implements ClientModInitializer {
         // 2. Initialize controller
         controller.initialize();
 
-        // 3. Render loop (visualization)
+        // 3. HUD overlay rendering
+        HudRenderCallback.EVENT.register((graphics, tickDelta) -> {
+            FastPlaceOverlay.render(graphics, tickDelta);
+        });
+
+        // 4. Render loop (visualization)
         WorldRenderEvents.LAST.register(context -> {
             Minecraft mc = Minecraft.getInstance();
             Camera camera = context.camera();
@@ -56,11 +63,13 @@ public class PiggyBuildClient implements ClientModInitializer {
     /**
      * Handles rendering of the fixed shape (BuildSession).
      */
-    private void renderBuildShapes(Minecraft mc, Vec3 cameraPos, PoseStack stack, MultiBufferSource.BufferSource buffers) {
+    private void renderBuildShapes(Minecraft mc, Vec3 cameraPos, PoseStack stack,
+            MultiBufferSource.BufferSource buffers) {
         BuildSession session = BuildSession.getInstance();
-        
+
         // If no anchor position is set, don't draw any shape
-        if (!session.isActive()) return;
+        if (!session.isActive())
+            return;
 
         VertexConsumer builder = buffers.getBuffer(HighlightRenderType.TYPE);
 
@@ -82,9 +91,11 @@ public class PiggyBuildClient implements ClientModInitializer {
         // Delegate to geometric renderer
         switch (session.getShape()) {
             case BLOCK -> WorldShapeRenderer.drawBlock(builder, stack.last().pose(), 0, 0, 0, r, g, b, a);
-            case LINE -> WorldShapeRenderer.drawLine(builder, stack.last().pose(), session.getAnchorAxis(), session.getRadius(), r, g, b, a);
+            case LINE -> WorldShapeRenderer.drawLine(builder, stack.last().pose(), session.getAnchorAxis(),
+                    session.getRadius(), r, g, b, a);
             case SPHERE -> WorldShapeRenderer.drawSphere(builder, stack.last().pose(), session.getRadius(), r, g, b, a);
-            case RING -> WorldShapeRenderer.drawRing(builder, stack.last().pose(), session.getAnchorAxis(), session.getRadius(), r, g, b, a);
+            case RING -> WorldShapeRenderer.drawRing(builder, stack.last().pose(), session.getAnchorAxis(),
+                    session.getRadius(), r, g, b, a);
         }
 
         stack.popPose();
@@ -95,11 +106,13 @@ public class PiggyBuildClient implements ClientModInitializer {
     /**
      * Handles rendering of the placement overlay (PlacementSession).
      */
-    private void renderFlexiblePlacement(Minecraft mc, Vec3 cameraPos, PoseStack stack, MultiBufferSource.BufferSource buffers) {
+    private void renderFlexiblePlacement(Minecraft mc, Vec3 cameraPos, PoseStack stack,
+            MultiBufferSource.BufferSource buffers) {
         PlacementSession session = PlacementSession.getInstance();
 
         // Only check active, offset CAN be null now (Center)
-        if (!session.isActive()) return;
+        if (!session.isActive())
+            return;
 
         if (mc.hitResult != null && mc.hitResult.getType() == HitResult.Type.BLOCK) {
             BlockHitResult hit = (BlockHitResult) mc.hitResult;
@@ -108,9 +121,9 @@ public class PiggyBuildClient implements ClientModInitializer {
             // SELECT TEXTURE
             // If offset is null -> Center Texture
             // If offset is Direction -> Arrow Texture
-            net.minecraft.resources.ResourceLocation tex = (offset == null) 
-                ? FlexiblePlacementRenderer.getCenterTexture() 
-                : FlexiblePlacementRenderer.getArrowTexture();
+            net.minecraft.resources.ResourceLocation tex = (offset == null)
+                    ? FlexiblePlacementRenderer.getCenterTexture()
+                    : FlexiblePlacementRenderer.getArrowTexture();
 
             // Get specific buffer for this texture
             VertexConsumer overlayBuilder = buffers.getBuffer(FlexiblePlacementRenderer.getRenderType(tex));
@@ -130,15 +143,14 @@ public class PiggyBuildClient implements ClientModInitializer {
             float aa = config.getPlacementAlphaFloat();
 
             FlexiblePlacementRenderer.render(
-                overlayBuilder,
-                stack,
-                hit.getDirection(),
-                offset, // Can be null
-                rr, gg, bb, aa
-            );
+                    overlayBuilder,
+                    stack,
+                    hit.getDirection(),
+                    offset, // Can be null
+                    rr, gg, bb, aa);
 
             stack.popPose();
-            
+
             // End specific batch
             buffers.endBatch(FlexiblePlacementRenderer.getRenderType(tex));
         }

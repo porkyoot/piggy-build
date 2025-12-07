@@ -25,14 +25,15 @@ public class PiggyConfig {
             .create();
 
     // --- CONFIG FIELDS ---
-    private Color highlightColor = new Color(0, 255, 230, 100); // Teal default (shape selector)
-    // Separate color for the flexible placement overlay
-    private Color placementOverlayColor = new Color(0, 255, 230, 100); // same default
+    private Color highlightColor = new Color(0, 255, 230, 100);
+    private Color placementOverlayColor = new Color(0, 255, 230, 100);
+    
+    // Fast placement settings
+    private int fastPlaceDelayMs = 0;
+    private boolean fastPlaceEnabled = false;
 
     // --- GETTERS / SETTERS ---
     public static PiggyConfig getInstance() {
-        // Ensure we try to load if it hasn't been loaded, 
-        // but never return null (INSTANCE is initialized at class load)
         return INSTANCE;
     }
 
@@ -61,6 +62,13 @@ public class PiggyConfig {
     public float getPlacementGreenFloat() { return placementOverlayColor.getGreen() / 255.0f; }
     public float getPlacementBlueFloat() { return placementOverlayColor.getBlue() / 255.0f; }
     public float getPlacementAlphaFloat() { return placementOverlayColor.getAlpha() / 255.0f; }
+    
+    // Fast placement getters/setters
+    public int getFastPlaceDelayMs() { return fastPlaceDelayMs; }
+    public void setFastPlaceDelayMs(int delay) { this.fastPlaceDelayMs = delay; }
+    
+    public boolean isFastPlaceEnabled() { return fastPlaceEnabled; }
+    public void setFastPlaceEnabled(boolean enabled) { this.fastPlaceEnabled = enabled; }
 
     // --- PERSISTENCE ---
     public static void load() {
@@ -72,7 +80,6 @@ public class PiggyConfig {
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-                // If load fails, we keep the default INSTANCE
             }
         } else {
             save();

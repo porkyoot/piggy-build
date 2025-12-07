@@ -20,6 +20,7 @@ public class InputController {
     private final ShapeMenuHandler menuHandler = new ShapeMenuHandler();
     private static FlexiblePlacementHandler placementHandler = new FlexiblePlacementHandler();
     private final FastPlacementHandler fastPlacementHandler = new FastPlacementHandler();
+    private final FastBreakHandler fastBreakHandler = new FastBreakHandler();
 
     public void initialize() {
         registerKeys();
@@ -28,32 +29,28 @@ public class InputController {
 
     private void registerKeys() {
         triggerKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-            "Shape Selector", 
-            InputConstants.Type.KEYSYM, 
-            GLFW.GLFW_KEY_X, 
-            "Piggy Build"
-        ));
-        
+                "Shape Selector",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_X,
+                "Piggy Build"));
+
         flexibleKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-            "Flexible Block Placement", 
-            InputConstants.Type.MOUSE, 
-            GLFW.GLFW_MOUSE_BUTTON_5, 
-            "Piggy Build"
-        ));
-        
+                "Flexible Block Placement",
+                InputConstants.Type.MOUSE,
+                GLFW.GLFW_MOUSE_BUTTON_5,
+                "Piggy Build"));
+
         adjacentKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-            "Adjacent Block Placement", 
-            InputConstants.Type.MOUSE, 
-            GLFW.GLFW_MOUSE_BUTTON_4, 
-            "Piggy Build"
-        ));
-        
+                "Adjacent Block Placement",
+                InputConstants.Type.MOUSE,
+                GLFW.GLFW_MOUSE_BUTTON_4,
+                "Piggy Build"));
+
         fastPlaceKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-            "Fast Block Placement", 
-            InputConstants.Type.KEYSYM, 
-            GLFW.GLFW_KEY_LEFT_CONTROL, 
-            "Piggy Build"
-        ));
+                "Fast Block Placement",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_LEFT_CONTROL,
+                "Piggy Build"));
     }
 
     private void registerEvents() {
@@ -68,6 +65,7 @@ public class InputController {
             menuHandler.onTick(client);
             placementHandler.onTick(client);
             fastPlacementHandler.onTick(client);
+            fastBreakHandler.onTick(client);
         });
 
         // 3. Block placement is now handled via MinecraftClientMixin
