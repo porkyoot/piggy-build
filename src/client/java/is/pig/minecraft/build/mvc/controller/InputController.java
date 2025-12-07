@@ -14,10 +14,12 @@ public class InputController {
     public static KeyMapping triggerKey;
     public static KeyMapping flexibleKey;
     public static KeyMapping adjacentKey;
+    public static KeyMapping fastPlaceKey;
 
     // Handlers (Logic separation)
     private final ShapeMenuHandler menuHandler = new ShapeMenuHandler();
     private static FlexiblePlacementHandler placementHandler = new FlexiblePlacementHandler();
+    private final FastPlacementHandler fastPlacementHandler = new FastPlacementHandler();
 
     public void initialize() {
         registerKeys();
@@ -45,6 +47,13 @@ public class InputController {
             GLFW.GLFW_MOUSE_BUTTON_4, 
             "Piggy Build"
         ));
+        
+        fastPlaceKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+            "Fast Block Placement", 
+            InputConstants.Type.KEYSYM, 
+            GLFW.GLFW_KEY_LEFT_CONTROL, 
+            "Piggy Build"
+        ));
     }
 
     private void registerEvents() {
@@ -58,6 +67,7 @@ public class InputController {
 
             menuHandler.onTick(client);
             placementHandler.onTick(client);
+            fastPlacementHandler.onTick(client);
         });
 
         // 3. Block placement is now handled via MinecraftClientMixin
