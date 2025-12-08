@@ -35,7 +35,7 @@ public class ConfigScreenFactory {
                                                                 .name(Component.literal("No Cheating Mode"))
                                                                 .description(OptionDescription.of(
                                                                                 Component.literal(
-                                                                                                "Prevents usage of Fast Place/Break in Survival mode."),
+                                                                                                "Prevents usage of Fast Place/Break and Tool Swap in Survival mode."),
                                                                                 Component.literal(""),
                                                                                 Component.literal(
                                                                                                 "§cWARNING: Disabling this allows cheats on servers!"),
@@ -75,7 +75,7 @@ public class ConfigScreenFactory {
                                                                                                                                 Component.literal(
                                                                                                                                                 "Disable No Cheating Mode?"),
                                                                                                                                 Component.literal(
-                                                                                                                                                "§cWARNING: Disabling this allows the use of cheats (Fast Place/Break) in Survival mode.\nUsing these on servers is detectable and WILL RESULT IN A BAN.\n\nAre you sure you want to continue?"),
+                                                                                                                                                "§cWARNING: Disabling this allows the use of cheats (Fast Place/Break, Tool Swap) in Survival mode.\nUsing these on servers is detectable and WILL RESULT IN A BAN.\n\nAre you sure you want to continue?"),
                                                                                                                                 Component.literal(
                                                                                                                                                 "Yes, I understand the risks"),
                                                                                                                                 Component.literal(
@@ -126,6 +126,18 @@ public class ConfigScreenFactory {
                                 .category(ConfigCategory.createBuilder()
                                                 .name(Component.literal("Fast Placement"))
                                                 .tooltip(Component.literal("Configure fast block placement settings"))
+
+                                                .option(Option.<Boolean>createBuilder()
+                                                                .name(Component.literal("Enable Fast Placement"))
+                                                                .description(OptionDescription.of(
+                                                                                Component.literal(
+                                                                                                "Enables automatic fast clicking when holding the Fast Place key.")))
+                                                                .binding(
+                                                                                false,
+                                                                                config::isFastPlaceEnabled,
+                                                                                config::setFastPlaceEnabled)
+                                                                .controller(TickBoxControllerBuilder::create)
+                                                                .build())
 
                                                 .option(Option.<Integer>createBuilder()
                                                                 .name(Component.literal("Placement Delay"))

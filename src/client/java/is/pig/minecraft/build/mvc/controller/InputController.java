@@ -15,6 +15,7 @@ public class InputController {
     public static KeyMapping directionalKey;
     public static KeyMapping diagonalKey;
     public static KeyMapping fastPlaceKey;
+    public static KeyMapping toggleToolSwapKey;
 
     // Handlers (Logic separation)
     private final ShapeMenuHandler menuHandler = new ShapeMenuHandler();
@@ -52,6 +53,12 @@ public class InputController {
                 InputConstants.Type.MOUSE,
                 GLFW.GLFW_MOUSE_BUTTON_6,
                 "Piggy Build"));
+
+        toggleToolSwapKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+                "Toggle Tool Swap",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_H,
+                "Piggy Build"));
     }
 
     private void registerEvents() {
@@ -63,6 +70,41 @@ public class InputController {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null)
                 return;
+
+            // Handle Toggles
+            while (toggleToolSwapKey.consumeClick()) {
+                boolean newState = !is.pig.minecraft.build.config.PiggyConfig.getInstance().isToolSwapEnabled();
+                is.pig.minecraft.build.config.PiggyConfig.getInstance().setToolSwapEnabled(newState);
+                is.pig.minecraft.build.config.ConfigPersistence.save();
+
+                if (newState) {
+                    boolean restricted = false;
+                    // Check anti-cheat conditions
+                    if (is.pig.minecraft.build.config.PiggyConfig.getInstance().isNoCheatingMode()
+                            && !is.pig.minecraft.build.config.PiggyConfig.getInstance().serverAllowCheats) {
+                        if (!client.player.isCreative() && !client.player.isSpectator()) {
+                            restricted = true;
+                        }
+                    }
+
+                    if (restricted) {
+                        client.player.displayClientMessage(
+                                net.minecraft.network.chat.Component.literal("Tool Swap: ON (Restricted by Anti-Cheat)")
+                                        .withStyle(net.minecraft.ChatFormatting.RED),
+                                true);
+                    } else {
+                        client.player.displayClientMessage(
+                                net.minecraft.network.chat.Component.literal("Tool Swap: ON")
+                                        .withStyle(net.minecraft.ChatFormatting.YELLOW),
+                                true);
+                    }
+                } else {
+                    client.player.displayClientMessage(
+                            net.minecraft.network.chat.Component.literal("Tool Swap: OFF")
+                                    .withStyle(net.minecraft.ChatFormatting.YELLOW),
+                            true);
+                }
+            }
 
             menuHandler.onTick(client);
             placementHandler.onTick(client);

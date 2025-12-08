@@ -25,6 +25,15 @@ public class ToolSwapHandler {
             return;
         }
 
+        // Anti-Cheat Check
+        // If No-Cheat Mode is ON, and cheats are NOT allowed by server,
+        // we only allow Tool Swap in Creative/Spectator.
+        if (PiggyConfig.getInstance().isNoCheatingMode() && !PiggyConfig.getInstance().serverAllowCheats) {
+            if (client.player != null && !client.player.isCreative() && !client.player.isSpectator()) {
+                return;
+            }
+        }
+
         if (client.player == null || client.level == null) {
             return;
         }
