@@ -6,6 +6,7 @@ import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
 import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
 import dev.isxander.yacl3.api.controller.StringControllerBuilder;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
+import dev.isxander.yacl3.api.ListOption;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -223,7 +224,7 @@ public class ConfigScreenFactory {
                                                                                 .enumClass(PiggyConfig.OrePreference.class))
                                                                 .build())
 
-                                                .option(Option.<String>createBuilder()
+                                                .option(ListOption.<String>createBuilder()
                                                                 .name(Component.literal("Silk Touch Blocks"))
                                                                 .description(OptionDescription.of(
                                                                                 Component.literal(
@@ -235,9 +236,10 @@ public class ConfigScreenFactory {
                                                                                 config::getSilkTouchBlocks,
                                                                                 config::setSilkTouchBlocks)
                                                                 .controller(StringControllerBuilder::create)
+                                                                .initial("")
                                                                 .build())
 
-                                                .option(Option.<String>createBuilder()
+                                                .option(ListOption.<String>createBuilder()
                                                                 .name(Component.literal("Fortune/Ore Blocks"))
                                                                 .description(OptionDescription.of(
                                                                                 Component.literal(
@@ -249,9 +251,10 @@ public class ConfigScreenFactory {
                                                                                 config::getFortuneBlocks,
                                                                                 config::setFortuneBlocks)
                                                                 .controller(StringControllerBuilder::create)
+                                                                .initial("")
                                                                 .build())
 
-                                                .option(Option.<String>createBuilder()
+                                                .option(ListOption.<String>createBuilder()
                                                                 .name(Component.literal("Shears Blocks"))
                                                                 .description(OptionDescription.of(
                                                                                 Component.literal(
@@ -263,6 +266,7 @@ public class ConfigScreenFactory {
                                                                                 config::getShearsBlocks,
                                                                                 config::setShearsBlocks)
                                                                 .controller(StringControllerBuilder::create)
+                                                                .initial("")
                                                                 .build())
                                                 .build())
 

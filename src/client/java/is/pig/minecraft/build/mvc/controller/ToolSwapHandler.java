@@ -202,7 +202,7 @@ public class ToolSwapHandler {
         return matchesConfigList(PiggyConfig.getInstance().getShearsBlocks(), state);
     }
 
-    private boolean matchesConfigList(String configList, BlockState state) {
+    private boolean matchesConfigList(List<String> configList, BlockState state) {
         if (configList == null || configList.isEmpty())
             return false;
 
@@ -212,8 +212,7 @@ public class ToolSwapHandler {
         String id = key.location().toString(); // e.g., "minecraft:glass"
         String path = key.location().getPath(); // e.g., "glass"
 
-        String[] patterns = configList.split(",");
-        for (String pattern : patterns) {
+        for (String pattern : configList) {
             pattern = pattern.trim();
             if (pattern.isEmpty())
                 continue;
