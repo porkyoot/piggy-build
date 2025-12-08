@@ -28,6 +28,12 @@ Feel free to fork the project or submit a Pull Request if you want to contribute
     *   Rings
     *   Blocks (Cubes)
 
+### 🛡️ Safety & Anti-Cheat
+Piggy Build comes with a **"No Cheating Mode" enabled by default**.
+*   **Safety First**: This mode prevents you from using "cheat" features (Fast Place, Directional Placement, etc.) while in **Survival** or **Adventure** mode.
+*   **Fair Play**: Prevents accidental bans on servers that detect fast interaction frequencies.
+*   **Creative Freedom**: All features remain fully unlocked in Creative Mode.
+
 ---
 
 ## Screenshots
@@ -65,6 +71,13 @@ Access the configuration menu via **Mod Menu**.
 *   **Placement Overlay Color**: Change the color of the directional arrows/overlays.
 *   **Fast Place Speed**: Adjust the delay (in ms) between block placements.
 *   **Fast Place Toggle**: Enable/Disable fast placement globally.
+
+### 🖥️ For Server Owners
+You can install **Piggy Build** on the server to enforce anti-cheat rules for all connected clients.
+*   **Config File**: `config/piggy-build-server.json`
+*   **Enforcement**: Set `"allowCheats": false` to **force** the anti-cheat mode on all players.
+    *   This overrides client settings. Even if a player disables "No Cheating Mode", they will be blocked from using build tools in Survival.
+    *   Clients will receive a message: *"Anti-Cheat Active: This server has forced anti-cheat ON."*
 
 ---
 
