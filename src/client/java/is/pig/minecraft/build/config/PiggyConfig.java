@@ -22,6 +22,9 @@ public class PiggyConfig {
     private boolean noCheatingMode = true;
     public transient boolean serverAllowCheats = true; // Runtime override from server
 
+    // Tool swap settings
+    private boolean toolSwapEnabled = true;
+
     // --- SINGLETON ACCESS ---
 
     public static PiggyConfig getInstance() {
@@ -77,6 +80,14 @@ public class PiggyConfig {
 
     public void setNoCheatingMode(boolean noCheatingMode) {
         this.noCheatingMode = noCheatingMode;
+    }
+
+    public boolean isToolSwapEnabled() {
+        return toolSwapEnabled;
+    }
+
+    public void setToolSwapEnabled(boolean toolSwapEnabled) {
+        this.toolSwapEnabled = toolSwapEnabled;
     }
 
     private int fastBreakDelayMs = 150;

@@ -21,6 +21,7 @@ public class InputController {
     private static DirectionalPlacementHandler placementHandler = new DirectionalPlacementHandler();
     private final FastPlacementHandler fastPlacementHandler = new FastPlacementHandler();
     private final FastBreakHandler fastBreakHandler = new FastBreakHandler();
+    private final ToolSwapHandler toolSwapHandler = new ToolSwapHandler();
 
     public void initialize() {
         registerKeys();
@@ -67,6 +68,7 @@ public class InputController {
             placementHandler.onTick(client);
             fastPlacementHandler.onTick(client);
             fastBreakHandler.onTick(client);
+            toolSwapHandler.onTick(client);
         });
 
         // 3. Block placement is now handled via MinecraftClientMixin
