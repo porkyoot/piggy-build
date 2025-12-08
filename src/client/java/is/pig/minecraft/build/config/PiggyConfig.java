@@ -66,4 +66,14 @@ public class PiggyConfig {
     public void setFastPlaceEnabled(boolean enabled) {
         this.fastPlaceEnabled = enabled;
     }
+
+    private int fastBreakDelayMs = 150;
+
+    public int getFastBreakDelayMs() {
+        return fastBreakDelayMs;
+    }
+
+    public void setFastBreakDelayMs(int fastBreakDelayMs) {
+        this.fastBreakDelayMs = fastBreakDelayMs;
+    }
 }

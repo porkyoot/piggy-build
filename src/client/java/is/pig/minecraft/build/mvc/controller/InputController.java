@@ -54,7 +54,8 @@ public class InputController {
     }
 
     private void registerEvents() {
-        // 1. Scroll Event -> Delegated to Menu Handler
+        // 1. Scroll Event -> Delegated to Handlers
+        MouseScrollCallback.EVENT.register(fastPlacementHandler::onScroll);
         MouseScrollCallback.EVENT.register(menuHandler::onScroll);
 
         // 2. Client Tick -> Delegated to both handlers

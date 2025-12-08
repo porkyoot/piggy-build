@@ -2,6 +2,7 @@ package is.pig.minecraft.build.mvc.controller;
 
 import is.pig.minecraft.build.PiggyBuildClient;
 import is.pig.minecraft.build.config.PiggyConfig;
+import is.pig.minecraft.build.mixin.client.MinecraftAccessorMixin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
@@ -76,9 +77,11 @@ public class FastBreakHandler {
         }
 
         // Check if enough time has passed since last break
-        long minDelay = PiggyConfig.getInstance().getFastPlaceDelayMs();
+        long minDelay = PiggyConfig.getInstance().getFastBreakDelayMs();
 
         if (currentTime - lastBreakTime < minDelay) {
+            // PiggyBuildClient.LOGGER.info("Skipping break: Delta=" + (currentTime -
+            // lastBreakTime) + " < MinDelay=" + minDelay);
             return;
         }
 
@@ -94,32 +97,27 @@ public class FastBreakHandler {
     /**
      * Actually perform the block breaking
      */
+    /**
+     * Actually perform the block breaking
+     */
     private void performFastBreak(Minecraft client, BlockHitResult hitResult) {
-        LocalPlayer player = client.player;
-        BlockPos blockPos = hitResult.getBlockPos();
+        // Reset vanilla attack cooldown/delay
+        ((MinecraftAccessorMixin) client).setMissTime(0);
 
         try {
-            // Verify the block exists client-side before trying to break it
-            if (client.level.getBlockState(blockPos).isAir()) {
-                PiggyBuildClient.LOGGER.debug("[FastBreak] Block at {} is already air (ghost block), skipping",
-                        blockPos);
-                return;
-            }
-
-            // In creative mode, we can instantly destroy blocks
-            boolean success = client.gameMode.destroyBlock(blockPos);
+            // Simulate the attack button press via vanilla logic
+            // This handles swinging, particles, range checks, and sending the correct
+            // packet
+            boolean success = ((MinecraftAccessorMixin) client).invokeStartAttack();
 
             if (success) {
                 // Update last break time
                 lastBreakTime = System.currentTimeMillis();
 
-                // Track this position to prevent re-breaking
-                recentlyBroken.put(blockPos.immutable(), lastBreakTime);
+                // Track this position to prevent re-breaking ghost blocks locally
+                recentlyBroken.put(hitResult.getBlockPos().immutable(), lastBreakTime);
 
-                // Swing animation
-                player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
-
-                PiggyBuildClient.LOGGER.debug("[FastBreak] Broke block at {}", blockPos);
+                PiggyBuildClient.LOGGER.debug("[FastBreak] Broke block at {}", hitResult.getBlockPos());
             }
 
         } catch (Exception e) {

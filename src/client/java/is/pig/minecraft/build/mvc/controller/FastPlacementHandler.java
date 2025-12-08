@@ -99,6 +99,10 @@ public class FastPlacementHandler {
         // Override the delay to 0 for instant placement
         ((MinecraftAccessorMixin) client).setRightClickDelay(0);
 
+        // Update last placement time immediately to enforce rate limit
+        // We do this regardless of success to prevent spamming the server/client logic
+        lastPlacementTime = System.currentTimeMillis();
+
         try {
             // Use the main hand for placement
             InteractionHand hand = InteractionHand.MAIN_HAND;
@@ -114,8 +118,6 @@ public class FastPlacementHandler {
                 DirectionalPlacementHandler handler = InputController.getDirectionalPlacementHandler();
                 if (handler != null) {
                     finalHitResult = handler.modifyHitResult(client, hitResult);
-                    PiggyBuildClient.LOGGER.debug("[FastPlace] Using modified hit result from " +
-                            (directionalActive ? "DIRECTIONAL" : "DIAGONAL") + " mode");
                 }
             }
 
@@ -124,9 +126,6 @@ public class FastPlacementHandler {
             InteractionResult result = client.gameMode.useItemOn(player, hand, finalHitResult);
 
             if (result.consumesAction()) {
-                // Update last placement time
-                lastPlacementTime = System.currentTimeMillis();
-
                 // Notify overlay for cooldown tracking
                 FastPlaceOverlay.onFastPlace();
 
@@ -146,5 +145,62 @@ public class FastPlacementHandler {
      */
     public boolean isActive() {
         return PiggyConfig.getInstance().isFastPlaceEnabled();
+    }
+
+    /**
+     * Handles scroll wheel to change fast placement delay.
+     */
+    /**
+     * Handles scroll wheel to change fast placement delay.
+     */
+    public boolean onScroll(double amount) {
+        if (InputController.fastPlaceKey.isDown()) {
+            PiggyConfig config = PiggyConfig.getInstance();
+
+            // 1. Auto-enable if currently disabled
+            if (!config.isFastPlaceEnabled()) {
+                config.setFastPlaceEnabled(true);
+                PiggyBuildClient.LOGGER.debug("[FastPlace] Enabled via scroll");
+            }
+
+            // 2. Adjust Speed (Blocks Per Second) instead of raw delay
+            int currentDelay = config.getFastPlaceDelayMs();
+            // Calculate current speed (avoid div/0, min delay is 50ms so max speed is 20)
+            int currentSpeed = 1000 / Math.max(1, currentDelay);
+
+            // Adjust speed: +1 for Scroll Up, -1 for Scroll Down
+            int change = amount > 0 ? 1 : -1;
+            int newSpeed = currentSpeed + change;
+
+            // Clamp speed: Min 1 block/sec (1000ms), Max 20 blocks/sec (50ms)
+            if (newSpeed < 1)
+                newSpeed = 1;
+            if (newSpeed > 20)
+                newSpeed = 20;
+
+            // Convert back to delay (ms)
+            int newDelay = 1000 / newSpeed;
+
+            // PiggyBuildClient.LOGGER.info("Scroll: Amount=" + amount + ", CurrentSpeed=" +
+            // currentSpeed + ", NewSpeed=" + newSpeed + ", NewDelay=" + newDelay);
+
+            if (newDelay != currentDelay) {
+                config.setFastPlaceDelayMs(newDelay);
+                config.setFastBreakDelayMs(newDelay); // Sync break delay
+                ConfigPersistence.save();
+
+                PiggyBuildClient.LOGGER
+                        .info("Config updated - New Delay: " + newDelay + "ms (Speed: " + newSpeed + ")");
+
+                // 3. Simplified Feedback
+                LocalPlayer player = Minecraft.getInstance().player;
+                if (player != null) {
+                    player.displayClientMessage(net.minecraft.network.chat.Component.literal(
+                            "Fast Build Speed: " + newSpeed + " blocks/sec"), true);
+                }
+            }
+            return true;
+        }
+        return false;
     }
 }

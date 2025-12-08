@@ -77,6 +77,28 @@ public class ConfigScreenFactory {
                                                                                 .formatValue(value -> Component.literal(
                                                                                                 value + " ms")))
                                                                 .build())
+
+                                                .option(Option.<Integer>createBuilder()
+                                                                .name(Component.literal("Break Delay"))
+                                                                .description(OptionDescription.of(
+                                                                                Component.literal(
+                                                                                                "Minimum delay between block breaks in creative mode."),
+                                                                                Component.literal(""),
+                                                                                Component.literal(
+                                                                                                "Adjust this if you experience ghost blocks."),
+                                                                                Component.literal(
+                                                                                                "Higher values = safer (less ghost blocks), slower breaking.")))
+                                                                .binding(
+                                                                                150,
+                                                                                config::getFastBreakDelayMs,
+                                                                                config::setFastBreakDelayMs)
+                                                                .controller(opt -> IntegerSliderControllerBuilder
+                                                                                .create(opt)
+                                                                                .range(50, 500)
+                                                                                .step(10)
+                                                                                .formatValue(value -> Component.literal(
+                                                                                                value + " ms")))
+                                                                .build())
                                                 .build())
 
                                 .save(ConfigPersistence::save)

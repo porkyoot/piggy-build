@@ -10,10 +10,16 @@ import org.spongepowered.asm.mixin.gen.Accessor;
  */
 @Mixin(Minecraft.class)
 public interface MinecraftAccessorMixin {
-    
+
     @Accessor("rightClickDelay")
     int getRightClickDelay();
-    
+
     @Accessor("rightClickDelay")
     void setRightClickDelay(int delay);
+
+    @Accessor("missTime")
+    void setMissTime(int delay);
+
+    @org.spongepowered.asm.mixin.gen.Invoker("startAttack")
+    boolean invokeStartAttack();
 }
