@@ -4,7 +4,6 @@ import is.pig.minecraft.build.PiggyBuildClient;
 import is.pig.minecraft.build.config.PiggyConfig;
 import is.pig.minecraft.build.mixin.client.MinecraftAccessorMixin;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.BlockHitResult;
@@ -94,9 +93,6 @@ public class FastBreakHandler {
         performFastBreak(client, blockHit);
     }
 
-    /**
-     * Actually perform the block breaking
-     */
     /**
      * Actually perform the block breaking
      */

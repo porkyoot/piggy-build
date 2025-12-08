@@ -70,7 +70,7 @@ public class FastPlacementHandler {
 
         // Check No Cheating Mode
         boolean isNoCheating = PiggyConfig.getInstance().isNoCheatingMode();
-        boolean serverForces = !PiggyConfig.getInstance().serverAllowCheats;
+        boolean serverForces = !PiggyConfig.getInstance().serverAllowCheats && !client.hasSingleplayerServer();
 
         if ((isNoCheating || serverForces) && client.gameMode.getPlayerMode() != GameType.CREATIVE) {
             warnNoCheating(client, serverForces);

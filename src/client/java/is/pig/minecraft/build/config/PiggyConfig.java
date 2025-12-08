@@ -1,6 +1,10 @@
+
 package is.pig.minecraft.build.config;
 
 import java.awt.Color;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Configuration data model for Piggy Build.
@@ -24,6 +28,13 @@ public class PiggyConfig {
 
     // Tool swap settings
     private boolean toolSwapEnabled = true;
+    private List<Integer> swapHotbarSlots = new ArrayList<>(Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8));
+    private OrePreference orePreference = OrePreference.FORTUNE;
+
+    public enum OrePreference {
+        FORTUNE,
+        SILK_TOUCH
+    }
 
     // --- SINGLETON ACCESS ---
 
@@ -88,6 +99,22 @@ public class PiggyConfig {
 
     public void setToolSwapEnabled(boolean toolSwapEnabled) {
         this.toolSwapEnabled = toolSwapEnabled;
+    }
+
+    public List<Integer> getSwapHotbarSlots() {
+        return swapHotbarSlots;
+    }
+
+    public void setSwapHotbarSlots(List<Integer> swapHotbarSlots) {
+        this.swapHotbarSlots = swapHotbarSlots;
+    }
+
+    public OrePreference getOrePreference() {
+        return orePreference;
+    }
+
+    public void setOrePreference(OrePreference orePreference) {
+        this.orePreference = orePreference;
     }
 
     private int fastBreakDelayMs = 150;

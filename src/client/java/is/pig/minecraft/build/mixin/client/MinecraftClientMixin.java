@@ -45,11 +45,11 @@ public class MinecraftClientMixin {
 
         if ((directionalActive || diagonalActive) && this.hitResult instanceof BlockHitResult) {
             // Check No Cheating Mode
+            Minecraft mc = (Minecraft) (Object) this;
             boolean isNoCheating = PiggyConfig.getInstance().isNoCheatingMode();
-            boolean serverForces = !PiggyConfig.getInstance().serverAllowCheats;
+            boolean serverForces = !PiggyConfig.getInstance().serverAllowCheats && !mc.hasSingleplayerServer();
 
             if ((isNoCheating || serverForces) && gameMode.getPlayerMode() != GameType.CREATIVE) {
-                Minecraft mc = (Minecraft) (Object) this;
                 if (mc.player != null) {
                     String message = serverForces
                             ? "Anti-Cheat Active: This server has forced anti-cheat ON."
@@ -68,7 +68,6 @@ public class MinecraftClientMixin {
             String mode = directionalActive ? "DIRECTIONAL" : "DIAGONAL";
             System.out.println("[MIXIN REDIRECT] " + mode + " mode active, modifying...");
 
-            Minecraft mc = (Minecraft) (Object) this;
             DirectionalPlacementHandler handler = InputController.getDirectionalPlacementHandler();
 
             if (handler != null) {
