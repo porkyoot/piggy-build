@@ -11,6 +11,9 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.GameType;
 
 /**
  * Handles fast block placement by reducing or removing the click delay.
@@ -20,6 +23,7 @@ public class FastPlacementHandler {
 
     private boolean wasKeyDown = false;
     private long lastPlacementTime = 0;
+    private long lastWarningTime = 0;
 
     /**
      * Called every client tick to handle fast placement logic
@@ -61,6 +65,15 @@ public class FastPlacementHandler {
     private void tryFastPlace(Minecraft client) {
         // Check basic conditions
         if (client.player == null || client.gameMode == null) {
+            return;
+        }
+
+        // Check No Cheating Mode
+        boolean isNoCheating = PiggyConfig.getInstance().isNoCheatingMode();
+        boolean serverForces = !PiggyConfig.getInstance().serverAllowCheats;
+
+        if ((isNoCheating || serverForces) && client.gameMode.getPlayerMode() != GameType.CREATIVE) {
+            warnNoCheating(client, serverForces);
             return;
         }
 
@@ -150,9 +163,6 @@ public class FastPlacementHandler {
     /**
      * Handles scroll wheel to change fast placement delay.
      */
-    /**
-     * Handles scroll wheel to change fast placement delay.
-     */
     public boolean onScroll(double amount) {
         if (InputController.fastPlaceKey.isDown()) {
             PiggyConfig config = PiggyConfig.getInstance();
@@ -181,9 +191,6 @@ public class FastPlacementHandler {
             // Convert back to delay (ms)
             int newDelay = 1000 / newSpeed;
 
-            // PiggyBuildClient.LOGGER.info("Scroll: Amount=" + amount + ", CurrentSpeed=" +
-            // currentSpeed + ", NewSpeed=" + newSpeed + ", NewDelay=" + newDelay);
-
             if (newDelay != currentDelay) {
                 config.setFastPlaceDelayMs(newDelay);
                 config.setFastBreakDelayMs(newDelay); // Sync break delay
@@ -202,5 +209,29 @@ public class FastPlacementHandler {
             return true;
         }
         return false;
+    }
+
+    private void warnNoCheating(Minecraft client, boolean serverForces) {
+        // Only warn if the user is ACTUALLY trying to use it (holding use key)
+        if (!client.options.keyUse.isDown()) {
+            return;
+        }
+
+        long currentTime = System.currentTimeMillis();
+        // Warn every 2 seconds max
+        if (currentTime - lastWarningTime > 2000) {
+            lastWarningTime = currentTime;
+            if (client.player != null) {
+                String message = serverForces
+                        ? "Anti-Cheat Active: This server has forced anti-cheat ON."
+                        : "Anti-Cheat Active: Disable 'No Cheating Mode' in settings to use.";
+
+                client.player.displayClientMessage(
+                        Component.literal(message)
+                                .withStyle(ChatFormatting.RED),
+                        true // true = action bar
+                );
+            }
+        }
     }
 }

@@ -8,6 +8,10 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.BlockHitResult;
+import is.pig.minecraft.build.config.PiggyConfig;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.HitResult;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -40,6 +44,27 @@ public class MinecraftClientMixin {
         boolean diagonalActive = InputController.diagonalKey.isDown();
 
         if ((directionalActive || diagonalActive) && this.hitResult instanceof BlockHitResult) {
+            // Check No Cheating Mode
+            boolean isNoCheating = PiggyConfig.getInstance().isNoCheatingMode();
+            boolean serverForces = !PiggyConfig.getInstance().serverAllowCheats;
+
+            if ((isNoCheating || serverForces) && gameMode.getPlayerMode() != GameType.CREATIVE) {
+                Minecraft mc = (Minecraft) (Object) this;
+                if (mc.player != null) {
+                    String message = serverForces
+                            ? "Anti-Cheat Active: This server has forced anti-cheat ON."
+                            : "Anti-Cheat Active: Disable 'No Cheating Mode' in settings to use.";
+
+                    mc.player.displayClientMessage(
+                            Component.literal(message)
+                                    .withStyle(ChatFormatting.RED),
+                            true // true = action bar
+                    );
+                }
+                // Return original to behave like vanilla
+                return gameMode.useItemOn(player, hand, original);
+            }
+
             String mode = directionalActive ? "DIRECTIONAL" : "DIAGONAL";
             System.out.println("[MIXIN REDIRECT] " + mode + " mode active, modifying...");
 

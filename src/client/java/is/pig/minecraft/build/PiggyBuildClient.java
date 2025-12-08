@@ -45,6 +45,16 @@ public class PiggyBuildClient implements ClientModInitializer {
             FastPlaceOverlay.render(graphics, tickDelta);
         });
 
+        // 4. Register Config Sync Receiver
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(
+                is.pig.minecraft.build.network.SyncConfigPayload.TYPE,
+                (payload, context) -> {
+                    context.client().execute(() -> {
+                        PiggyConfig.getInstance().serverAllowCheats = payload.allowCheats();
+                        PiggyBuildClient.LOGGER.info("Received server config: allowCheats=" + payload.allowCheats());
+                    });
+                });
+
         // 4. Render loop (visualization)
         WorldRenderEvents.LAST.register(context -> {
             Minecraft mc = Minecraft.getInstance();

@@ -18,6 +18,10 @@ public class PiggyConfig {
     private int fastPlaceDelayMs = 100;
     private boolean fastPlaceEnabled = false;
 
+    // Safety settings
+    private boolean noCheatingMode = true;
+    public transient boolean serverAllowCheats = true; // Runtime override from server
+
     // --- SINGLETON ACCESS ---
 
     public static PiggyConfig getInstance() {
@@ -65,6 +69,14 @@ public class PiggyConfig {
 
     public void setFastPlaceEnabled(boolean enabled) {
         this.fastPlaceEnabled = enabled;
+    }
+
+    public boolean isNoCheatingMode() {
+        return noCheatingMode;
+    }
+
+    public void setNoCheatingMode(boolean noCheatingMode) {
+        this.noCheatingMode = noCheatingMode;
     }
 
     private int fastBreakDelayMs = 150;
