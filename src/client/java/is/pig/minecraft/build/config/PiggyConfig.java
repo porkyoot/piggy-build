@@ -36,6 +36,13 @@ public class PiggyConfig {
         SILK_TOUCH
     }
 
+    // Default lists as strings
+    private String silkTouchBlocks = "minecraft:glass, minecraft:glass_pane, minecraft:ice, minecraft:packed_ice, minecraft:blue_ice, minecraft:ender_chest, minecraft:turtle_egg, minecraft:bee_nest, minecraft:beehive, minecraft:sculk, minecraft:sculk_catalyst, minecraft:sculk_sensor, minecraft:sculk_shrieker, *stained_glass*";
+
+    private String fortuneBlocks = "*_ore, *ancient_debris*, *amethyst_cluster*, minecraft:clay, minecraft:gravel, minecraft:glowstone, minecraft:melon, minecraft:sea_lantern";
+
+    private String shearsBlocks = "minecraft:vine, minecraft:dead_bush, minecraft:short_grass, minecraft:tall_grass, minecraft:fern, minecraft:large_fern, *leaves*, minecraft:cobweb, minecraft:seagrass, minecraft:hanging_roots, minecraft:glow_lichen";
+
     // --- SINGLETON ACCESS ---
 
     public static PiggyConfig getInstance() {
@@ -115,6 +122,30 @@ public class PiggyConfig {
 
     public void setOrePreference(OrePreference orePreference) {
         this.orePreference = orePreference;
+    }
+
+    public String getSilkTouchBlocks() {
+        return silkTouchBlocks;
+    }
+
+    public void setSilkTouchBlocks(String silkTouchBlocks) {
+        this.silkTouchBlocks = silkTouchBlocks;
+    }
+
+    public String getFortuneBlocks() {
+        return fortuneBlocks;
+    }
+
+    public void setFortuneBlocks(String fortuneBlocks) {
+        this.fortuneBlocks = fortuneBlocks;
+    }
+
+    public String getShearsBlocks() {
+        return shearsBlocks;
+    }
+
+    public void setShearsBlocks(String shearsBlocks) {
+        this.shearsBlocks = shearsBlocks;
     }
 
     private int fastBreakDelayMs = 150;

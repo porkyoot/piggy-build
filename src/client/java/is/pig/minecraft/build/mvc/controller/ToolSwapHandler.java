@@ -8,13 +8,12 @@ import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.StainedGlassBlock;
-import net.minecraft.world.level.block.StainedGlassPaneBlock;
+
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -145,10 +144,32 @@ public class ToolSwapHandler {
 
         // Silk Touch Logic
         boolean hasSilk = getEnchantmentLevel(client, stack, Enchantments.SILK_TOUCH) > 0;
-        boolean needsSilk = requiresSilkTouch(state);
+        int fortuneLevel = getEnchantmentLevel(client, stack, Enchantments.FORTUNE);
 
-        if (needsSilk && hasSilk) {
-            speed += 10000.0f; // Massive bonus to ensure selection
+        boolean needsSilk = requiresSilkTouch(state);
+        boolean isOre = isOreOrValuable(state);
+        boolean needsShears = requiresShears(state);
+
+        if (needsShears && stack.is(Items.SHEARS)) {
+            speed += 10000.0f; // Massive bonus for Shears
+        } else if (needsSilk && hasSilk) {
+            speed += 10000.0f; // Massive bonus for mandatory Silk Touch (Glass, etc.)
+        } else if (isOre) {
+            // Apply preference for Ores
+            PiggyConfig.OrePreference perf = PiggyConfig.getInstance().getOrePreference();
+
+            if (perf == PiggyConfig.OrePreference.SILK_TOUCH) {
+                if (hasSilk)
+                    speed += 5000.0f; // Big bonus for preferred Silk
+                else if (fortuneLevel > 0)
+                    speed -= 100.0f; // Penalty for unwanted Fortune
+            } else {
+                // Prefer Fortune
+                if (fortuneLevel > 0)
+                    speed += (1000.0f * fortuneLevel); // Bonus per Fortune level
+                else if (hasSilk)
+                    speed -= 100.0f; // Penalty for unwanted Silk
+            }
         } else if (!needsSilk && hasSilk) {
             speed -= 0.1f; // Slight penalty to preserve Silk Touch durability if not needed
         }
@@ -170,21 +191,57 @@ public class ToolSwapHandler {
     }
 
     private boolean requiresSilkTouch(BlockState state) {
-        Block b = state.getBlock();
-        return b == Blocks.GLASS
-                || b == Blocks.GLASS_PANE
-                || b == Blocks.ICE
-                || b == Blocks.PACKED_ICE
-                || b == Blocks.BLUE_ICE
-                || b == Blocks.ENDER_CHEST
-                || b == Blocks.TURTLE_EGG
-                || b == Blocks.BEE_NEST
-                || b == Blocks.BEEHIVE
-                || b == Blocks.SCULK
-                || b == Blocks.SCULK_CATALYST
-                || b == Blocks.SCULK_SENSOR
-                || b == Blocks.SCULK_SHRIEKER
-                || b instanceof StainedGlassBlock
-                || b instanceof StainedGlassPaneBlock;
+        return matchesConfigList(PiggyConfig.getInstance().getSilkTouchBlocks(), state);
+    }
+
+    private boolean isOreOrValuable(BlockState state) {
+        return matchesConfigList(PiggyConfig.getInstance().getFortuneBlocks(), state);
+    }
+
+    private boolean requiresShears(BlockState state) {
+        return matchesConfigList(PiggyConfig.getInstance().getShearsBlocks(), state);
+    }
+
+    private boolean matchesConfigList(String configList, BlockState state) {
+        if (configList == null || configList.isEmpty())
+            return false;
+
+        ResourceKey<Block> key = state.getBlockHolder().unwrapKey().orElse(null);
+        if (key == null)
+            return false;
+        String id = key.location().toString(); // e.g., "minecraft:glass"
+        String path = key.location().getPath(); // e.g., "glass"
+
+        String[] patterns = configList.split(",");
+        for (String pattern : patterns) {
+            pattern = pattern.trim();
+            if (pattern.isEmpty())
+                continue;
+
+            // Handle wildcard *
+            if (pattern.contains("*")) {
+                // simple contains check if * is at padding
+                String clean = pattern.replace("*", "");
+                if (pattern.startsWith("*") && pattern.endsWith("*")) {
+                    if (id.contains(clean) || path.contains(clean))
+                        return true;
+                } else if (pattern.startsWith("*")) {
+                    if (id.endsWith(clean) || path.endsWith(clean))
+                        return true;
+                } else if (pattern.endsWith("*")) {
+                    if (id.startsWith(clean) || path.startsWith(clean))
+                        return true;
+                } else {
+                    // complex wildcard not fully supported, fallback to contains
+                    if (id.contains(clean))
+                        return true;
+                }
+            } else {
+                // Exact match (check against full ID or just path)
+                if (id.equals(pattern) || path.equals(pattern))
+                    return true;
+            }
+        }
+        return false;
     }
 }

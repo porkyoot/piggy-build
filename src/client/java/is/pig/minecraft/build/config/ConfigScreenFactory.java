@@ -5,6 +5,7 @@ import dev.isxander.yacl3.api.controller.ColorControllerBuilder;
 import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
 import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
 import dev.isxander.yacl3.api.controller.StringControllerBuilder;
+import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -206,6 +207,61 @@ public class ConfigScreenFactory {
                                                                                                 .getSwapHotbarSlots()),
                                                                                 (val) -> config.setSwapHotbarSlots(
                                                                                                 parseSlotString(val)))
+                                                                .controller(StringControllerBuilder::create)
+                                                                .build())
+
+                                                .option(Option.<PiggyConfig.OrePreference>createBuilder()
+                                                                .name(Component.literal("Ore Preference"))
+                                                                .description(OptionDescription.of(
+                                                                                Component.literal(
+                                                                                                "Prefer Silk Touch or Fortune for ores?")))
+                                                                .binding(
+                                                                                PiggyConfig.OrePreference.FORTUNE,
+                                                                                config::getOrePreference,
+                                                                                config::setOrePreference)
+                                                                .controller(opt -> EnumControllerBuilder.create(opt)
+                                                                                .enumClass(PiggyConfig.OrePreference.class))
+                                                                .build())
+
+                                                .option(Option.<String>createBuilder()
+                                                                .name(Component.literal("Silk Touch Blocks"))
+                                                                .description(OptionDescription.of(
+                                                                                Component.literal(
+                                                                                                "Blocks that ALWAYS require Silk Touch."),
+                                                                                Component.literal(
+                                                                                                "Supports IDs (minecraft:glass) or Wildcards (*glass*).")))
+                                                                .binding(
+                                                                                config.getSilkTouchBlocks(),
+                                                                                config::getSilkTouchBlocks,
+                                                                                config::setSilkTouchBlocks)
+                                                                .controller(StringControllerBuilder::create)
+                                                                .build())
+
+                                                .option(Option.<String>createBuilder()
+                                                                .name(Component.literal("Fortune/Ore Blocks"))
+                                                                .description(OptionDescription.of(
+                                                                                Component.literal(
+                                                                                                "Blocks affected by Ore Preference (Fortune vs Silk)."),
+                                                                                Component.literal(
+                                                                                                "Supports IDs (minecraft:coal_ore) or Wildcards (*_ore).")))
+                                                                .binding(
+                                                                                config.getFortuneBlocks(),
+                                                                                config::getFortuneBlocks,
+                                                                                config::setFortuneBlocks)
+                                                                .controller(StringControllerBuilder::create)
+                                                                .build())
+
+                                                .option(Option.<String>createBuilder()
+                                                                .name(Component.literal("Shears Blocks"))
+                                                                .description(OptionDescription.of(
+                                                                                Component.literal(
+                                                                                                "Blocks that require Shears to drop."),
+                                                                                Component.literal(
+                                                                                                "e.g. Vines, Leaves, Grass.")))
+                                                                .binding(
+                                                                                config.getShearsBlocks(),
+                                                                                config::getShearsBlocks,
+                                                                                config::setShearsBlocks)
                                                                 .controller(StringControllerBuilder::create)
                                                                 .build())
                                                 .build())
