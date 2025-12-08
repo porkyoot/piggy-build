@@ -21,7 +21,7 @@ public class InputController {
     private static DirectionalPlacementHandler placementHandler = new DirectionalPlacementHandler();
     private final FastPlacementHandler fastPlacementHandler = new FastPlacementHandler();
     private final FastBreakHandler fastBreakHandler = new FastBreakHandler();
-    private final ToolSwapHandler toolSwapHandler = new ToolSwapHandler();
+    private static final ToolSwapHandler toolSwapHandler = new ToolSwapHandler();
 
     public void initialize() {
         registerKeys();
@@ -78,5 +78,9 @@ public class InputController {
     // Static accessor for the mixin to use
     public static DirectionalPlacementHandler getDirectionalPlacementHandler() {
         return placementHandler;
+    }
+
+    public static ToolSwapHandler getToolSwapHandler() {
+        return toolSwapHandler;
     }
 }

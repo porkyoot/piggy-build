@@ -40,8 +40,14 @@ public class ConfigPersistence {
                 PiggyConfig loaded = GSON.fromJson(reader, PiggyConfig.class);
                 if (loaded != null) {
                     PiggyConfig.setInstance(loaded);
-                    LOGGER.debug("Configuration loaded successfully.");
+                    LOGGER.info("Configuration loaded successfully.");
                 }
+            } catch (com.google.gson.JsonSyntaxException | com.google.gson.JsonIOException e) {
+                LOGGER.error("Failed to parse configuration file: {}", CONFIG_FILE.getAbsolutePath(), e);
+                // Throwing a RuntimeException with a clear message to inform the user
+                throw new RuntimeException("PiggyBuild Config Error: The configuration file '" + CONFIG_FILE.getName()
+                        + "' is malformed. Please fix the syntax or delete the file to regenerate it. Details: "
+                        + e.getMessage(), e);
             } catch (IOException e) {
                 LOGGER.error("Failed to load configuration", e);
             }

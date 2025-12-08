@@ -18,11 +18,25 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
 @Mixin(Minecraft.class)
 public class MinecraftClientMixin {
 
     @Shadow
     public HitResult hitResult;
+
+    /**
+     * Inject before startAttack to ensure tool swapping happens BEFORE the block is
+     * hit/broken.
+     */
+    @Inject(method = "startAttack", at = @At("HEAD"))
+    private void piggyBuild$beforeAttack(CallbackInfoReturnable<Boolean> cir) {
+        // This is the CRITICAL fix: Run tool swap logic immediately before the attack
+        // happens.
+        InputController.getToolSwapHandler().onTick((Minecraft) (Object) this);
+    }
 
     /**
      * Redirect the useItemOn call to use our modified BlockHitResult.
@@ -35,9 +49,6 @@ public class MinecraftClientMixin {
             LocalPlayer player,
             InteractionHand hand,
             BlockHitResult original) {
-
-        System.out.println("[MIXIN REDIRECT] Intercepted useItemOn call");
-        System.out.println("[MIXIN REDIRECT] Original face: " + original.getDirection());
 
         // Check if we should modify the hit result (directional OR diagonal mode)
         boolean directionalActive = InputController.directionalKey.isDown();
@@ -65,22 +76,16 @@ public class MinecraftClientMixin {
                 return gameMode.useItemOn(player, hand, original);
             }
 
-            String mode = directionalActive ? "DIRECTIONAL" : "DIAGONAL";
-            System.out.println("[MIXIN REDIRECT] " + mode + " mode active, modifying...");
-
             DirectionalPlacementHandler handler = InputController.getDirectionalPlacementHandler();
 
             if (handler != null) {
                 BlockHitResult modified = handler.modifyHitResult(mc, original);
-                System.out.println("[MIXIN REDIRECT] Modified face: " + modified.getDirection());
-                System.out.println("[MIXIN REDIRECT] Modified pos: " + modified.getBlockPos());
 
                 // Call with the MODIFIED hit result
                 return gameMode.useItemOn(player, hand, modified);
             }
         }
 
-        System.out.println("[MIXIN REDIRECT] Using original face");
         // No modification - use original
         return gameMode.useItemOn(player, hand, original);
     }
