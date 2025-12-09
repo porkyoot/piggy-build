@@ -82,6 +82,13 @@ public class DirectionalPlacementHandler {
             return hitResult;
         }
 
+        // 3. CHECK IF FEATURE IS ENABLED
+        is.pig.minecraft.build.config.PiggyConfig config = is.pig.minecraft.build.config.PiggyConfig.getInstance();
+        if (!config.isFeatureFlexiblePlacementEnabled()) {
+            // Feature is disabled, return vanilla hit result
+            return hitResult;
+        }
+
         PlacementSession session = PlacementSession.getInstance();
 
         PiggyBuildClient.LOGGER.debug("[Handler] Modifying hit result for " + mode + " placement");

@@ -16,6 +16,7 @@ repositories {
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
+	mavenLocal()
 	maven {
         name 'Xander Maven'
         url 'https://maven.isxander.dev/releases'
@@ -31,10 +32,10 @@ loom {
 
 	mods {
 		"piggy-build" {
+			sourceSet sourceSets.main
 			sourceSet sourceSets.client
 		}
 	}
-
 
 }
 
@@ -54,9 +55,11 @@ dependencies {
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 	modImplementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
 	modImplementation("com.terraformersmc:modmenu:${project.modmenu_version}")
-	modImplementation 'is.pig.minecraft:piggy-lib:1.0.0'
-	modImplementation 'is.pig.minecraft.admin:piggy-admin:1.0.1'
-	modImplementation 'is.pig.minecraft.inventory:piggy-inventory:1.0.0'
+	
+	// Use project dependencies for local mods
+	modImplementation project(path: ':piggy-lib', configuration: 'namedElements')
+	modImplementation project(path: ':piggy-admin', configuration: 'namedElements')
+	modImplementation project(path: ':piggy-inventory', configuration: 'namedElements')
 }
 
 processResources {

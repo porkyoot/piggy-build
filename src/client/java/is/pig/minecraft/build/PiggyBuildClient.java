@@ -36,6 +36,21 @@ public class PiggyBuildClient implements ClientModInitializer {
     public void onInitializeClient() {
         LOGGER.info("Ehlo from Piggy Build!");
 
+        // 0. Register features
+        is.pig.minecraft.lib.features.CheatFeatureRegistry.register(
+                new is.pig.minecraft.lib.features.CheatFeature(
+                        "fast_place",
+                        "Fast Place",
+                        "Rapidly place blocks by holding right-click",
+                        false));
+
+        is.pig.minecraft.lib.features.CheatFeatureRegistry.register(
+                new is.pig.minecraft.lib.features.CheatFeature(
+                        "flexible_placement",
+                        "Flexible Placement",
+                        "Place blocks in different directions and diagonally",
+                        true));
+
         // 1. Load configuration
         ConfigPersistence.load();
 
@@ -53,8 +68,10 @@ public class PiggyBuildClient implements ClientModInitializer {
                 (payload, context) -> {
                     PiggyConfig config = PiggyConfig.getInstance();
                     config.serverAllowCheats = payload.allowCheats();
+                    config.serverFeatures = payload.features();
                     PiggyBuildClient.LOGGER
-                            .info("Received server config from piggy-admin: allowCheats=" + payload.allowCheats());
+                            .info("Received server config from piggy-admin: allowCheats=" + payload.allowCheats()
+                                    + ", features=" + payload.features());
                 });
 
         // 4. Render loop (visualization)

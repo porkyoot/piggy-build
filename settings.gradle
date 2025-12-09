@@ -8,6 +8,3 @@ pluginManagement {
 		gradlePluginPortal()
 	}
 }
-includeBuild '../piggy-admin'
-includeBuild '../piggy-lib'
-includeBuild '../piggy-inventory'

@@ -13,7 +13,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.level.GameType;
 
 /**
  * Handles fast block placement by reducing or removing the click delay.
@@ -68,12 +67,10 @@ public class FastPlacementHandler {
             return;
         }
 
-        // Check No Cheating Mode
-        boolean isNoCheating = PiggyConfig.getInstance().isNoCheatingMode();
-        boolean serverForces = !PiggyConfig.getInstance().serverAllowCheats && !client.hasSingleplayerServer();
-
-        if ((isNoCheating || serverForces) && client.gameMode.getPlayerMode() != GameType.CREATIVE) {
-            warnNoCheating(client, serverForces);
+        // Check if feature is enabled (considers server overrides)
+        PiggyConfig config = PiggyConfig.getInstance();
+        if (!config.isFeatureFastPlaceEnabled()) {
+            warnFeatureDisabled(client);
             return;
         }
 
@@ -211,7 +208,7 @@ public class FastPlacementHandler {
         return false;
     }
 
-    private void warnNoCheating(Minecraft client, boolean serverForces) {
+    private void warnFeatureDisabled(Minecraft client) {
         // Only warn if the user is ACTUALLY trying to use it (holding use key)
         if (!client.options.keyUse.isDown()) {
             return;
@@ -222,9 +219,13 @@ public class FastPlacementHandler {
         if (currentTime - lastWarningTime > 2000) {
             lastWarningTime = currentTime;
             if (client.player != null) {
+                PiggyConfig config = PiggyConfig.getInstance();
+                boolean serverForces = !config.serverAllowCheats ||
+                        (config.serverFeatures.containsKey("fast_place") && !config.serverFeatures.get("fast_place"));
+
                 String message = serverForces
-                        ? "Anti-Cheat Active: This server has forced anti-cheat ON."
-                        : "Anti-Cheat Active: Disable 'No Cheating Mode' in settings to use.";
+                        ? "Fast Place Disabled: This server has disabled this feature."
+                        : "Fast Place Disabled: Enable in mod settings or disable 'No Cheating Mode'.";
 
                 client.player.displayClientMessage(
                         Component.literal(message)

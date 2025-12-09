@@ -20,11 +20,16 @@ public class PiggyConfig {
 
     // Fast placement settings
     private int fastPlaceDelayMs = 100;
-    private boolean fastPlaceEnabled = false;
+    private boolean fastPlaceFeatureEnabled = false;
+
+    // Flexible placement settings
+    private boolean flexiblePlacementFeatureEnabled = true;
 
     // Safety settings
     private boolean noCheatingMode = true;
     public transient boolean serverAllowCheats = true; // Runtime override from server
+    public transient java.util.Map<String, Boolean> serverFeatures = new java.util.HashMap<>(); // Runtime feature
+                                                                                                // overrides
 
     // Tool swap settings
     private boolean toolSwapEnabled = true;
@@ -94,11 +99,45 @@ public class PiggyConfig {
     }
 
     public boolean isFastPlaceEnabled() {
-        return fastPlaceEnabled;
+        return fastPlaceFeatureEnabled;
     }
 
     public void setFastPlaceEnabled(boolean enabled) {
-        this.fastPlaceEnabled = enabled;
+        this.fastPlaceFeatureEnabled = enabled;
+    }
+
+    public boolean isFlexiblePlacementEnabled() {
+        return flexiblePlacementFeatureEnabled;
+    }
+
+    public void setFlexiblePlacementEnabled(boolean enabled) {
+        this.flexiblePlacementFeatureEnabled = enabled;
+    }
+
+    /**
+     * Checks if fast place feature is actually enabled, considering server
+     * overrides.
+     */
+    public boolean isFeatureFastPlaceEnabled() {
+        return is.pig.minecraft.lib.features.CheatFeatureRegistry.isFeatureEnabled(
+                "fast_place",
+                serverAllowCheats,
+                serverFeatures,
+                noCheatingMode,
+                fastPlaceFeatureEnabled);
+    }
+
+    /**
+     * Checks if flexible placement feature is actually enabled, considering server
+     * overrides.
+     */
+    public boolean isFeatureFlexiblePlacementEnabled() {
+        return is.pig.minecraft.lib.features.CheatFeatureRegistry.isFeatureEnabled(
+                "flexible_placement",
+                serverAllowCheats,
+                serverFeatures,
+                noCheatingMode,
+                flexiblePlacementFeatureEnabled);
     }
 
     public boolean isNoCheatingMode() {
