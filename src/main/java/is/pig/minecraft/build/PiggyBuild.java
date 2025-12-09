@@ -21,16 +21,10 @@ public class PiggyBuild implements ModInitializer {
 
 		// LOGGER.info("Hello Fabric world!");
 
-		is.pig.minecraft.build.config.PiggyServerConfig.load();
-
+		// Network Payload Registration (Common)
 		net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.playS2C().register(
 				is.pig.minecraft.build.network.SyncConfigPayload.TYPE,
 				is.pig.minecraft.build.network.SyncConfigPayload.CODEC);
 
-		net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-			boolean allowCheats = is.pig.minecraft.build.config.PiggyServerConfig.getInstance().allowCheats;
-			net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(handler.getPlayer(),
-					new is.pig.minecraft.build.network.SyncConfigPayload(allowCheats));
-		});
 	}
 }

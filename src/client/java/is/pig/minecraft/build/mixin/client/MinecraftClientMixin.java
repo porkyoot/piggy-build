@@ -18,25 +18,11 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
 @Mixin(Minecraft.class)
 public class MinecraftClientMixin {
 
     @Shadow
     public HitResult hitResult;
-
-    /**
-     * Inject before startAttack to ensure tool swapping happens BEFORE the block is
-     * hit/broken.
-     */
-    @Inject(method = "startAttack", at = @At("HEAD"))
-    private void piggyBuild$beforeAttack(CallbackInfoReturnable<Boolean> cir) {
-        // This is the CRITICAL fix: Run tool swap logic immediately before the attack
-        // happens.
-        InputController.getToolSwapHandler().onTick((Minecraft) (Object) this);
-    }
 
     /**
      * Redirect the useItemOn call to use our modified BlockHitResult.

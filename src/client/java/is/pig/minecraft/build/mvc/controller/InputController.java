@@ -15,14 +15,12 @@ public class InputController {
     public static KeyMapping directionalKey;
     public static KeyMapping diagonalKey;
     public static KeyMapping fastPlaceKey;
-    public static KeyMapping toggleToolSwapKey;
 
     // Handlers (Logic separation)
     private final ShapeMenuHandler menuHandler = new ShapeMenuHandler();
     private static DirectionalPlacementHandler placementHandler = new DirectionalPlacementHandler();
     private final FastPlacementHandler fastPlacementHandler = new FastPlacementHandler();
     private final FastBreakHandler fastBreakHandler = new FastBreakHandler();
-    private static final ToolSwapHandler toolSwapHandler = new ToolSwapHandler();
 
     public void initialize() {
         registerKeys();
@@ -54,11 +52,6 @@ public class InputController {
                 GLFW.GLFW_MOUSE_BUTTON_6,
                 "Piggy Build"));
 
-        toggleToolSwapKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "Toggle Tool Swap",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_H,
-                "Piggy Build"));
     }
 
     private void registerEvents() {
@@ -72,45 +65,12 @@ public class InputController {
                 return;
 
             // Handle Toggles
-            while (toggleToolSwapKey.consumeClick()) {
-                boolean newState = !is.pig.minecraft.build.config.PiggyConfig.getInstance().isToolSwapEnabled();
-                is.pig.minecraft.build.config.PiggyConfig.getInstance().setToolSwapEnabled(newState);
-                is.pig.minecraft.build.config.ConfigPersistence.save();
-
-                if (newState) {
-                    boolean restricted = false;
-                    // Check anti-cheat conditions
-                    if (is.pig.minecraft.build.config.PiggyConfig.getInstance().isNoCheatingMode()
-                            && !is.pig.minecraft.build.config.PiggyConfig.getInstance().serverAllowCheats) {
-                        if (!client.player.isCreative() && !client.player.isSpectator()) {
-                            restricted = true;
-                        }
-                    }
-
-                    if (restricted) {
-                        client.player.displayClientMessage(
-                                net.minecraft.network.chat.Component.literal("Tool Swap: ON (Restricted by Anti-Cheat)")
-                                        .withStyle(net.minecraft.ChatFormatting.RED),
-                                true);
-                    } else {
-                        client.player.displayClientMessage(
-                                net.minecraft.network.chat.Component.literal("Tool Swap: ON")
-                                        .withStyle(net.minecraft.ChatFormatting.YELLOW),
-                                true);
-                    }
-                } else {
-                    client.player.displayClientMessage(
-                            net.minecraft.network.chat.Component.literal("Tool Swap: OFF")
-                                    .withStyle(net.minecraft.ChatFormatting.YELLOW),
-                            true);
-                }
-            }
 
             menuHandler.onTick(client);
             placementHandler.onTick(client);
             fastPlacementHandler.onTick(client);
             fastBreakHandler.onTick(client);
-            toolSwapHandler.onTick(client);
+
         });
 
         // 3. Block placement is now handled via MinecraftClientMixin
@@ -122,7 +82,4 @@ public class InputController {
         return placementHandler;
     }
 
-    public static ToolSwapHandler getToolSwapHandler() {
-        return toolSwapHandler;
-    }
 }
