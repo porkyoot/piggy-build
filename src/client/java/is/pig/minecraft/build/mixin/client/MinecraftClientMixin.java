@@ -44,7 +44,7 @@ public class MinecraftClientMixin {
      * passed.
      */
     @Redirect(method = "startUseItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"))
-    @SuppressWarnings("resource")
+    @SuppressWarnings("ressource")
     private InteractionResult piggyBuild$redirectUseItemOn(
             MultiPlayerGameMode gameMode,
             LocalPlayer player,
