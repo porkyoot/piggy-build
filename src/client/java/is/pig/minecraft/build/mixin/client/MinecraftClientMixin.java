@@ -44,14 +44,18 @@ public class MinecraftClientMixin {
      * passed.
      */
     @Redirect(method = "startUseItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"))
+    @SuppressWarnings("resource")
     private InteractionResult piggyBuild$redirectUseItemOn(
             MultiPlayerGameMode gameMode,
             LocalPlayer player,
             InteractionHand hand,
             BlockHitResult original) {
 
-        //System.out.println("[MIXIN REDIRECT] Intercepted useItemOn call");
-        //System.out.println("[MIXIN REDIRECT] Original face: " + original.getDirection());
+        // System.out.println("[MIXIN REDIRECT] Intercepted useItemOn call");
+        // System.out.println("[MIXIN REDIRECT] Original face: " +
+        // original.getDirection());
+
+        Minecraft mc = (Minecraft) (Object) this;
 
         // Check if we should modify the hit result (directional OR diagonal mode)
         boolean directionalActive = InputController.directionalKey.isDown();
@@ -79,24 +83,26 @@ public class MinecraftClientMixin {
                 return gameMode.useItemOn(player, hand, original);
             }
 
-            //String mode = directionalActive ? "DIRECTIONAL" : "DIAGONAL";
-            //System.out.println("[MIXIN REDIRECT] " + mode + " mode active, modifying...");
+            // String mode = directionalActive ? "DIRECTIONAL" : "DIAGONAL";
+            // System.out.println("[MIXIN REDIRECT] " + mode + " mode active,
+            // modifying...");
 
-            Minecraft mc = (Minecraft) (Object) this;
             DirectionalPlacementHandler handler = InputController.getDirectionalPlacementHandler();
 
             if (handler != null) {
                 BlockHitResult modified = handler.modifyHitResult(mc, original);
-                //System.out.println("[MIXIN REDIRECT] Modified face: " + modified.getDirection());
-                //System.out.println("[MIXIN REDIRECT] Modified pos: " + modified.getBlockPos());
+                // System.out.println("[MIXIN REDIRECT] Modified face: " +
+                // modified.getDirection());
+                // System.out.println("[MIXIN REDIRECT] Modified pos: " +
+                // modified.getBlockPos());
 
                 // Call with the MODIFIED hit result
                 return gameMode.useItemOn(player, hand, modified);
             }
-            
+
         }
 
-        //System.out.println("[MIXIN REDIRECT] Using original face");
+        // System.out.println("[MIXIN REDIRECT] Using original face");
         // No modification - use original
         return gameMode.useItemOn(player, hand, original);
     }

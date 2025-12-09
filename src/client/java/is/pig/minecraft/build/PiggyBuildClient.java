@@ -34,6 +34,8 @@ public class PiggyBuildClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        LOGGER.info("Ehlo from Piggy Build!");
+
         // 1. Load configuration
         ConfigPersistence.load();
 

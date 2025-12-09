@@ -128,10 +128,13 @@ public class ConfigScreenFactory {
                                                 .tooltip(Component.literal("Configure fast block placement settings"))
 
                                                 .option(Option.<Boolean>createBuilder()
-                                                                .name(Component.literal("Enable Fast Placement"))
+                                                                .name(Component.literal("Enable Fast Place/Break"))
                                                                 .description(OptionDescription.of(
                                                                                 Component.literal(
-                                                                                                "Enables automatic fast clicking when holding the Fast Place key.")))
+                                                                                                "Enables fast placement and breaking features."),
+                                                                                Component.literal(""),
+                                                                                Component.literal(
+                                                                                                "Same as pressing the Fast Place keybind (Button 6).")))
                                                                 .binding(
                                                                                 false,
                                                                                 config::isFastPlaceEnabled,
