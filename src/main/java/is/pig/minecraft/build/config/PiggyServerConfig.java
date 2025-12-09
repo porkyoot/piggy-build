@@ -17,6 +17,7 @@ public class PiggyServerConfig {
     private static PiggyServerConfig INSTANCE;
 
     public boolean allowCheats = true;
+    public java.util.Map<String, Boolean> features = new java.util.HashMap<>();
 
     public static PiggyServerConfig getInstance() {
         if (INSTANCE == null) {

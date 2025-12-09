@@ -50,6 +50,9 @@ public class MinecraftClientMixin {
             InteractionHand hand,
             BlockHitResult original) {
 
+        //System.out.println("[MIXIN REDIRECT] Intercepted useItemOn call");
+        //System.out.println("[MIXIN REDIRECT] Original face: " + original.getDirection());
+
         // Check if we should modify the hit result (directional OR diagonal mode)
         boolean directionalActive = InputController.directionalKey.isDown();
         boolean diagonalActive = InputController.diagonalKey.isDown();
@@ -76,16 +79,24 @@ public class MinecraftClientMixin {
                 return gameMode.useItemOn(player, hand, original);
             }
 
+            //String mode = directionalActive ? "DIRECTIONAL" : "DIAGONAL";
+            //System.out.println("[MIXIN REDIRECT] " + mode + " mode active, modifying...");
+
+            Minecraft mc = (Minecraft) (Object) this;
             DirectionalPlacementHandler handler = InputController.getDirectionalPlacementHandler();
 
             if (handler != null) {
                 BlockHitResult modified = handler.modifyHitResult(mc, original);
+                //System.out.println("[MIXIN REDIRECT] Modified face: " + modified.getDirection());
+                //System.out.println("[MIXIN REDIRECT] Modified pos: " + modified.getBlockPos());
 
                 // Call with the MODIFIED hit result
                 return gameMode.useItemOn(player, hand, modified);
             }
+            
         }
 
+        //System.out.println("[MIXIN REDIRECT] Using original face");
         // No modification - use original
         return gameMode.useItemOn(player, hand, original);
     }
