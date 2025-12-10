@@ -37,7 +37,7 @@
 		"java": ">=21",
 		"fabric-api": "*",
 		"yet_another_config_lib_v3": ">=3.6.1+1.21-fabric",
-		"piggy-admin": ">=1.0.0"
+		"piggy-lib": ">=1.0.0"
 	},
 	"suggests": {
 		"modmenu": ">=11.0.3"

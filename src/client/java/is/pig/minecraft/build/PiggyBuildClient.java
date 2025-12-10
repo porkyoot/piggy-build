@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import is.pig.minecraft.build.config.PiggyConfig;
+import is.pig.minecraft.build.config.PiggyBuildConfig;
 import is.pig.minecraft.build.config.ConfigPersistence;
 import is.pig.minecraft.build.mvc.controller.InputController;
 import is.pig.minecraft.build.mvc.model.BuildSession;
@@ -14,9 +14,13 @@ import is.pig.minecraft.build.mvc.view.FastPlaceOverlay;
 import is.pig.minecraft.build.mvc.view.DirectionalPlacementRenderer;
 import is.pig.minecraft.build.mvc.view.HighlightRenderType;
 import is.pig.minecraft.build.mvc.view.WorldShapeRenderer;
+import is.pig.minecraft.lib.config.PiggyClientConfig;
+import is.pig.minecraft.lib.network.SyncConfigPayload;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -24,6 +28,9 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.resources.ResourceLocation;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
 public class PiggyBuildClient implements ClientModInitializer {
 
@@ -57,22 +64,15 @@ public class PiggyBuildClient implements ClientModInitializer {
         // 2. Initialize controller
         controller.initialize();
 
-        // 3. HUD overlay rendering
+        // 3. Register Anti-Cheat HUD Overlay
+        is.pig.minecraft.lib.ui.AntiCheatHudOverlay.register();
+
+        // 4. HUD overlay rendering
         HudRenderCallback.EVENT.register((graphics, tickDelta) -> {
             FastPlaceOverlay.render(graphics, tickDelta);
         });
 
-        // 4. Register Config Sync Receiver
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(
-                is.pig.minecraft.lib.network.SyncConfigPayload.TYPE,
-                (payload, context) -> {
-                    PiggyConfig config = PiggyConfig.getInstance();
-                    config.serverAllowCheats = payload.allowCheats();
-                    config.serverFeatures = payload.features();
-                    PiggyBuildClient.LOGGER
-                            .info("Received server config from piggy-admin: allowCheats=" + payload.allowCheats()
-                                    + ", features=" + payload.features());
-                });
+        SyncConfigPayload.registerPacket();
 
         // 4. Render loop (visualization)
         WorldRenderEvents.LAST.register(context -> {
@@ -104,7 +104,7 @@ public class PiggyBuildClient implements ClientModInitializer {
         VertexConsumer builder = buffers.getBuffer(HighlightRenderType.TYPE);
 
         // Retrieve colors from the config
-        PiggyConfig config = PiggyConfig.getInstance();
+        PiggyBuildConfig config = PiggyBuildConfig.getInstance();
         float[] rgba = config.getHighlightColor().getComponents(null);
         float r = rgba[0];
         float g = rgba[1];
@@ -167,7 +167,7 @@ public class PiggyBuildClient implements ClientModInitializer {
             stack.translate(rx, ry, rz);
 
             // Pass configured overlay color (placement-specific)
-            PiggyConfig config = PiggyConfig.getInstance();
+            PiggyBuildConfig config = PiggyBuildConfig.getInstance();
             float[] placementRgba = config.getPlacementOverlayColor().getComponents(null);
             float rr = placementRgba[0];
             float gg = placementRgba[1];

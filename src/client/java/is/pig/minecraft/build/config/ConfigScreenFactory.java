@@ -22,7 +22,7 @@ import java.util.Set;
 public class ConfigScreenFactory {
 
         public static Screen create(Screen parent) {
-                PiggyConfig config = PiggyConfig.getInstance();
+                PiggyBuildConfig config = PiggyBuildConfig.getInstance();
 
                 return YetAnotherConfigLib.createBuilder()
                                 .title(Component.literal("Piggy Build Configuration"))
@@ -31,62 +31,11 @@ public class ConfigScreenFactory {
                                 .category(ConfigCategory.createBuilder()
                                                 .name(Component.literal("Safety"))
                                                 .tooltip(Component.literal("Configure safety and anti-cheat settings."))
-                                                .option(Option.<Boolean>createBuilder()
-                                                                .name(Component.literal("No Cheating Mode"))
-                                                                .description(OptionDescription.of(
-                                                                                Component.literal(
-                                                                                                "Prevents usage of Fast Place/Break and Tool Swap in Survival mode."),
-                                                                                Component.literal(""),
-                                                                                Component.literal(
-                                                                                                "§cWARNING: Disabling this allows cheats on servers!"),
-                                                                                Component.literal(
-                                                                                                "§cThis WILL result in a BAN on most servers.")))
-                                                                .binding(
-                                                                                true,
-                                                                                config::isNoCheatingMode,
-                                                                                newValue -> {
-                                                                                        if (!newValue && config
-                                                                                                        .isNoCheatingMode()) {
-                                                                                                // User is attempting to
-                                                                                                // disable it
-                                                                                                Minecraft client = Minecraft
-                                                                                                                .getInstance();
-                                                                                                client.setScreen(
-                                                                                                                new ConfirmScreen(
-                                                                                                                                (confirmed) -> {
-                                                                                                                                        if (confirmed) {
-                                                                                                                                                config.setNoCheatingMode(
-                                                                                                                                                                false);
-                                                                                                                                                ConfigPersistence
-                                                                                                                                                                .save();
-                                                                                                                                        } else {
-                                                                                                                                                config.setNoCheatingMode(
-                                                                                                                                                                true); // Revert
-                                                                                                                                                ConfigPersistence
-                                                                                                                                                                .save();
-                                                                                                                                        }
-                                                                                                                                        // Re-open
-                                                                                                                                        // config
-                                                                                                                                        // screen
-                                                                                                                                        client.setScreen(
-                                                                                                                                                        ConfigScreenFactory
-                                                                                                                                                                        .create(parent));
-                                                                                                                                },
-                                                                                                                                Component.literal(
-                                                                                                                                                "Disable No Cheating Mode?"),
-                                                                                                                                Component.literal(
-                                                                                                                                                "§cWARNING: Disabling this allows the use of cheats (Fast Place/Break, Tool Swap) in Survival mode.\nUsing these on servers is detectable and WILL RESULT IN A BAN.\n\nAre you sure you want to continue?"),
-                                                                                                                                Component.literal(
-                                                                                                                                                "Yes, I understand the risks"),
-                                                                                                                                Component.literal(
-                                                                                                                                                "Cancel")));
-                                                                                        } else {
-                                                                                                config.setNoCheatingMode(
-                                                                                                                newValue);
-                                                                                        }
-                                                                                })
-                                                                .controller(TickBoxControllerBuilder::create)
-                                                                .build())
+                                                .option(is.pig.minecraft.lib.ui.NoCheatingModeOption.create(
+                                                                parent,
+                                                                config::isNoCheatingMode,
+                                                                config::setNoCheatingMode,
+                                                                ConfigPersistence::save))
                                                 .build())
 
                                 // VISUALS CATEGORY

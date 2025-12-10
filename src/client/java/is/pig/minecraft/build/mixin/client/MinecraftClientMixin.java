@@ -8,7 +8,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.BlockHitResult;
-import is.pig.minecraft.build.config.PiggyConfig;
+import is.pig.minecraft.build.config.PiggyBuildConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.GameType;
@@ -63,22 +63,17 @@ public class MinecraftClientMixin {
 
         if ((directionalActive || diagonalActive) && this.hitResult instanceof BlockHitResult) {
             // Check No Cheating Mode
-            Minecraft mc = (Minecraft) (Object) this;
-            boolean isNoCheating = PiggyConfig.getInstance().isNoCheatingMode();
-            boolean serverForces = !PiggyConfig.getInstance().serverAllowCheats && !mc.hasSingleplayerServer();
+            boolean isNoCheating = PiggyBuildConfig.getInstance().isNoCheatingMode();
+            boolean serverForces = !PiggyBuildConfig.getInstance().serverAllowCheats;
 
             if ((isNoCheating || serverForces) && gameMode.getPlayerMode() != GameType.CREATIVE) {
-                if (mc.player != null) {
-                    String message = serverForces
-                            ? "Anti-Cheat Active: This server has forced anti-cheat ON."
-                            : "Anti-Cheat Active: Disable 'No Cheating Mode' in settings to use.";
+                // Trigger centralized feedback
+                is.pig.minecraft.lib.ui.BlockReason reason = serverForces
+                        ? is.pig.minecraft.lib.ui.BlockReason.SERVER_ENFORCEMENT
+                        : is.pig.minecraft.lib.ui.BlockReason.LOCAL_CONFIG;
+                is.pig.minecraft.lib.ui.AntiCheatFeedbackManager.getInstance()
+                        .onFeatureBlocked("flexible_placement", reason);
 
-                    mc.player.displayClientMessage(
-                            Component.literal(message)
-                                    .withStyle(ChatFormatting.RED),
-                            true // true = action bar
-                    );
-                }
                 // Return original to behave like vanilla
                 return gameMode.useItemOn(player, hand, original);
             }

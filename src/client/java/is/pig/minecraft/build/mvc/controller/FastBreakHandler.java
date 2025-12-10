@@ -1,7 +1,7 @@
 package is.pig.minecraft.build.mvc.controller;
 
 import is.pig.minecraft.build.PiggyBuildClient;
-import is.pig.minecraft.build.config.PiggyConfig;
+import is.pig.minecraft.build.config.PiggyBuildConfig;
 import is.pig.minecraft.build.mixin.client.MinecraftAccessorMixin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -30,7 +30,7 @@ public class FastBreakHandler {
      */
     public void onTick(Minecraft client) {
         // Only work when fast placement is enabled
-        if (!PiggyConfig.getInstance().isFastPlaceEnabled()) {
+        if (!PiggyBuildConfig.getInstance().isFastPlaceEnabled()) {
             return;
         }
 
@@ -76,7 +76,7 @@ public class FastBreakHandler {
         }
 
         // Check if enough time has passed since last break
-        long minDelay = PiggyConfig.getInstance().getFastBreakDelayMs();
+        long minDelay = PiggyBuildConfig.getInstance().getFastBreakDelayMs();
 
         if (currentTime - lastBreakTime < minDelay) {
             // PiggyBuildClient.LOGGER.info("Skipping break: Delta=" + (currentTime -

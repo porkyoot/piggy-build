@@ -1,111 +1,49 @@
-plugins {
-	id 'fabric-loom' version "${loom_version}"
-	id 'maven-publish'
-}
-
-version = project.mod_version
-group = project.maven_group
+// Pas de plugins, tout vient de la racine
 
 base {
-	archivesName = project.archives_base_name
-}
-
-repositories {
-	// Add repositories to retrieve artifacts from in here.
-	// You should only use this when depending on other mods because
-	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
-	// for more information about repositories.
-	mavenLocal()
-	maven {
-        name 'Xander Maven'
-        url 'https://maven.isxander.dev/releases'
-    }
-	maven {
-		name = "Terraformers"
-		url = "https://maven.terraformersmc.com/"
-	}
+    // On fixe le nom pour qu'il soit unique
+    archivesName = "piggy-build"
 }
 
 loom {
-	splitEnvironmentSourceSets()
+    splitEnvironmentSourceSets()
 
-	mods {
-		"piggy-build" {
-			sourceSet sourceSets.main
-			sourceSet sourceSets.client
-		}
-	}
-
+    mods {
+        "piggy-build" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
 }
 
 fabricApi {
-	configureDataGeneration {
-		client = true
-	}
+    configureDataGeneration {
+        client = true
+    }
 }
 
 dependencies {
-	// To change the versions see the gradle.properties file
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    // --- CE QUI EST SUPPRIMÉ (car hérité) ---
+    // Minecraft, Loader, Fabric API.
+    // ET SURTOUT: les mappings. On utilise ceux de la racine (Yarn) pour que tout le monde parle la même langue.
 
-	// Fabric API. This is technically optional, but you probably want it anyway.
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	modImplementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
-	modImplementation("com.terraformersmc:modmenu:${project.modmenu_version}")
-	
-	// Use project dependencies for local mods
-	modImplementation project(path: ':piggy-lib', configuration: 'namedElements')
-	modImplementation project(path: ':piggy-admin', configuration: 'namedElements')
-	modImplementation project(path: ':piggy-inventory', configuration: 'namedElements')
+    // --- DÉPENDANCES SPÉCIFIQUES ---
+    modImplementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
+    modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
+
+    // --- LA CONNEXION VITALE ---
+    // Add piggy-lib as a project dependency so Loom includes its classes/resources
+    // on the development classpath. Use the 'namedElements' outgoing configuration
+    // so the library's API/implementation is visible to this module's compile
+    // classpath (including the split client source set).
+    implementation project(path: ':piggy-lib', configuration: 'namedElements')
+
+    // Also include the lib in the final jar if needed (optional fat-jar behavior)
+    include project(':piggy-lib')
+    
+    // Si Piggy Build a besoin de Piggy Admin ou Inventory, ajoutez-les ici de la même façon :
+    // implementation project(path: ':piggy-admin', configuration: 'namedElements')
 }
 
-processResources {
-	inputs.property "version", project.version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": inputs.properties.version
-	}
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
-}
-
-java {
-	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-	// if it is present.
-	// If you remove this line, sources will not be generated.
-	withSourcesJar()
-
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
-}
-
-jar {
-	inputs.property "archivesName", project.base.archivesName
-
-	from("LICENSE") {
-		rename { "${it}_${inputs.properties.archivesName}"}
-	}
-}
-
-// configure the maven publication
-publishing {
-	publications {
-		create("mavenJava", MavenPublication) {
-			artifactId = project.archives_base_name
-			from components.java
-		}
-	}
-
-	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-	repositories {
-		// Add repositories to publish to here.
-		// Notice: This block does NOT have the same function as the block in the top level.
-		// The repositories here will be used for publishing your artifact, not for
-		// retrieving dependencies.
-	}
-}
+// Le bloc 'jar' avec le renommage de licence a été retiré pour simplifier le cache,
+// mais vous pouvez le remettre si c'est critique pour vous.

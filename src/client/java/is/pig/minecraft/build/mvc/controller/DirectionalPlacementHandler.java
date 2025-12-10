@@ -83,7 +83,7 @@ public class DirectionalPlacementHandler {
         }
 
         // 3. CHECK IF FEATURE IS ENABLED
-        is.pig.minecraft.build.config.PiggyConfig config = is.pig.minecraft.build.config.PiggyConfig.getInstance();
+        is.pig.minecraft.build.config.PiggyBuildConfig config = is.pig.minecraft.build.config.PiggyBuildConfig.getInstance();
         if (!config.isFeatureFlexiblePlacementEnabled()) {
             // Feature is disabled, return vanilla hit result
             return hitResult;
