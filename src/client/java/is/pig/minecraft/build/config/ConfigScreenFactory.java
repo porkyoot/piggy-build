@@ -30,7 +30,7 @@ public class ConfigScreenFactory {
                                 // SAFETY CATEGORY
                                 .category(ConfigCategory.createBuilder()
                                                 .name(Component.literal("Safety"))
-                                                .tooltip(Component.literal("Configure safety and anti-cheat settings."))
+                                                .tooltip(is.pig.minecraft.lib.I18n.safetyTooltip())
                                                 .option(is.pig.minecraft.lib.ui.NoCheatingModeOption.create(
                                                                 parent,
                                                                 config::isNoCheatingMode,
