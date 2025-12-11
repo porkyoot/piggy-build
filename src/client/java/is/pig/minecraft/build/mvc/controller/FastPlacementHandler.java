@@ -11,8 +11,6 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
 
 /**
  * Handles fast block placement by reducing or removing the click delay.

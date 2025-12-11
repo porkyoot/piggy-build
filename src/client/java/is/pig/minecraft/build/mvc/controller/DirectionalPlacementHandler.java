@@ -1,6 +1,5 @@
 package is.pig.minecraft.build.mvc.controller;
 
-import is.pig.minecraft.build.PiggyBuildClient;
 import is.pig.minecraft.build.config.PiggyBuildConfig;
 import is.pig.minecraft.build.lib.math.PlacementCalculator;
 import is.pig.minecraft.build.lib.placement.BlockPlacer;

@@ -1,9 +1,6 @@
 package is.pig.minecraft.build.config;
 
 import java.awt.Color;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 import is.pig.minecraft.lib.config.PiggyClientConfig;
 import is.pig.minecraft.lib.ui.AntiCheatFeedbackManager;
@@ -27,16 +24,6 @@ public class PiggyBuildConfig extends PiggyClientConfig {
 
     // Flexible placement settings (master toggle for directional + diagonal)
     private boolean flexiblePlacementEnabled = true;
-
-    // Tool swap settings
-    private boolean toolSwapEnabled = true;
-    private List<Integer> swapHotbarSlots = new ArrayList<>(Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8));
-    private OrePreference orePreference = OrePreference.FORTUNE;
-
-    public enum OrePreference {
-        FORTUNE,
-        SILK_TOUCH
-    }
 
     // --- SINGLETON ACCESS ---
 
@@ -85,10 +72,10 @@ public class PiggyBuildConfig extends PiggyClientConfig {
                     || (this.serverFeatures != null && this.serverFeatures.containsKey("fast_place")
                             && !this.serverFeatures.get("fast_place"));
             
-            if (isNoCheatingMode()) {
-                serverForces = true;
-            }
-
+            // Note: We do NOT block the setter for "No Cheating Mode" (client-side) here.
+            // This allows the UI to update to "True" (preventing YACL mismatch crash),
+            // but the feature will still be effectively disabled by 'isFeatureFastPlaceEnabled()'.
+            
             if (serverForces) {
                 AntiCheatFeedbackManager.getInstance().onFeatureBlocked("fast_place", BlockReason.SERVER_ENFORCEMENT);
                 this.fastPlaceFeatureEnabled = false;
@@ -108,10 +95,8 @@ public class PiggyBuildConfig extends PiggyClientConfig {
                     || (this.serverFeatures != null && this.serverFeatures.containsKey("flexible_placement")
                             && !this.serverFeatures.get("flexible_placement"));
             
-            if (isNoCheatingMode()) {
-                 serverForces = true;
-            }
-
+            // See note in setFastPlaceEnabled regarding No Cheating Mode.
+            
             if (serverForces) {
                 AntiCheatFeedbackManager.getInstance().onFeatureBlocked("flexible_placement", BlockReason.SERVER_ENFORCEMENT);
                 this.flexiblePlacementEnabled = false;
@@ -124,16 +109,22 @@ public class PiggyBuildConfig extends PiggyClientConfig {
     // --- HELPERS FOR GUI AVAILABILITY ---
 
     public boolean isFastPlaceEditable() {
+        // Gray out if No Cheating Mode is active (Client side safety)
         if (isNoCheatingMode()) return false;
+        
+        // Gray out if Server forces it off
         if (!this.serverAllowCheats) return false;
         if (this.serverFeatures != null && this.serverFeatures.containsKey("fast_place") && !this.serverFeatures.get("fast_place")) return false;
+        
         return true;
     }
 
     public boolean isFlexiblePlacementEditable() {
         if (isNoCheatingMode()) return false;
+        
         if (!this.serverAllowCheats) return false;
         if (this.serverFeatures != null && this.serverFeatures.containsKey("flexible_placement") && !this.serverFeatures.get("flexible_placement")) return false;
+        
         return true;
     }
 
