@@ -73,6 +73,15 @@ public class PiggyBuildClient implements ClientModInitializer {
         });
 
         SyncConfigPayload.registerPacket();
+        // Register a listener so this module's config instance is updated when the
+        // server sync arrives. This avoids runtime reflection and keeps modules
+        // opt-in.
+        is.pig.minecraft.lib.config.PiggyClientConfig.getInstance().registerConfigSyncListener((allowCheats, features) -> {
+            is.pig.minecraft.build.config.PiggyBuildConfig buildConfig = is.pig.minecraft.build.config.PiggyBuildConfig.getInstance();
+            buildConfig.serverAllowCheats = allowCheats;
+            buildConfig.serverFeatures = features;
+            LOGGER.info("[ANTI-CHEAT DEBUG] PiggyBuildConfig updated from server sync: allowCheats={}, features={}", allowCheats, features);
+        });
 
         // 4. Render loop (visualization)
         WorldRenderEvents.LAST.register(context -> {
