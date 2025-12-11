@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import is.pig.minecraft.build.config.PiggyConfig;
+import is.pig.minecraft.build.config.PiggyBuildConfig;
 import is.pig.minecraft.build.config.ConfigPersistence;
 import is.pig.minecraft.build.mvc.controller.InputController;
 import is.pig.minecraft.build.mvc.model.BuildSession;
@@ -14,9 +14,13 @@ import is.pig.minecraft.build.mvc.view.FastPlaceOverlay;
 import is.pig.minecraft.build.mvc.view.DirectionalPlacementRenderer;
 import is.pig.minecraft.build.mvc.view.HighlightRenderType;
 import is.pig.minecraft.build.mvc.view.WorldShapeRenderer;
+import is.pig.minecraft.lib.config.PiggyClientConfig;
+import is.pig.minecraft.lib.network.SyncConfigPayload;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -24,6 +28,9 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.resources.ResourceLocation;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
 public class PiggyBuildClient implements ClientModInitializer {
 
@@ -34,17 +41,64 @@ public class PiggyBuildClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        LOGGER.info("Ehlo from Piggy Build!");
+
+        // 0. Register features
+        is.pig.minecraft.lib.features.CheatFeatureRegistry.register(
+                new is.pig.minecraft.lib.features.CheatFeature(
+                        "fast_place",
+                        "Fast Place",
+                        "Rapidly place blocks by holding right-click",
+                        false));
+
+        is.pig.minecraft.lib.features.CheatFeatureRegistry.register(
+                new is.pig.minecraft.lib.features.CheatFeature(
+                        "flexible_placement",
+                        "Flexible Placement",
+                        "Place blocks in different directions and diagonally",
+                        true));
+
         // 1. Load configuration
         ConfigPersistence.load();
 
         // 2. Initialize controller
         controller.initialize();
 
-        // 3. HUD overlay rendering
+        // 3. Register Anti-Cheat HUD Overlay
+        is.pig.minecraft.lib.ui.AntiCheatHudOverlay.register();
+
+        // 4. HUD overlay rendering
         HudRenderCallback.EVENT.register((graphics, tickDelta) -> {
             FastPlaceOverlay.render(graphics, tickDelta);
         });
 
+        SyncConfigPayload.registerPacket();
+        // Register a listener so this module's config instance is updated when the
+        // server sync arrives. This avoids runtime reflection and keeps modules
+        // opt-in.
+        is.pig.minecraft.lib.config.PiggyClientConfig.getInstance().registerConfigSyncListener((allowCheats, features) -> {
+            is.pig.minecraft.build.config.PiggyBuildConfig buildConfig = is.pig.minecraft.build.config.PiggyBuildConfig.getInstance();
+            buildConfig.serverAllowCheats = allowCheats;
+            buildConfig.serverFeatures = features;
+
+            // Proactively disable targeted features when the server disallows cheats
+            if (!allowCheats) {
+                buildConfig.setFastPlaceEnabled(false);
+                buildConfig.setFlexiblePlacementEnabled(false);
+            }
+
+            // Also respect feature-specific server overrides
+            if (features != null) {
+                if (features.containsKey("fast_place") && !features.get("fast_place")) {
+                    buildConfig.setFastPlaceEnabled(false);
+                }
+                if (features.containsKey("flexible_placement") && !features.get("flexible_placement")) {
+                    buildConfig.setFlexiblePlacementEnabled(false);
+                }
+            }
+
+            LOGGER.info("[ANTI-CHEAT DEBUG] PiggyBuildConfig updated from server sync: allowCheats={}, features={}", allowCheats, features);
+        });
         // 4. Register Config Sync Receiver
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(
                 is.pig.minecraft.lib.network.SyncConfigPayload.TYPE,
@@ -85,7 +139,7 @@ public class PiggyBuildClient implements ClientModInitializer {
         VertexConsumer builder = buffers.getBuffer(HighlightRenderType.TYPE);
 
         // Retrieve colors from the config
-        PiggyConfig config = PiggyConfig.getInstance();
+        PiggyBuildConfig config = PiggyBuildConfig.getInstance();
         float[] rgba = config.getHighlightColor().getComponents(null);
         float r = rgba[0];
         float g = rgba[1];
@@ -148,7 +202,7 @@ public class PiggyBuildClient implements ClientModInitializer {
             stack.translate(rx, ry, rz);
 
             // Pass configured overlay color (placement-specific)
-            PiggyConfig config = PiggyConfig.getInstance();
+            PiggyBuildConfig config = PiggyBuildConfig.getInstance();
             float[] placementRgba = config.getPlacementOverlayColor().getComponents(null);
             float rr = placementRgba[0];
             float gg = placementRgba[1];

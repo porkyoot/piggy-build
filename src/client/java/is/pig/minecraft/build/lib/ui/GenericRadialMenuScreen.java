@@ -4,7 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 
-import is.pig.minecraft.build.config.PiggyConfig;
+import is.pig.minecraft.build.config.PiggyBuildConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -169,7 +169,7 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
             float b = 1f;
             float a = 0.3f;
             if ((radialItems.get(i) == selectedItem)) { // if hovered
-                PiggyConfig config = PiggyConfig.getInstance();
+                PiggyBuildConfig config = PiggyBuildConfig.getInstance();
                 float[] rgba = config.getHighlightColor().getComponents(null);
                 r = rgba[0];
                 g = rgba[1];
@@ -242,7 +242,7 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
 
         if (selected) {
             // Use Config Color for Tinting
-            PiggyConfig config = PiggyConfig.getInstance();
+            PiggyBuildConfig config = PiggyBuildConfig.getInstance();
             float[] rgba = config.getHighlightColor().getComponents(null);
             RenderSystem.setShaderColor(
                     rgba[0],

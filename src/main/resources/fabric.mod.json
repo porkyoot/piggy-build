@@ -13,11 +13,8 @@
 	},
 	"license": "CC0-1.0",
 	"icon": "assets/piggy-build/icon.png",
-	"environment": "*",
+	"environment": "client",
 	"entrypoints": {
-		"main": [
-			"is.pig.minecraft.build.PiggyBuild"
-		],
 		"client": [
 			"is.pig.minecraft.build.PiggyBuildClient"
 		],
@@ -25,11 +22,10 @@
 			"is.pig.minecraft.build.PiggyBuildDataGenerator"
 		],
 		"modmenu": [
-		"is.pig.minecraft.build.integration.ModMenuIntegration"
+			"is.pig.minecraft.build.integration.ModMenuIntegration"
 		]
 	},
 	"mixins": [
-		"piggy-build.mixins.json",
 		{
 			"config": "piggy-build.client.mixins.json",
 			"environment": "client"
@@ -40,7 +36,8 @@
 		"minecraft": "~1.21.1",
 		"java": ">=21",
 		"fabric-api": "*",
-		"yet_another_config_lib_v3": ">=3.6.1+1.21-fabric"
+		"yet_another_config_lib_v3": ">=3.6.1+1.21-fabric",
+		"piggy-lib": ">=1.0.0"
 	},
 	"suggests": {
 		"modmenu": ">=11.0.3"

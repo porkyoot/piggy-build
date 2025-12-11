@@ -8,7 +8,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.BlockHitResult;
-import is.pig.minecraft.build.config.PiggyConfig;
+import is.pig.minecraft.build.config.PiggyBuildConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.GameType;
@@ -30,46 +30,48 @@ public class MinecraftClientMixin {
      * passed.
      */
     @Redirect(method = "startUseItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"))
+    @SuppressWarnings("ressource")
     private InteractionResult piggyBuild$redirectUseItemOn(
             MultiPlayerGameMode gameMode,
             LocalPlayer player,
             InteractionHand hand,
             BlockHitResult original) {
 
+        // System.out.println("[MIXIN REDIRECT] Intercepted useItemOn call");
+        // System.out.println("[MIXIN REDIRECT] Original face: " +
+        // original.getDirection());
+
+        Minecraft mc = (Minecraft) (Object) this;
+
         // Check if we should modify the hit result (directional OR diagonal mode)
         boolean directionalActive = InputController.directionalKey.isDown();
         boolean diagonalActive = InputController.diagonalKey.isDown();
 
         if ((directionalActive || diagonalActive) && this.hitResult instanceof BlockHitResult) {
-            // Check No Cheating Mode
-            Minecraft mc = (Minecraft) (Object) this;
-            boolean isNoCheating = PiggyConfig.getInstance().isNoCheatingMode();
-            boolean serverForces = !PiggyConfig.getInstance().serverAllowCheats && !mc.hasSingleplayerServer();
+            PiggyBuildConfig config = PiggyBuildConfig.getInstance();
+            boolean isEnabled = config.isFeatureFlexiblePlacementEnabled();
 
-            if ((isNoCheating || serverForces) && gameMode.getPlayerMode() != GameType.CREATIVE) {
-                if (mc.player != null) {
-                    String message = serverForces
-                            ? "Anti-Cheat Active: This server has forced anti-cheat ON."
-                            : "Anti-Cheat Active: Disable 'No Cheating Mode' in settings to use.";
-
-                    mc.player.displayClientMessage(
-                            Component.literal(message)
-                                    .withStyle(ChatFormatting.RED),
-                            true // true = action bar
-                    );
-                }
+            if (!isEnabled && gameMode.getPlayerMode() != GameType.CREATIVE) {
+                // Feature is blocked. Show icon + message on first attempt per session,
+                // then fall back to vanilla behavior silently.
+                boolean serverForces = !config.serverAllowCheats
+                        || (config.serverFeatures != null && config.serverFeatures.containsKey("flexible_placement")
+                                && !config.serverFeatures.get("flexible_placement"));
+                is.pig.minecraft.lib.ui.BlockReason reason = serverForces
+                        ? is.pig.minecraft.lib.ui.BlockReason.SERVER_ENFORCEMENT
+                        : is.pig.minecraft.lib.ui.BlockReason.LOCAL_CONFIG;
+                is.pig.minecraft.lib.ui.AntiCheatFeedbackManager.getInstance()
+                        .onFeatureBlocked("flexible_placement", reason);
                 // Return original to behave like vanilla
                 return gameMode.useItemOn(player, hand, original);
             }
 
             DirectionalPlacementHandler handler = InputController.getDirectionalPlacementHandler();
-
             if (handler != null) {
                 BlockHitResult modified = handler.modifyHitResult(mc, original);
-
-                // Call with the MODIFIED hit result
                 return gameMode.useItemOn(player, hand, modified);
             }
+
         }
 
         // No modification - use original
