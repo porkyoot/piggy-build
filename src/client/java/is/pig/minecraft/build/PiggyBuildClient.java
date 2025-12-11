@@ -17,10 +17,8 @@ import is.pig.minecraft.build.mvc.view.WorldShapeRenderer;
 import is.pig.minecraft.lib.config.PiggyClientConfig;
 import is.pig.minecraft.lib.network.SyncConfigPayload;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -29,14 +27,11 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.resources.ResourceLocation;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
 public class PiggyBuildClient implements ClientModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("piggy-build");
 
-    // The controller manages input (keyboard, mouse, tick)
     private final InputController controller = new InputController();
 
     @Override
@@ -73,21 +68,23 @@ public class PiggyBuildClient implements ClientModInitializer {
         });
 
         SyncConfigPayload.registerPacket();
-        // Register a listener so this module's config instance is updated when the
-        // server sync arrives. This avoids runtime reflection and keeps modules
-        // opt-in.
+        
+        // Register Config Sync Listener
         is.pig.minecraft.lib.config.PiggyClientConfig.getInstance().registerConfigSyncListener((allowCheats, features) -> {
             is.pig.minecraft.build.config.PiggyBuildConfig buildConfig = is.pig.minecraft.build.config.PiggyBuildConfig.getInstance();
             buildConfig.serverAllowCheats = allowCheats;
             buildConfig.serverFeatures = features;
 
-            // Proactively disable targeted features when the server disallows cheats
+            // Proactively disable features if blocked.
+            // We set the fields directly or use internal setters to avoid triggering the user feedback 
+            // ("You cannot enable this") when the SERVER is the one disabling it.
             if (!allowCheats) {
+                // If cheats are globally disabled by server, turn off features
                 buildConfig.setFastPlaceEnabled(false);
-                buildConfig.setFlexiblePlacementEnabled(false);
+                buildConfig.setFlexiblePlacementEnabled(false); 
             }
 
-            // Also respect feature-specific server overrides
+            // Also check specific feature flags
             if (features != null) {
                 if (features.containsKey("fast_place") && !features.get("fast_place")) {
                     buildConfig.setFastPlaceEnabled(false);
@@ -99,15 +96,6 @@ public class PiggyBuildClient implements ClientModInitializer {
 
             LOGGER.info("[ANTI-CHEAT DEBUG] PiggyBuildConfig updated from server sync: allowCheats={}, features={}", allowCheats, features);
         });
-        // 4. Register Config Sync Receiver
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(
-                is.pig.minecraft.lib.network.SyncConfigPayload.TYPE,
-                (payload, context) -> {
-                    context.client().execute(() -> {
-                        PiggyConfig.getInstance().serverAllowCheats = payload.allowCheats();
-                        PiggyBuildClient.LOGGER.info("Received server config: allowCheats=" + payload.allowCheats());
-                    });
-                });
 
         // 4. Render loop (visualization)
         WorldRenderEvents.LAST.register(context -> {
@@ -117,36 +105,20 @@ public class PiggyBuildClient implements ClientModInitializer {
             PoseStack stack = context.matrixStack();
             MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
 
-            // --- PART 1: RENDER BUILD SHAPES (Circle, Sphere...) ---
             renderBuildShapes(mc, cameraPos, stack, buffers);
-
-            // --- PART 2: DIRECTIONAL PLACEMENT (face overlay) ---
             renderDirectionalPlacement(mc, cameraPos, stack, buffers);
         });
     }
 
-    /**
-     * Handles rendering of the fixed shape (BuildSession).
-     */
-    private void renderBuildShapes(Minecraft mc, Vec3 cameraPos, PoseStack stack,
-            MultiBufferSource.BufferSource buffers) {
+    private void renderBuildShapes(Minecraft mc, Vec3 cameraPos, PoseStack stack, MultiBufferSource.BufferSource buffers) {
         BuildSession session = BuildSession.getInstance();
-
-        // If no anchor position is set, don't draw any shape
-        if (!session.isActive())
-            return;
+        if (!session.isActive()) return;
 
         VertexConsumer builder = buffers.getBuffer(HighlightRenderType.TYPE);
-
-        // Retrieve colors from the config
         PiggyBuildConfig config = PiggyBuildConfig.getInstance();
         float[] rgba = config.getHighlightColor().getComponents(null);
-        float r = rgba[0];
-        float g = rgba[1];
-        float b = rgba[2];
-        float a = rgba[3];
+        float r = rgba[0], g = rgba[1], b = rgba[2], a = rgba[3];
 
-        // Calculate position relative to the camera
         double rx = session.getAnchorPos().getX() - cameraPos.x;
         double ry = session.getAnchorPos().getY() - cameraPos.y;
         double rz = session.getAnchorPos().getZ() - cameraPos.z;
@@ -154,44 +126,32 @@ public class PiggyBuildClient implements ClientModInitializer {
         stack.pushPose();
         stack.translate(rx, ry, rz);
 
-        // Delegate to geometric renderer
         switch (session.getShape()) {
             case BLOCK -> WorldShapeRenderer.drawBlock(builder, stack.last().pose(), 0, 0, 0, r, g, b, a);
-            case LINE -> WorldShapeRenderer.drawLine(builder, stack.last().pose(), session.getAnchorAxis(),
-                    session.getRadius(), r, g, b, a);
+            case LINE -> WorldShapeRenderer.drawLine(builder, stack.last().pose(), session.getAnchorAxis(), session.getRadius(), r, g, b, a);
             case SPHERE -> WorldShapeRenderer.drawSphere(builder, stack.last().pose(), session.getRadius(), r, g, b, a);
-            case RING -> WorldShapeRenderer.drawRing(builder, stack.last().pose(), session.getAnchorAxis(),
-                    session.getRadius(), r, g, b, a);
+            case RING -> WorldShapeRenderer.drawRing(builder, stack.last().pose(), session.getAnchorAxis(), session.getRadius(), r, g, b, a);
         }
 
         stack.popPose();
-        // Send the batch for transparency
         buffers.endBatch(HighlightRenderType.TYPE);
     }
 
-    /**
-     * Handles rendering of the placement overlay (PlacementSession).
-     */
-    private void renderDirectionalPlacement(Minecraft mc, Vec3 cameraPos, PoseStack stack,
-            MultiBufferSource.BufferSource buffers) {
+    private void renderDirectionalPlacement(Minecraft mc, Vec3 cameraPos, PoseStack stack, MultiBufferSource.BufferSource buffers) {
         PlacementSession session = PlacementSession.getInstance();
-
-        // Only check active, offset CAN be null now (Center)
-        if (!session.isActive())
-            return;
+        if (!session.isActive()) return;
+        
+        // Double check config state to ensure we don't render overlays if disabled
+        if (!PiggyBuildConfig.getInstance().isFeatureFlexiblePlacementEnabled()) return;
 
         if (mc.hitResult != null && mc.hitResult.getType() == HitResult.Type.BLOCK) {
             BlockHitResult hit = (BlockHitResult) mc.hitResult;
             Direction offset = session.getCurrentOffset();
 
-            // SELECT TEXTURE
-            // If offset is null -> Center Texture
-            // If offset is Direction -> Arrow Texture
             net.minecraft.resources.ResourceLocation tex = (offset == null)
                     ? DirectionalPlacementRenderer.getCenterTexture()
                     : DirectionalPlacementRenderer.getArrowTexture();
 
-            // Get specific buffer for this texture
             VertexConsumer overlayBuilder = buffers.getBuffer(DirectionalPlacementRenderer.getRenderType(tex));
 
             double rx = hit.getBlockPos().getX() - cameraPos.x;
@@ -201,24 +161,17 @@ public class PiggyBuildClient implements ClientModInitializer {
             stack.pushPose();
             stack.translate(rx, ry, rz);
 
-            // Pass configured overlay color (placement-specific)
             PiggyBuildConfig config = PiggyBuildConfig.getInstance();
             float[] placementRgba = config.getPlacementOverlayColor().getComponents(null);
-            float rr = placementRgba[0];
-            float gg = placementRgba[1];
-            float bb = placementRgba[2];
-            float aa = placementRgba[3];
-
+            
             DirectionalPlacementRenderer.render(
                     overlayBuilder,
                     stack,
                     hit.getDirection(),
-                    offset, // Can be null
-                    rr, gg, bb, aa);
+                    offset,
+                    placementRgba[0], placementRgba[1], placementRgba[2], placementRgba[3]);
 
             stack.popPose();
-
-            // End specific batch
             buffers.endBatch(DirectionalPlacementRenderer.getRenderType(tex));
         }
     }

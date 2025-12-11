@@ -1,7 +1,9 @@
-
 package is.pig.minecraft.build.config;
 
 import java.awt.Color;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import is.pig.minecraft.lib.config.PiggyClientConfig;
 import is.pig.minecraft.lib.ui.AntiCheatFeedbackManager;
@@ -26,11 +28,9 @@ public class PiggyBuildConfig extends PiggyClientConfig {
     // Flexible placement settings (master toggle for directional + diagonal)
     private boolean flexiblePlacementEnabled = true;
 
-    // Safety settings are inherited from PiggyClientConfig
-
     // Tool swap settings
     private boolean toolSwapEnabled = true;
-    private List<Integer> swapHotbarSlots = new ArrayList<>()(Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8));
+    private List<Integer> swapHotbarSlots = new ArrayList<>(Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8));
     private OrePreference orePreference = OrePreference.FORTUNE;
 
     public enum OrePreference {
@@ -38,19 +38,12 @@ public class PiggyBuildConfig extends PiggyClientConfig {
         SILK_TOUCH
     }
 
-    // Default lists
-
     // --- SINGLETON ACCESS ---
 
     public static PiggyBuildConfig getInstance() {
         return INSTANCE;
     }
 
-    /**
-     * Updates the singleton instance. Should only be called by ConfigPersistence.
-     * 
-     * @param instance The new instance loaded from disk.
-     */
     static void setInstance(PiggyBuildConfig instance) {
         INSTANCE = instance;
     }
@@ -91,8 +84,14 @@ public class PiggyBuildConfig extends PiggyClientConfig {
             boolean serverForces = !this.serverAllowCheats
                     || (this.serverFeatures != null && this.serverFeatures.containsKey("fast_place")
                             && !this.serverFeatures.get("fast_place"));
+            
+            if (isNoCheatingMode()) {
+                serverForces = true;
+            }
+
             if (serverForces) {
                 AntiCheatFeedbackManager.getInstance().onFeatureBlocked("fast_place", BlockReason.SERVER_ENFORCEMENT);
+                this.fastPlaceFeatureEnabled = false;
                 return;
             }
         }
@@ -104,23 +103,42 @@ public class PiggyBuildConfig extends PiggyClientConfig {
     }
 
     public void setFlexiblePlacementEnabled(boolean enabled) {
-        // If attempting to enable, block if server disallows
         if (enabled) {
             boolean serverForces = !this.serverAllowCheats
                     || (this.serverFeatures != null && this.serverFeatures.containsKey("flexible_placement")
                             && !this.serverFeatures.get("flexible_placement"));
+            
+            if (isNoCheatingMode()) {
+                 serverForces = true;
+            }
+
             if (serverForces) {
                 AntiCheatFeedbackManager.getInstance().onFeatureBlocked("flexible_placement", BlockReason.SERVER_ENFORCEMENT);
+                this.flexiblePlacementEnabled = false;
                 return;
             }
         }
         this.flexiblePlacementEnabled = enabled;
     }
 
-    /**
-     * Checks if fast place feature is actually enabled, considering server
-     * overrides.
-     */
+    // --- HELPERS FOR GUI AVAILABILITY ---
+
+    public boolean isFastPlaceEditable() {
+        if (isNoCheatingMode()) return false;
+        if (!this.serverAllowCheats) return false;
+        if (this.serverFeatures != null && this.serverFeatures.containsKey("fast_place") && !this.serverFeatures.get("fast_place")) return false;
+        return true;
+    }
+
+    public boolean isFlexiblePlacementEditable() {
+        if (isNoCheatingMode()) return false;
+        if (!this.serverAllowCheats) return false;
+        if (this.serverFeatures != null && this.serverFeatures.containsKey("flexible_placement") && !this.serverFeatures.get("flexible_placement")) return false;
+        return true;
+    }
+
+    // --- LOGIC CHECKS ---
+
     public boolean isFeatureFastPlaceEnabled() {
         return is.pig.minecraft.lib.features.CheatFeatureRegistry.isFeatureEnabled(
                 "fast_place",
@@ -130,10 +148,6 @@ public class PiggyBuildConfig extends PiggyClientConfig {
                 fastPlaceFeatureEnabled);
     }
 
-    /**
-     * Checks if flexible placement feature is actually enabled, considering server
-     * overrides and the master toggle.
-     */
     public boolean isFeatureFlexiblePlacementEnabled() {
         return is.pig.minecraft.lib.features.CheatFeatureRegistry.isFeatureEnabled(
                 "flexible_placement",
