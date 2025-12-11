@@ -1,9 +1,6 @@
 package is.pig.minecraft.build.config;
 
 import java.awt.Color;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 import is.pig.minecraft.lib.config.PiggyClientConfig;
 import is.pig.minecraft.lib.ui.AntiCheatFeedbackManager;
@@ -27,16 +24,6 @@ public class PiggyBuildConfig extends PiggyClientConfig {
 
     // Flexible placement settings (master toggle for directional + diagonal)
     private boolean flexiblePlacementEnabled = true;
-
-    // Tool swap settings
-    private boolean toolSwapEnabled = true;
-    private List<Integer> swapHotbarSlots = new ArrayList<>(Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8));
-    private OrePreference orePreference = OrePreference.FORTUNE;
-
-    public enum OrePreference {
-        FORTUNE,
-        SILK_TOUCH
-    }
 
     // --- SINGLETON ACCESS ---
 
@@ -113,14 +100,6 @@ public class PiggyBuildConfig extends PiggyClientConfig {
     }
 
     // --- HELPERS FOR GUI AVAILABILITY ---
-
-    /**
-     * Determines if the global "No Cheating Mode" toggle can be edited.
-     * Returns false if the server is enforcing anti-cheat (allowCheats = false).
-     */
-    public boolean isGlobalCheatsEditable() {
-        return this.serverAllowCheats;
-    }
 
     public boolean isFastPlaceEditable() {
         if (isNoCheatingMode()) return false;

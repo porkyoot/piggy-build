@@ -1,7 +1,7 @@
 package is.pig.minecraft.build.mvc.controller;
 
-import is.pig.minecraft.build.lib.ui.GenericRadialMenuScreen;
-import is.pig.minecraft.build.mvc.model.BuildSession; // <--- Using the Model
+import is.pig.minecraft.lib.ui.GenericRadialMenuScreen; // Imported from lib
+import is.pig.minecraft.build.mvc.model.BuildSession; 
 import is.pig.minecraft.build.mvc.model.BuildShape;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.Minecraft;
@@ -17,21 +17,14 @@ public class ShapeMenuHandler {
 
     private boolean wasKeyDown = false;
 
-    /**
-     * Handles scroll wheel to change radius.
-     */
     public boolean onScroll(double amount) {
         if (InputController.triggerKey.isDown()) {
-            // NOTE: Direct call to the Model (BuildSession)
             BuildSession.getInstance().modifyRadius(amount > 0 ? 1 : -1);
             return true; 
         }
         return false; 
     }
 
-    /**
-     * Handles ticking logic (Detecting key press to open menu).
-     */
     public void onTick(Minecraft client) {
         boolean isTriggerDown = InputController.triggerKey.isDown();
 
@@ -46,48 +39,32 @@ public class ShapeMenuHandler {
         if (client.hitResult != null && client.hitResult.getType() == HitResult.Type.BLOCK) {
             BlockHitResult hit = (BlockHitResult) client.hitResult;
             
-            // Update Model: Set Anchor
             BuildSession.getInstance().setAnchor(hit.getBlockPos(), hit.getDirection().getAxis());
             
-            // Prepare View Data
             BuildShape center = BuildShape.BLOCK;
             List<BuildShape> radials = Arrays.stream(BuildShape.values())
                     .filter(s -> s != center)
                     .collect(Collectors.toList());
 
-            // Open View (Menu)
             client.setScreen(new GenericRadialMenuScreen<>(
                 Component.literal("Build Menu"),
                 center,
                 radials,
-                
-                // NOTE: Read the shape from the Session
                 BuildSession.getInstance().getShape(),
-                
                 KeyBindingHelper.getBoundKeyOf(InputController.triggerKey),
-                
-                // NOTE: Write the new shape into the Session
                 (newShape) -> BuildSession.getInstance().setShape(newShape),
-                
-                () -> {}, // Close callback
-                
-                // Extra Info Provider (Radius text)
+                () -> {}, 
                 (shape) -> {
                     if (shape == BuildShape.BLOCK) return null;
-                        // NOTE: Read the radius from the Session
                     int r = (int) BuildSession.getInstance().getRadius();
                     return Component.literal(String.valueOf(r));
                 },
-                
-                // In-Menu Scroll Callback
                 (amount) -> {
-                    // NOTE: Modify the radius in the Session
                     BuildSession.getInstance().modifyRadius(amount > 0 ? 1 : -1);
                     return true;
                 }
             ));
         } else {
-            // Clear anchor
             BuildSession.getInstance().clearAnchor();
         }
     }

@@ -1,6 +1,6 @@
 package is.pig.minecraft.build.mvc.model;
 
-import is.pig.minecraft.build.lib.ui.RadialMenuItem;
+import is.pig.minecraft.lib.ui.RadialMenuItem; // Imported from lib
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
