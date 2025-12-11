@@ -62,7 +62,8 @@ public class ShapeMenuHandler {
                 (amount) -> {
                     BuildSession.getInstance().modifyRadius(amount > 0 ? 1 : -1);
                     return true;
-                }
+                },
+                null, null
             ));
         } else {
             BuildSession.getInstance().clearAnchor();
