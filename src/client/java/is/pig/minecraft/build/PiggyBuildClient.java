@@ -47,7 +47,7 @@ public class PiggyBuildClient implements ClientModInitializer {
 
         // 4. Register Config Sync Receiver
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(
-                is.pig.minecraft.build.network.SyncConfigPayload.TYPE,
+                is.pig.minecraft.lib.network.SyncConfigPayload.TYPE,
                 (payload, context) -> {
                     context.client().execute(() -> {
                         PiggyConfig.getInstance().serverAllowCheats = payload.allowCheats();
