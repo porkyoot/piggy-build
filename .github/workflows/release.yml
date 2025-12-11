@@ -20,7 +20,7 @@ jobs:
       - name: Checkout Submodule (Current)
         uses: actions/checkout@v4
         with:
-          path: piggy-build # CHANGE THIS for other mods
+          path: piggy-build
 
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v4
@@ -34,12 +34,29 @@ jobs:
       - name: Make Gradle Wrapper Executable
         run: chmod +x ./gradlew
 
+      - name: Isolate Project Dependencies
+        run: |
+          cat <<EOF > settings.gradle
+          pluginManagement {
+              repositories {
+                  maven {
+                      name = 'Fabric'
+                      url = 'https://maven.fabricmc.net/'
+                  }
+                  gradlePluginPortal()
+              }
+          }
+          rootProject.name = 'piggy-mods'
+          
+          include 'piggy-lib'
+          include 'piggy-build'
+          EOF
+
       - name: Build
-        run: ./gradlew :piggy-build:build # CHANGE THIS for other mods
+        run: ./gradlew :piggy-build:build
 
       - name: Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          # Note: We look for the jar inside the submodule's build folder
           files: piggy-build/build/libs/*.jar

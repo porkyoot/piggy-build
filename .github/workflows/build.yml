@@ -5,22 +5,17 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      # 1. Checkout the Master Project (piggy-mods)
-      # This brings the gradlew, settings.gradle, and build.gradle needed to configure the project.
       - name: Checkout Master Project
         uses: actions/checkout@v4
         with:
           repository: porkyoot/piggy-mods
-          submodules: true # Fetch piggy-lib and other dependencies
-          path: . # Checkout to the root of the runner
+          submodules: true
+          path: .
 
-      # 2. Checkout the CURRENT submodule code
-      # We overwrite the folder inside piggy-mods with the specific commit triggering this build.
-      # CHANGE 'piggy-build' below to the name of the folder for other mods (e.g., 'piggy-admin')
       - name: Checkout Submodule (Current)
         uses: actions/checkout@v4
         with:
-          path: piggy-build 
+          path: piggy-build
 
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v4
@@ -34,13 +29,29 @@ jobs:
       - name: Make Gradle Wrapper Executable
         run: chmod +x ./gradlew
 
-      # 3. Run the build for THIS specific project only
-      # CHANGE ':piggy-build:build' to ':piggy-admin:build', etc.
+      # FIX: Rewrite settings.gradle to strictly include ONLY what we need.
+      - name: Isolate Project Dependencies
+        run: |
+          cat <<EOF > settings.gradle
+          pluginManagement {
+              repositories {
+                  maven {
+                      name = 'Fabric'
+                      url = 'https://maven.fabricmc.net/'
+                  }
+                  gradlePluginPortal()
+              }
+          }
+          rootProject.name = 'piggy-mods'
+          
+          // Only include the shared library and THIS mod
+          include 'piggy-lib'
+          include 'piggy-build'
+          EOF
+
       - name: Build
         run: ./gradlew :piggy-build:build
 
-      # 4. Upload Artifacts
-      # The path will be inside the submodule folder
       - name: Capture Build Artifacts
         uses: actions/upload-artifact@v4
         with:
