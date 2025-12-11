@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import is.pig.minecraft.lib.config.PiggyClientConfig;
+import is.pig.minecraft.lib.ui.AntiCheatFeedbackManager;
+import is.pig.minecraft.lib.ui.BlockReason;
 
 /**
  * Configuration data model for Piggy Build.
@@ -24,8 +26,8 @@ public class PiggyBuildConfig extends PiggyClientConfig {
     private int fastPlaceDelayMs = 100;
     private boolean fastPlaceFeatureEnabled = false;
 
-    // Flexible placement settings
-    private boolean flexiblePlacementFeatureEnabled = true;
+    // Flexible placement settings (master toggle for directional + diagonal)
+    private boolean flexiblePlacementEnabled = true;
 
     // Safety settings are inherited from PiggyClientConfig
 
@@ -101,15 +103,35 @@ public class PiggyBuildConfig extends PiggyClientConfig {
     }
 
     public void setFastPlaceEnabled(boolean enabled) {
+        // If attempting to enable, check server enforcement first
+        if (enabled) {
+            boolean serverForces = !this.serverAllowCheats
+                    || (this.serverFeatures != null && this.serverFeatures.containsKey("fast_place")
+                            && !this.serverFeatures.get("fast_place"));
+            if (serverForces) {
+                AntiCheatFeedbackManager.getInstance().onFeatureBlocked("fast_place", BlockReason.SERVER_ENFORCEMENT);
+                return;
+            }
+        }
         this.fastPlaceFeatureEnabled = enabled;
     }
 
     public boolean isFlexiblePlacementEnabled() {
-        return flexiblePlacementFeatureEnabled;
+        return flexiblePlacementEnabled;
     }
 
     public void setFlexiblePlacementEnabled(boolean enabled) {
-        this.flexiblePlacementFeatureEnabled = enabled;
+        // If attempting to enable, block if server disallows
+        if (enabled) {
+            boolean serverForces = !this.serverAllowCheats
+                    || (this.serverFeatures != null && this.serverFeatures.containsKey("flexible_placement")
+                            && !this.serverFeatures.get("flexible_placement"));
+            if (serverForces) {
+                AntiCheatFeedbackManager.getInstance().onFeatureBlocked("flexible_placement", BlockReason.SERVER_ENFORCEMENT);
+                return;
+            }
+        }
+        this.flexiblePlacementEnabled = enabled;
     }
 
     /**
@@ -127,7 +149,7 @@ public class PiggyBuildConfig extends PiggyClientConfig {
 
     /**
      * Checks if flexible placement feature is actually enabled, considering server
-     * overrides.
+     * overrides and the master toggle.
      */
     public boolean isFeatureFlexiblePlacementEnabled() {
         return is.pig.minecraft.lib.features.CheatFeatureRegistry.isFeatureEnabled(
@@ -135,7 +157,7 @@ public class PiggyBuildConfig extends PiggyClientConfig {
                 serverAllowCheats,
                 serverFeatures,
                 isNoCheatingMode(),
-                flexiblePlacementFeatureEnabled);
+                flexiblePlacementEnabled);
     }
 
     private int fastBreakDelayMs = 150;

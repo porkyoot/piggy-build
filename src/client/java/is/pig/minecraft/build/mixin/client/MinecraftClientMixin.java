@@ -62,42 +62,32 @@ public class MinecraftClientMixin {
         boolean diagonalActive = InputController.diagonalKey.isDown();
 
         if ((directionalActive || diagonalActive) && this.hitResult instanceof BlockHitResult) {
-            // Check No Cheating Mode
-            boolean isNoCheating = PiggyBuildConfig.getInstance().isNoCheatingMode();
-            boolean serverForces = !PiggyBuildConfig.getInstance().serverAllowCheats;
+            PiggyBuildConfig config = PiggyBuildConfig.getInstance();
+            boolean isEnabled = config.isFeatureFlexiblePlacementEnabled();
 
-            if ((isNoCheating || serverForces) && gameMode.getPlayerMode() != GameType.CREATIVE) {
-                // Trigger centralized feedback
+            if (!isEnabled && gameMode.getPlayerMode() != GameType.CREATIVE) {
+                // Feature is blocked. Show icon + message on first attempt per session,
+                // then fall back to vanilla behavior silently.
+                boolean serverForces = !config.serverAllowCheats
+                        || (config.serverFeatures != null && config.serverFeatures.containsKey("flexible_placement")
+                                && !config.serverFeatures.get("flexible_placement"));
                 is.pig.minecraft.lib.ui.BlockReason reason = serverForces
                         ? is.pig.minecraft.lib.ui.BlockReason.SERVER_ENFORCEMENT
                         : is.pig.minecraft.lib.ui.BlockReason.LOCAL_CONFIG;
                 is.pig.minecraft.lib.ui.AntiCheatFeedbackManager.getInstance()
                         .onFeatureBlocked("flexible_placement", reason);
-
                 // Return original to behave like vanilla
                 return gameMode.useItemOn(player, hand, original);
             }
 
-            // String mode = directionalActive ? "DIRECTIONAL" : "DIAGONAL";
-            // System.out.println("[MIXIN REDIRECT] " + mode + " mode active,
-            // modifying...");
-
             DirectionalPlacementHandler handler = InputController.getDirectionalPlacementHandler();
-
             if (handler != null) {
                 BlockHitResult modified = handler.modifyHitResult(mc, original);
-                // System.out.println("[MIXIN REDIRECT] Modified face: " +
-                // modified.getDirection());
-                // System.out.println("[MIXIN REDIRECT] Modified pos: " +
-                // modified.getBlockPos());
-
-                // Call with the MODIFIED hit result
                 return gameMode.useItemOn(player, hand, modified);
             }
 
         }
 
-        // System.out.println("[MIXIN REDIRECT] Using original face");
         // No modification - use original
         return gameMode.useItemOn(player, hand, original);
     }

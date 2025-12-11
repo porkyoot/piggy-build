@@ -80,6 +80,23 @@ public class PiggyBuildClient implements ClientModInitializer {
             is.pig.minecraft.build.config.PiggyBuildConfig buildConfig = is.pig.minecraft.build.config.PiggyBuildConfig.getInstance();
             buildConfig.serverAllowCheats = allowCheats;
             buildConfig.serverFeatures = features;
+
+            // Proactively disable targeted features when the server disallows cheats
+            if (!allowCheats) {
+                buildConfig.setFastPlaceEnabled(false);
+                buildConfig.setFlexiblePlacementEnabled(false);
+            }
+
+            // Also respect feature-specific server overrides
+            if (features != null) {
+                if (features.containsKey("fast_place") && !features.get("fast_place")) {
+                    buildConfig.setFastPlaceEnabled(false);
+                }
+                if (features.containsKey("flexible_placement") && !features.get("flexible_placement")) {
+                    buildConfig.setFlexiblePlacementEnabled(false);
+                }
+            }
+
             LOGGER.info("[ANTI-CHEAT DEBUG] PiggyBuildConfig updated from server sync: allowCheats={}, features={}", allowCheats, features);
         });
 

@@ -47,13 +47,16 @@ public class FastPlacementHandler {
      */
     private void toggleFastPlace() {
         PiggyBuildConfig config = PiggyBuildConfig.getInstance();
-        config.setFastPlaceEnabled(!config.isFastPlaceEnabled());
-        ConfigPersistence.save();
-
-        if (config.isFastPlaceEnabled()) {
-            PiggyBuildClient.LOGGER.debug("[FastPlace] Enabled");
-        } else {
-            PiggyBuildClient.LOGGER.debug("[FastPlace] Disabled");
+        boolean newState = !config.isFastPlaceEnabled();
+        config.setFastPlaceEnabled(newState);
+        // Only persist and log if the setter actually changed the state
+        if (config.isFastPlaceEnabled() == newState) {
+            ConfigPersistence.save();
+            if (newState) {
+                PiggyBuildClient.LOGGER.debug("[FastPlace] Enabled");
+            } else {
+                PiggyBuildClient.LOGGER.debug("[FastPlace] Disabled");
+            }
         }
     }
 
@@ -74,20 +77,8 @@ public class FastPlacementHandler {
             isEnabled, config.serverAllowCheats, config.isNoCheatingMode(), config.isFastPlaceEnabled());
         
         if (!isEnabled) {
-            // Trigger centralized feedback when trying to use disabled feature
-            if (client.options.keyUse.isDown()) {
-                boolean serverForces = !config.serverAllowCheats ||
-                        (config.serverFeatures.containsKey("fast_place") && !config.serverFeatures.get("fast_place"));
-
-                PiggyBuildClient.LOGGER.info("[FastPlace] Feature blocked - serverForces={}, serverAllowCheats={}, serverFeatures={}", 
-                    serverForces, config.serverAllowCheats, config.serverFeatures);
-
-                is.pig.minecraft.lib.ui.BlockReason reason = serverForces
-                        ? is.pig.minecraft.lib.ui.BlockReason.SERVER_ENFORCEMENT
-                        : is.pig.minecraft.lib.ui.BlockReason.LOCAL_CONFIG;
-                is.pig.minecraft.lib.ui.AntiCheatFeedbackManager.getInstance()
-                        .onFeatureBlocked("fast_place", reason);
-            }
+            // If the feature is disabled, just return silently. Feedback is shown
+            // when the user attempts to ENABLE the feature (via setter/toggle).
             return;
         }
 
