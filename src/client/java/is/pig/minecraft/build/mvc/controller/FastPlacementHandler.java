@@ -1,7 +1,7 @@
 package is.pig.minecraft.build.mvc.controller;
 
 import is.pig.minecraft.build.PiggyBuildClient;
-import is.pig.minecraft.build.config.PiggyConfig;
+import is.pig.minecraft.build.config.PiggyBuildConfig;
 import is.pig.minecraft.build.config.ConfigPersistence;
 import is.pig.minecraft.build.mixin.client.MinecraftAccessorMixin;
 import is.pig.minecraft.build.mvc.view.FastPlaceOverlay;
@@ -13,7 +13,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.level.GameType;
 
 /**
  * Handles fast block placement by reducing or removing the click delay.
@@ -23,7 +22,6 @@ public class FastPlacementHandler {
 
     private boolean wasKeyDown = false;
     private long lastPlacementTime = 0;
-    private long lastWarningTime = 0;
 
     /**
      * Called every client tick to handle fast placement logic
@@ -39,7 +37,7 @@ public class FastPlacementHandler {
         wasKeyDown = isKeyDown;
 
         // If fast place is enabled, try to place continuously
-        if (PiggyConfig.getInstance().isFastPlaceEnabled()) {
+        if (PiggyBuildConfig.getInstance().isFastPlaceEnabled()) {
             tryFastPlace(client);
         }
     }
@@ -48,14 +46,17 @@ public class FastPlacementHandler {
      * Toggle fast placement mode on/off
      */
     private void toggleFastPlace() {
-        PiggyConfig config = PiggyConfig.getInstance();
-        config.setFastPlaceEnabled(!config.isFastPlaceEnabled());
-        ConfigPersistence.save();
-
-        if (config.isFastPlaceEnabled()) {
-            PiggyBuildClient.LOGGER.debug("[FastPlace] Enabled");
-        } else {
-            PiggyBuildClient.LOGGER.debug("[FastPlace] Disabled");
+        PiggyBuildConfig config = PiggyBuildConfig.getInstance();
+        boolean newState = !config.isFastPlaceEnabled();
+        config.setFastPlaceEnabled(newState);
+        // Only persist and log if the setter actually changed the state
+        if (config.isFastPlaceEnabled() == newState) {
+            ConfigPersistence.save();
+            if (newState) {
+                PiggyBuildClient.LOGGER.debug("[FastPlace] Enabled");
+            } else {
+                PiggyBuildClient.LOGGER.debug("[FastPlace] Disabled");
+            }
         }
     }
 
@@ -68,12 +69,16 @@ public class FastPlacementHandler {
             return;
         }
 
-        // Check No Cheating Mode
-        boolean isNoCheating = PiggyConfig.getInstance().isNoCheatingMode();
-        boolean serverForces = !PiggyConfig.getInstance().serverAllowCheats && !client.hasSingleplayerServer();
-
-        if ((isNoCheating || serverForces) && client.gameMode.getPlayerMode() != GameType.CREATIVE) {
-            warnNoCheating(client, serverForces);
+        // Check if feature is enabled (considers server overrides)
+        PiggyBuildConfig config = PiggyBuildConfig.getInstance();
+        boolean isEnabled = config.isFeatureFastPlaceEnabled();
+        
+        PiggyBuildClient.LOGGER.debug("[FastPlace Debug] isFeatureFastPlaceEnabled()={}, serverAllowCheats={}, isNoCheatingMode()={}, fastPlaceFeatureEnabled={}", 
+            isEnabled, config.serverAllowCheats, config.isNoCheatingMode(), config.isFastPlaceEnabled());
+        
+        if (!isEnabled) {
+            // If the feature is disabled, just return silently. Feedback is shown
+            // when the user attempts to ENABLE the feature (via setter/toggle).
             return;
         }
 
@@ -88,7 +93,7 @@ public class FastPlacementHandler {
 
         // Check if enough time has passed since last placement
         long currentTime = System.currentTimeMillis();
-        long minDelay = PiggyConfig.getInstance().getFastPlaceDelayMs();
+        long minDelay = PiggyBuildConfig.getInstance().getFastPlaceDelayMs();
 
         if (currentTime - lastPlacementTime < minDelay) {
             return;
@@ -157,7 +162,7 @@ public class FastPlacementHandler {
      * Check if fast placement is currently active
      */
     public boolean isActive() {
-        return PiggyConfig.getInstance().isFastPlaceEnabled();
+        return PiggyBuildConfig.getInstance().isFastPlaceEnabled();
     }
 
     /**
@@ -165,7 +170,7 @@ public class FastPlacementHandler {
      */
     public boolean onScroll(double amount) {
         if (InputController.fastPlaceKey.isDown()) {
-            PiggyConfig config = PiggyConfig.getInstance();
+            PiggyBuildConfig config = PiggyBuildConfig.getInstance();
 
             // 1. Auto-enable if currently disabled
             if (!config.isFastPlaceEnabled()) {
@@ -209,29 +214,5 @@ public class FastPlacementHandler {
             return true;
         }
         return false;
-    }
-
-    private void warnNoCheating(Minecraft client, boolean serverForces) {
-        // Only warn if the user is ACTUALLY trying to use it (holding use key)
-        if (!client.options.keyUse.isDown()) {
-            return;
-        }
-
-        long currentTime = System.currentTimeMillis();
-        // Warn every 2 seconds max
-        if (currentTime - lastWarningTime > 2000) {
-            lastWarningTime = currentTime;
-            if (client.player != null) {
-                String message = serverForces
-                        ? "Anti-Cheat Active: This server has forced anti-cheat ON."
-                        : "Anti-Cheat Active: Disable 'No Cheating Mode' in settings to use.";
-
-                client.player.displayClientMessage(
-                        Component.literal(message)
-                                .withStyle(ChatFormatting.RED),
-                        true // true = action bar
-                );
-            }
-        }
     }
 }

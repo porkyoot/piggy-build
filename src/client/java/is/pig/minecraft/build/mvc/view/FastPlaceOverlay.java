@@ -1,7 +1,7 @@
 package is.pig.minecraft.build.mvc.view;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import is.pig.minecraft.build.config.PiggyConfig;
+import is.pig.minecraft.build.config.PiggyBuildConfig;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -36,7 +36,7 @@ public class FastPlaceOverlay {
         if (mc.player == null)
             return;
 
-        boolean isActive = PiggyConfig.getInstance().isFastPlaceEnabled();
+        boolean isActive = PiggyBuildConfig.getInstance().isFastPlaceEnabled();
 
         // Initialize lastState on first render to match config
         if (lastState == null) {
@@ -61,7 +61,7 @@ public class FastPlaceOverlay {
      */
     private static void renderAttackIndicatorStyle(GuiGraphics graphics, DeltaTracker tickDelta) {
         // Calculate progress (0.0 to 1.0) based on cooldown
-        int delayMs = PiggyConfig.getInstance().getFastPlaceDelayMs();
+        int delayMs = PiggyBuildConfig.getInstance().getFastPlaceDelayMs();
         long timeSincePlace = System.currentTimeMillis() - lastPlaceTime;
         float progress = Math.min(1.0f, timeSincePlace / (float) delayMs);
 
