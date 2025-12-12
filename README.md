@@ -1,3 +1,5 @@
+[![build](https://github.com/porkyoot/piggy-build/actions/workflows/build.yml/badge.svg)](https://github.com/porkyoot/piggy-build/actions/workflows/build.yml)
+
 # Piggy Build
 
 A simple yet powerful mod designed to enhance your building experience in Minecraft. Piggy Build provides utilitarian features like directional placement, shape guides, and fast placement tools to make creative building smoother.
