@@ -23,27 +23,12 @@ fabricApi {
 }
 
 dependencies {
-    // --- CE QUI EST SUPPRIMÉ (car hérité) ---
-    // Minecraft, Loader, Fabric API.
-    // ET SURTOUT: les mappings. On utilise ceux de la racine (Yarn) pour que tout le monde parle la même langue.
-
-    // --- DÉPENDANCES SPÉCIFIQUES ---
     modImplementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
     modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
 
-    // --- LA CONNEXION VITALE ---
-    // Add piggy-lib as a project dependency so Loom includes its classes/resources
-    // on the development classpath. Use the 'namedElements' outgoing configuration
-    // so the library's API/implementation is visible to this module's compile
-    // classpath (including the split client source set).
-    implementation project(path: ':piggy-lib', configuration: 'namedElements')
+    implementation project(':piggy-lib')
+    clientImplementation project(':piggy-lib')
 
     // Also include the lib in the final jar if needed (optional fat-jar behavior)
     include project(':piggy-lib')
-    
-    // Si Piggy Build a besoin de Piggy Admin ou Inventory, ajoutez-les ici de la même façon :
-    // implementation project(path: ':piggy-admin', configuration: 'namedElements')
 }
-
-// Le bloc 'jar' avec le renommage de licence a été retiré pour simplifier le cache,
-// mais vous pouvez le remettre si c'est critique pour vous.
