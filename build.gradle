@@ -36,7 +36,7 @@ dependencies {
     // on the development classpath. Use the 'namedElements' outgoing configuration
     // so the library's API/implementation is visible to this module's compile
     // classpath (including the split client source set).
-    modImplementation project(path: ':piggy-lib', configuration: 'namedElements')
+    implementation project(path: ':piggy-lib', configuration: 'namedElements')
 
     // Also include the lib in the final jar if needed (optional fat-jar behavior)
     include project(':piggy-lib')
