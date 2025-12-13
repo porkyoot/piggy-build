@@ -5,9 +5,8 @@ base {
     archivesName = "piggy-build"
 }
 
-loom {
-    splitEnvironmentSourceSets()
 
+loom {
     mods {
         "piggy-build" {
             sourceSet sourceSets.main
@@ -30,5 +29,5 @@ dependencies {
     clientImplementation project(path: ':piggy-lib', configuration: 'namedElements')
 
     // Also include the lib in the final jar if needed (optional fat-jar behavior)
-    include project(':piggy-lib')
+    //include project(':piggy-lib')
 }

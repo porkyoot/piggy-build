@@ -14,7 +14,7 @@ import is.pig.minecraft.build.mvc.view.FastPlaceOverlay;
 import is.pig.minecraft.build.mvc.view.DirectionalPlacementRenderer;
 import is.pig.minecraft.build.mvc.view.HighlightRenderType;
 import is.pig.minecraft.build.mvc.view.WorldShapeRenderer;
-import is.pig.minecraft.lib.network.SyncConfigPayload;
+
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -65,35 +65,38 @@ public class PiggyBuildClient implements ClientModInitializer {
             FastPlaceOverlay.render(graphics, tickDelta);
         });
 
-        SyncConfigPayload.registerPacket();
-        
         // Register Config Sync Listener
-        is.pig.minecraft.lib.config.PiggyClientConfig.getInstance().registerConfigSyncListener((allowCheats, features) -> {
-            is.pig.minecraft.build.config.PiggyBuildConfig buildConfig = is.pig.minecraft.build.config.PiggyBuildConfig.getInstance();
-            buildConfig.serverAllowCheats = allowCheats;
-            buildConfig.serverFeatures = features;
+        is.pig.minecraft.lib.config.PiggyClientConfig.getInstance()
+                .registerConfigSyncListener((allowCheats, features) -> {
+                    is.pig.minecraft.build.config.PiggyBuildConfig buildConfig = is.pig.minecraft.build.config.PiggyBuildConfig
+                            .getInstance();
+                    buildConfig.serverAllowCheats = allowCheats;
+                    buildConfig.serverFeatures = features;
 
-            // Proactively disable features if blocked.
-            // We set the fields directly or use internal setters to avoid triggering the user feedback 
-            // ("You cannot enable this") when the SERVER is the one disabling it.
-            if (!allowCheats) {
-                // If cheats are globally disabled by server, turn off features
-                buildConfig.setFastPlaceEnabled(false);
-                buildConfig.setFlexiblePlacementEnabled(false); 
-            }
+                    // Proactively disable features if blocked.
+                    // We set the fields directly or use internal setters to avoid triggering the
+                    // user feedback
+                    // ("You cannot enable this") when the SERVER is the one disabling it.
+                    if (!allowCheats) {
+                        // If cheats are globally disabled by server, turn off features
+                        buildConfig.setFastPlaceEnabled(false);
+                        buildConfig.setFlexiblePlacementEnabled(false);
+                    }
 
-            // Also check specific feature flags
-            if (features != null) {
-                if (features.containsKey("fast_place") && !features.get("fast_place")) {
-                    buildConfig.setFastPlaceEnabled(false);
-                }
-                if (features.containsKey("flexible_placement") && !features.get("flexible_placement")) {
-                    buildConfig.setFlexiblePlacementEnabled(false);
-                }
-            }
+                    // Also check specific feature flags
+                    if (features != null) {
+                        if (features.containsKey("fast_place") && !features.get("fast_place")) {
+                            buildConfig.setFastPlaceEnabled(false);
+                        }
+                        if (features.containsKey("flexible_placement") && !features.get("flexible_placement")) {
+                            buildConfig.setFlexiblePlacementEnabled(false);
+                        }
+                    }
 
-            LOGGER.info("[ANTI-CHEAT DEBUG] PiggyBuildConfig updated from server sync: allowCheats={}, features={}", allowCheats, features);
-        });
+                    LOGGER.info(
+                            "[ANTI-CHEAT DEBUG] PiggyBuildConfig updated from server sync: allowCheats={}, features={}",
+                            allowCheats, features);
+                });
 
         // 4. Render loop (visualization)
         WorldRenderEvents.LAST.register(context -> {
@@ -108,9 +111,11 @@ public class PiggyBuildClient implements ClientModInitializer {
         });
     }
 
-    private void renderBuildShapes(Minecraft mc, Vec3 cameraPos, PoseStack stack, MultiBufferSource.BufferSource buffers) {
+    private void renderBuildShapes(Minecraft mc, Vec3 cameraPos, PoseStack stack,
+            MultiBufferSource.BufferSource buffers) {
         BuildSession session = BuildSession.getInstance();
-        if (!session.isActive()) return;
+        if (!session.isActive())
+            return;
 
         VertexConsumer builder = buffers.getBuffer(HighlightRenderType.TYPE);
         PiggyBuildConfig config = PiggyBuildConfig.getInstance();
@@ -126,21 +131,26 @@ public class PiggyBuildClient implements ClientModInitializer {
 
         switch (session.getShape()) {
             case BLOCK -> WorldShapeRenderer.drawBlock(builder, stack.last().pose(), 0, 0, 0, r, g, b, a);
-            case LINE -> WorldShapeRenderer.drawLine(builder, stack.last().pose(), session.getAnchorAxis(), session.getRadius(), r, g, b, a);
+            case LINE -> WorldShapeRenderer.drawLine(builder, stack.last().pose(), session.getAnchorAxis(),
+                    session.getRadius(), r, g, b, a);
             case SPHERE -> WorldShapeRenderer.drawSphere(builder, stack.last().pose(), session.getRadius(), r, g, b, a);
-            case RING -> WorldShapeRenderer.drawRing(builder, stack.last().pose(), session.getAnchorAxis(), session.getRadius(), r, g, b, a);
+            case RING -> WorldShapeRenderer.drawRing(builder, stack.last().pose(), session.getAnchorAxis(),
+                    session.getRadius(), r, g, b, a);
         }
 
         stack.popPose();
         buffers.endBatch(HighlightRenderType.TYPE);
     }
 
-    private void renderDirectionalPlacement(Minecraft mc, Vec3 cameraPos, PoseStack stack, MultiBufferSource.BufferSource buffers) {
+    private void renderDirectionalPlacement(Minecraft mc, Vec3 cameraPos, PoseStack stack,
+            MultiBufferSource.BufferSource buffers) {
         PlacementSession session = PlacementSession.getInstance();
-        if (!session.isActive()) return;
-        
+        if (!session.isActive())
+            return;
+
         // Double check config state to ensure we don't render overlays if disabled
-        if (!PiggyBuildConfig.getInstance().isFeatureFlexiblePlacementEnabled()) return;
+        if (!PiggyBuildConfig.getInstance().isFeatureFlexiblePlacementEnabled())
+            return;
 
         if (mc.hitResult != null && mc.hitResult.getType() == HitResult.Type.BLOCK) {
             BlockHitResult hit = (BlockHitResult) mc.hitResult;
@@ -161,7 +171,7 @@ public class PiggyBuildClient implements ClientModInitializer {
 
             PiggyBuildConfig config = PiggyBuildConfig.getInstance();
             float[] placementRgba = config.getPlacementOverlayColor().getComponents(null);
-            
+
             DirectionalPlacementRenderer.render(
                     overlayBuilder,
                     stack,
