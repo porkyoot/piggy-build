@@ -61,10 +61,17 @@ You can rebind these keys in the standard Minecraft Controls menu under "Piggy B
 
 | Action | Default Key | Description |
 | :--- | :--- | :--- |
-| **Shape Selector** | `X` | Opens the menu to select building shapes |
-| **Directional Placement** | `Mouse Button 5` | Locks placement orientation |
-| **Diagonal Placement** | `Mouse Button 4` | Toggles diagonal placement mode |
-| **Fast Block Placement** | `Mouse Button 6` | Activates rapid block placement |
+| **Shape Selector** | `X` | Opens the menu to select building shapes which can be scrolled. |
+| **Directional Placement** | `Mouse Button 5` | Locks placement orientation to the face you are looking at. |
+| **Diagonal Placement** | `Mouse Button 4` | Toggles diagonal placement mode (45-degree angle). |
+| **Fast Block Placement** | `Mouse Button 6` | Activates rapid block placement while held. |
+
+### 🛠️ Placement Helpers
+*   **Directional Placement**: Lock your placement direction relative to the block face. Handy for placing logs, pillars, o pistons in specific orientations without moving your character.
+*   **Diagonal Placement**: Easily place blocks diagonally, enabling faster construction of complex patterns.
+*   **Fast Placement**: Hold down the button to place blocks rapidly.
+    *   *Note: This feature can be disabled by the server if `piggy-admin` is installed and cheats are forbidden.*
+*   **Fast Breaking**: Creative-mode utility to break blocks faster.
 
 ### Configuration
 Access the configuration menu via **Mod Menu**.
