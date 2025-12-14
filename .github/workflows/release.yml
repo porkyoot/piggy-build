@@ -46,11 +46,11 @@ jobs:
           # Only create tag if it doesn't exist
           if ! git rev-parse "$TAG" >/dev/null 2>&1; then
             git tag "$TAG"
-            git push origin main
+            git push origin master
             git push origin "$TAG"
           else
             echo "Tag $TAG already exists, skipping tag creation"
-            git push origin main || echo "Nothing to push"
+            git push origin master || echo "Nothing to push"
           fi
 
       - name: Validate Gradle Wrapper
