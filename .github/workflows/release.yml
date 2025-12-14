@@ -22,6 +22,29 @@ jobs:
         with:
           path: piggy-build
 
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing piggy-build v$VERSION"
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update version in parent repo
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/^build_version=.*/build_version=$VERSION/" gradle.properties
+          git add gradle.properties
+          git commit -m "chore: bump piggy-build to v$VERSION"
+          TAG="piggy-build-v${VERSION}"
+          git tag "$TAG"
+          git push origin main
+          git push origin "$TAG"
+
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v4
 
