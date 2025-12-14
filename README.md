@@ -112,7 +112,9 @@ You can install **Piggy Build** on the server to enforce anti-cheat rules for al
 
 ## Inspiration
 
-<!-- Projects that inspired this mod will be listed here -->
+This mod was inspired by:
+- **[MiniHUD](https://modrinth.com/mod/minihud)** - For the concept of visual overlays and shape guides.
+- **[Tweakeroo](https://modrinth.com/mod/tweakeroo)** - For fast placement mechanics and building utilities.
 
 ---
 
