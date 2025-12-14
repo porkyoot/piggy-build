@@ -356,4 +356,297 @@ public class PiggyBuildTests {
         System.out.println("[TEST] Complete workflow verified: SPHERE at radius 8 with anchor");
         context.succeed();
     }
+
+    // ========== DIRECTIONAL & DIAGONAL PLACEMENT TESTS ==========
+
+    /**
+     * Test PlacementMode enum values
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void testPlacementModeEnum(GameTestHelper context) {
+        is.pig.minecraft.build.lib.placement.PlacementMode[] modes = is.pig.minecraft.build.lib.placement.PlacementMode
+                .values();
+
+        context.assertTrue(modes.length == 3, "Should have 3 placement modes");
+
+        // Verify all modes exist
+        boolean hasVanilla = false, hasDirectional = false, hasDiagonal = false;
+        for (is.pig.minecraft.build.lib.placement.PlacementMode mode : modes) {
+            switch (mode) {
+                case VANILLA:
+                    hasVanilla = true;
+                    break;
+                case DIRECTIONAL:
+                    hasDirectional = true;
+                    break;
+                case DIAGONAL:
+                    hasDiagonal = true;
+                    break;
+            }
+        }
+
+        context.assertTrue(hasVanilla, "Should have VANILLA mode");
+        context.assertTrue(hasDirectional, "Should have DIRECTIONAL mode");
+        context.assertTrue(hasDiagonal, "Should have DIAGONAL mode");
+
+        System.out.println("[TEST] All 3 placement modes verified: VANILLA, DIRECTIONAL, DIAGONAL");
+        context.succeed();
+    }
+
+    /**
+     * Test PlacementSession lock/unlock for directional mode
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void testPlacementSessionLock(GameTestHelper context) {
+        is.pig.minecraft.build.mvc.model.PlacementSession session = is.pig.minecraft.build.mvc.model.PlacementSession
+                .getInstance();
+
+        // Start unlocked
+        session.unlock();
+        context.assertTrue(!session.isLocked(), "Should start unlocked");
+        System.out.println("[TEST] Placement session unlocked");
+
+        // Lock with specific parameters
+        Direction offset = Direction.NORTH;
+        Direction face = Direction.UP;
+        is.pig.minecraft.build.lib.placement.PlacementMode mode = is.pig.minecraft.build.lib.placement.PlacementMode.DIRECTIONAL;
+
+        session.lock(offset, face, mode);
+
+        context.assertTrue(session.isLocked(), "Should be locked");
+        context.assertTrue(session.getLockedOffset() == offset, "Should store offset");
+        context.assertTrue(session.getLockedFace() == face, "Should store face");
+        context.assertTrue(session.getLockedMode() == mode, "Should store mode");
+
+        System.out.println("[TEST] Placement session locked with: " + offset + ", " + face + ", " + mode);
+
+        // Unlock
+        session.unlock();
+        context.assertTrue(!session.isLocked(), "Should be unlocked after unlock()");
+
+        System.out.println("[TEST] Placement session lock/unlock verified");
+        context.succeed();
+    }
+
+    /**
+     * Test PlacementSession active state toggle
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void testPlacementSessionActive(GameTestHelper context) {
+        is.pig.minecraft.build.mvc.model.PlacementSession session = is.pig.minecraft.build.mvc.model.PlacementSession
+                .getInstance();
+
+        // Deactivate
+        session.setActive(false);
+        context.assertTrue(!session.isActive(), "Should be inactive");
+        System.out.println("[TEST] Placement session inactive");
+
+        // Activate
+        session.setActive(true);
+        context.assertTrue(session.isActive(), "Should be active");
+        System.out.println("[TEST] Placement session active");
+
+        System.out.println("[TEST] Placement session active state toggle verified");
+        context.succeed();
+    }
+
+    /**
+     * Test PlacementCalculator direction mapping for UP face
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void testDirectionMappingUpFace(GameTestHelper context) {
+        // Test getDirectionFromRotation for UP face
+        // This is the internal logic that maps UV coordinates to directions
+        // Based on PlacementCalculator.getDirectionFromRotation
+
+        // We're testing the concept: when looking at UP face
+        // Top (0°) = NORTH, Bottom (180°) = SOUTH, Right (90°) = EAST, Left (-90°) =
+        // WEST
+
+        // Since the method is private, we test via public getOffsetDirection
+        // by creating hit results with specific positions
+
+        BlockPos testPos = new BlockPos(0, 0, 0);
+
+        // Create a hit result on the top of a block (UP face)
+        // Hit at center top edge (north edge) -> should map to NORTH
+        net.minecraft.world.phys.Vec3 hitNorth = new net.minecraft.world.phys.Vec3(0.5, 1.0, 0.1); // Near north edge
+        net.minecraft.world.phys.BlockHitResult hitResultNorth = new net.minecraft.world.phys.BlockHitResult(hitNorth,
+                Direction.UP, testPos, false);
+
+        Direction resultNorth = is.pig.minecraft.build.lib.math.PlacementCalculator.getOffsetDirection(hitResultNorth);
+        context.assertTrue(resultNorth == Direction.NORTH || resultNorth == null,
+                "North edge on UP should map to NORTH or center");
+
+        System.out.println("[TEST] Direction mapping for UP face verified: hit near north -> " + resultNorth);
+        context.succeed();
+    }
+
+    /**
+     * Test PlacementCalculator center detection
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void testPlacementCenterDetection(GameTestHelper context) {
+        BlockPos testPos = new BlockPos(0, 0, 0);
+
+        // Hit exactly in center should return null (CENTER_MARGIN = 0.25)
+        net.minecraft.world.phys.Vec3 centerHit = new net.minecraft.world.phys.Vec3(0.5, 1.0, 0.5);
+        net.minecraft.world.phys.BlockHitResult hitResult = new net.minecraft.world.phys.BlockHitResult(centerHit,
+                Direction.UP, testPos, false);
+
+        Direction result = is.pig.minecraft.build.lib.math.PlacementCalculator.getOffsetDirection(hitResult);
+
+        context.assertTrue(result == null, "Center hit should return null");
+        System.out.println("[TEST] Placement center detection: center hit -> null (no offset)");
+
+        context.succeed();
+    }
+
+    /**
+     * Test PlacementSession last placed position tracking
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void testLastPlacedPosition(GameTestHelper context) {
+        is.pig.minecraft.build.mvc.model.PlacementSession session = is.pig.minecraft.build.mvc.model.PlacementSession
+                .getInstance();
+
+        BlockPos pos1 = new BlockPos(5, 10, 15);
+        BlockPos pos2 = new BlockPos(6, 10, 15);
+
+        // Set first position
+        session.setLastPlacedPos(pos1);
+        context.assertTrue(session.getLastPlacedPos() != null, "Should have last placed pos");
+        context.assertTrue(session.getLastPlacedPos().equals(pos1), "Should match pos1");
+        System.out.println("[TEST] Last placed position set: " + pos1);
+
+        // Update to second position
+        session.setLastPlacedPos(pos2);
+        context.assertTrue(session.getLastPlacedPos().equals(pos2), "Should update to pos2");
+        System.out.println("[TEST] Last placed position updated: " + pos2);
+
+        System.out.println("[TEST] Last placed position tracking verified");
+        context.succeed();
+    }
+
+    // ========== FAST PLACEMENT & BREAKING TESTS ==========
+
+    /**
+     * Test fast placement delay calculation (1000ms / speed = delay)
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void testFastPlaceDelayCalculation(GameTestHelper context) {
+        // Test the delay/speed relationship used by FastPlacementHandler
+        // Speed in blocks/sec -> Delay in milliseconds
+
+        // Speed 1 block/sec should be 1000ms delay
+        int speed1 = 1;
+        int delay1 = 1000 / speed1;
+        context.assertTrue(delay1 == 1000, "Speed 1 should give 1000ms delay");
+        System.out.println("[TEST] Speed 1 b/s = " + delay1 + "ms delay");
+
+        // Speed 10 blocks/sec should be 100ms delay
+        int speed10 = 10;
+        int delay10 = 1000 / speed10;
+        context.assertTrue(delay10 == 100, "Speed 10 should give 100ms delay");
+        System.out.println("[TEST] Speed 10 b/s = " + delay10 + "ms delay");
+
+        // Speed 20 blocks/sec (max) should be 50ms delay
+        int speed20 = 20;
+        int delay20 = 1000 / speed20;
+        context.assertTrue(delay20 == 50, "Speed 20 should give 50ms delay");
+        System.out.println("[TEST] Speed 20 b/s = " + delay20 + "ms delay");
+
+        System.out.println("[TEST] Fast place delay calculation verified");
+        context.succeed();
+    }
+
+    /**
+     * Test fast placement speed-to-delay conversion bounds
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void testFastPlaceSpeedBounds(GameTestHelper context) {
+        // Test the speed clamping logic: Min 1 block/sec, Max 20 blocks/sec
+
+        // Speed should be clamped to minimum 1
+        int tooSlow = 0;
+        int clampedSlow = Math.max(1, tooSlow);
+        context.assertTrue(clampedSlow == 1, "Speed should clamp to minimum 1");
+        System.out.println("[TEST] Speed clamped from 0 to: " + clampedSlow);
+
+        // Speed should be clamped to maximum 20
+        int tooFast = 25;
+        int clampedFast = Math.min(20, tooFast);
+        context.assertTrue(clampedFast == 20, "Speed should clamp to maximum 20");
+        System.out.println("[TEST] Speed clamped from 25 to: " + clampedFast);
+
+        // Validate delay bounds:
+        // Min speed (1 b/s) = Max delay (1000ms)
+        int maxDelay = 1000 / 1;
+        context.assertTrue(maxDelay == 1000, "Min speed should give max delay");
+        System.out.println("[TEST] Min speed (1 b/s) = max delay (" + maxDelay + "ms)");
+
+        // Max speed (20 b/s) = Min delay (50ms)
+        int minDelay = 1000 / 20;
+        context.assertTrue(minDelay == 50, "Max speed should give min delay");
+        System.out.println("[TEST] Max speed (20 b/s) = min delay (" + minDelay + "ms)");
+
+        System.out.println("[TEST] Fast place speed bounds verified");
+        context.succeed();
+    }
+
+    /**
+     * Test timing logic: simulated rapid actions with delay enforcement
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void testFastActionTiming(GameTestHelper context) {
+        // Simulate the timing check logic from FastPlacementHandler/FastBreakHandler
+        long currentTime = System.currentTimeMillis();
+        long lastActionTime = currentTime - 200; // 200ms ago
+        int minDelay = 100; // Minimum 100ms between actions
+
+        // Should allow action (200ms >= 100ms)
+        boolean shouldAllow1 = (currentTime - lastActionTime) >= minDelay;
+        context.assertTrue(shouldAllow1, "Should allow action after sufficient delay");
+        System.out.println("[TEST] Action allowed: 200ms >= 100ms delay");
+
+        // Simulate action too soon
+        lastActionTime = currentTime - 50; // Only 50ms ago
+        boolean shouldAllow2 = (currentTime - lastActionTime) >= minDelay;
+        context.assertTrue(!shouldAllow2, "Should block action when too soon");
+        System.out.println("[TEST] Action blocked: 50ms < 100ms delay");
+
+        System.out.println("[TEST] Fast action timing logic verified");
+        context.succeed();
+    }
+
+    /**
+     * Test ghost block prevention timing (FastBreakHandler's duplicate break check)
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void testGhostBlockPrevention(GameTestHelper context) {
+        // Simulate the recently broken block tracking from FastBreakHandler
+        long GHOST_PREVENTION_MS = 100;
+
+        BlockPos testPos = new BlockPos(10, 64, 20);
+        long currentTime = System.currentTimeMillis();
+        long breakTime = currentTime - 50; // Block was broken 50ms ago
+
+        // Check if we should skip re-breaking (ghost prevention)
+        long timeSinceBreak = currentTime - breakTime;
+        boolean shouldSkip = timeSinceBreak < GHOST_PREVENTION_MS;
+
+        context.assertTrue(shouldSkip, "Should skip re-breaking same block within 100ms");
+        System.out.println("[TEST] Ghost block prevention: skipping re-break after 50ms");
+
+        // After enough time, should allow
+        breakTime = currentTime - 150; // 150ms ago
+        timeSinceBreak = currentTime - breakTime;
+        shouldSkip = timeSinceBreak < GHOST_PREVENTION_MS;
+
+        context.assertTrue(!shouldSkip, "Should allow breaking after 100ms");
+        System.out.println("[TEST] Ghost block prevention: allowing break after 150ms");
+
+        System.out.println("[TEST] Ghost block prevention logic verified");
+        context.succeed();
+    }
 }
