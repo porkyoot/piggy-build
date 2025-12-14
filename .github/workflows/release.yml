@@ -39,11 +39,19 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           sed -i "s/^build_version=.*/build_version=$VERSION/" gradle.properties
           git add gradle.properties
-          git commit -m "chore: bump piggy-build to v$VERSION"
+          git diff --cached --quiet || git commit -m "chore: bump piggy-build to v$VERSION"
+          
           TAG="piggy-build-v${VERSION}"
-          git tag "$TAG"
-          git push origin main
-          git push origin "$TAG"
+          
+          # Only create tag if it doesn't exist
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            git tag "$TAG"
+            git push origin main
+            git push origin "$TAG"
+          else
+            echo "Tag $TAG already exists, skipping tag creation"
+            git push origin main || echo "Nothing to push"
+          fi
 
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v4
