@@ -31,7 +31,7 @@ public class InputController {
         triggerKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "Shape Selector",
                 InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_X,
+                GLFW.GLFW_KEY_V,
                 "Piggy Build"));
 
         directionalKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
