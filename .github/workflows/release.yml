@@ -16,6 +16,7 @@ jobs:
           repository: porkyoot/piggy-mods
           submodules: true
           path: .
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Checkout Submodule (Current)
         uses: actions/checkout@v4
