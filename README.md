@@ -100,7 +100,7 @@ You can install **Piggy Build** on the server to enforce anti-cheat rules for al
 ### Required Mods
 *   **[Fabric API](https://modrinth.com/mod/fabric-api)**: Any version
 *   **[YACL (Yet Another Config Lib)](https://modrinth.com/mod/yacl)**: >=3.6.1+1.21-fabric
-*   **[Piggy Lib](https://github.com/porkyoot/piggy-lib)**: >=1.0.0
+*   **[Piggy Lib](https://github.com/porkyoot/piggy-lib)**: >=1.0.1
 *   *(Optional)* **[Mod Menu](https://modrinth.com/mod/modmenu)**: >=11.0.3 - Highly recommended for accessing config.
 
 ### Installation
