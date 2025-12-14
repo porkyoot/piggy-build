@@ -3,22 +3,52 @@ on: [pull_request, push]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     
     steps:
-    - name: Checkout repository
+    - name: Checkout Master Project
       uses: actions/checkout@v4
+      with:
+        repository: porkyoot/piggy-mods
+        submodules: true
+        path: .
+        
+    - name: Checkout Submodule (Current)
+      uses: actions/checkout@v4
+      with:
+        path: piggy-build
+        
+    - name: Validate Gradle Wrapper
+      uses: gradle/actions/wrapper-validation@v4
       
-    - name: Set up JDK 21
+    - name: Setup JDK
       uses: actions/setup-java@v4
       with:
         java-version: '21'
-        distribution: 'temurin'
-        cache: 'gradle'
+        distribution: 'microsoft'
         
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+    - name: Make Gradle Wrapper Executable
+      run: chmod +x ./gradlew
       
+    - name: Isolate Project Dependencies
+      run: |
+        cat <<EOF > settings.gradle
+        pluginManagement {
+            repositories {
+                maven {
+                    name = 'Fabric'
+                    url = 'https://maven.fabricmc.net/'
+                }
+                gradlePluginPortal()
+            }
+        }
+        rootProject.name = 'piggy-mods'
+        
+        // Only include the shared library and THIS mod
+        include 'piggy-lib'
+        include 'piggy-build'
+        EOF
+        
     - name: Run piggy-build tests
       run: ./gradlew :piggy-build:runGametest
       
