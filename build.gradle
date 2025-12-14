@@ -19,6 +19,13 @@ fabricApi {
     configureDataGeneration {
         client = true
     }
+    
+    // Configure GameTest framework
+    configureTests {
+        createSourceSet = true  // Creates src/gametest/java
+        modId = "piggy-build-test"
+        eula = true  // Accept EULA for GameTest server
+    }
 }
 
 dependencies {

@@ -1,0 +1,48 @@
+{
+    "schemaVersion": 1,
+    "id": "piggy-build",
+    "version": "${version}",
+    "name": "Piggy Build",
+    "description": "A simple mod to help with building in Minecraft.",
+    "authors": [
+        "Étoile @porkyoot"
+    ],
+    "contact": {
+        "homepage": "https://pig.is/",
+        "sources": "https://github.com/porkyoot/piggy-build"
+    },
+    "license": "CC0-1.0",
+    "icon": "assets/piggy-build/icon.png",
+    "environment": "*",
+    "entrypoints": {
+        "client": [
+            "is.pig.minecraft.build.PiggyBuildClient"
+        ],
+        "fabric-datagen": [
+            "is.pig.minecraft.build.PiggyBuildDataGenerator"
+        ],
+        "modmenu": [
+            "is.pig.minecraft.build.integration.ModMenuIntegration"
+        ],
+        "fabric-gametest": [
+            "is.pig.minecraft.build.test.PiggyBuildTests"
+        ]
+    },
+    "mixins": [
+        {
+            "config": "piggy-build.client.mixins.json",
+            "environment": "client"
+        }
+    ],
+    "depends": {
+        "fabricloader": ">=0.18.1",
+        "minecraft": "~1.21.1",
+        "java": ">=21",
+        "fabric-api": "*",
+        "yet_another_config_lib_v3": ">=3.6.1+1.21-fabric",
+        "piggy-lib": ">=1.0.0"
+    },
+    "suggests": {
+        "modmenu": ">=11.0.3"
+    }
+}
