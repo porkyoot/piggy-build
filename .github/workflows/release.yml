@@ -44,13 +44,13 @@ jobs:
           
           TAG="piggy-build-v${VERSION}"
           
-          # Only create tag if it doesn't exist
-          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+          # Only create tag if it doesn't exist on remote
+          if ! git ls-remote --tags origin | grep -q "refs/tags/$TAG"; then
             git tag "$TAG"
             git push origin master
             git push origin "$TAG"
           else
-            echo "Tag $TAG already exists, skipping tag creation"
+            echo "Tag $TAG already exists on remote, skipping tag creation"
             git push origin master || echo "Nothing to push"
           fi
 
