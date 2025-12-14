@@ -1,13 +1,5 @@
-name: Piggy Build - GameTest
-
-on:
-  push:
-    paths:
-      - 'piggy-build/**'
-      - '.github/workflows/piggy-build-test.yml'
-  pull_request:
-    paths:
-      - 'piggy-build/**'
+name: test
+on: [pull_request, push]
 
 jobs:
   test:
