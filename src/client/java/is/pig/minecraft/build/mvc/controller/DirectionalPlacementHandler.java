@@ -21,7 +21,7 @@ public class DirectionalPlacementHandler {
     public void onTick(Minecraft client) {
         boolean directionalDown = InputController.directionalKey.isDown();
         boolean diagonalDown = InputController.diagonalKey.isDown();
-        
+
         // Check permissions
         PiggyBuildConfig config = PiggyBuildConfig.getInstance();
         boolean isEnabled = config.isFeatureFlexiblePlacementEnabled();
@@ -30,19 +30,19 @@ public class DirectionalPlacementHandler {
         // If user presses keys but feature is disabled, show feedback and reset session
         if ((directionalDown || diagonalDown) && !isEnabled) {
             PlacementSession.getInstance().setActive(false); // Hide overlay
-            
+
             if (!hasShownFeedback) {
                 // Determine reason (Client safety or Server enforced)
                 boolean serverForces = !config.serverAllowCheats
                         || (config.serverFeatures != null && config.serverFeatures.containsKey("flexible_placement")
-                                && !config.serverFeatures.get("flexible_placement"));
-                
+                                && !Boolean.TRUE.equals(config.serverFeatures.get("flexible_placement")));
+
                 BlockReason reason = serverForces ? BlockReason.SERVER_ENFORCEMENT : BlockReason.LOCAL_CONFIG;
-                
+
                 AntiCheatFeedbackManager.getInstance().onFeatureBlocked("flexible_placement", reason);
                 hasShownFeedback = true; // Prevent spamming every tick
             }
-            
+
             // Do not process further
             wasDirectionalKeyDown = directionalDown;
             wasDiagonalKeyDown = diagonalDown;
@@ -96,10 +96,12 @@ public class DirectionalPlacementHandler {
      * Called from MinecraftClientMixin to modify the hit result.
      */
     public BlockHitResult modifyHitResult(Minecraft client, BlockHitResult hitResult) {
-        if (!client.isSameThread()) return hitResult;
+        if (!client.isSameThread())
+            return hitResult;
 
         PlacementMode mode = getActiveMode();
-        if (mode == PlacementMode.VANILLA) return hitResult;
+        if (mode == PlacementMode.VANILLA)
+            return hitResult;
 
         // Double check config here, though onTick usually handles the state
         PiggyBuildConfig config = PiggyBuildConfig.getInstance();

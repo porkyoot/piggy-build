@@ -14,6 +14,11 @@ public class PiggyBuildConfig extends PiggyClientConfig {
 
     private static PiggyBuildConfig INSTANCE = new PiggyBuildConfig();
 
+    public PiggyBuildConfig() {
+        super();
+        PiggyClientConfig.setInstance(this);
+    }
+
     // --- CONFIG FIELDS ---
     private Color highlightColor = new Color(0, 255, 230, 100);
     private Color placementOverlayColor = new Color(0, 255, 230, 255);
@@ -68,8 +73,9 @@ public class PiggyBuildConfig extends PiggyClientConfig {
     public void setFastPlaceEnabled(boolean enabled) {
         if (enabled) {
             boolean serverForces = !this.serverAllowCheats
+                    // Note: Boolean cast via equals to avoid NPE/Object
                     || (this.serverFeatures != null && this.serverFeatures.containsKey("fast_place")
-                            && !this.serverFeatures.get("fast_place"));
+                            && !Boolean.TRUE.equals(this.serverFeatures.get("fast_place")));
             
             if (serverForces) {
                 AntiCheatFeedbackManager.getInstance().onFeatureBlocked("fast_place", BlockReason.SERVER_ENFORCEMENT);
@@ -88,7 +94,7 @@ public class PiggyBuildConfig extends PiggyClientConfig {
         if (enabled) {
             boolean serverForces = !this.serverAllowCheats
                     || (this.serverFeatures != null && this.serverFeatures.containsKey("flexible_placement")
-                            && !this.serverFeatures.get("flexible_placement"));
+                            && !Boolean.TRUE.equals(this.serverFeatures.get("flexible_placement")));
             
             if (serverForces) {
                 AntiCheatFeedbackManager.getInstance().onFeatureBlocked("flexible_placement", BlockReason.SERVER_ENFORCEMENT);
@@ -105,7 +111,8 @@ public class PiggyBuildConfig extends PiggyClientConfig {
         if (isNoCheatingMode()) return false;
         
         if (!this.serverAllowCheats) return false;
-        if (this.serverFeatures != null && this.serverFeatures.containsKey("fast_place") && !this.serverFeatures.get("fast_place")) return false;
+        // Fix object/boolean compilation error
+        if (this.serverFeatures != null && this.serverFeatures.containsKey("fast_place") && !Boolean.TRUE.equals(this.serverFeatures.get("fast_place"))) return false;
         
         return true;
     }
@@ -114,7 +121,7 @@ public class PiggyBuildConfig extends PiggyClientConfig {
         if (isNoCheatingMode()) return false;
         
         if (!this.serverAllowCheats) return false;
-        if (this.serverFeatures != null && this.serverFeatures.containsKey("flexible_placement") && !this.serverFeatures.get("flexible_placement")) return false;
+        if (this.serverFeatures != null && this.serverFeatures.containsKey("flexible_placement") && !Boolean.TRUE.equals(this.serverFeatures.get("flexible_placement"))) return false;
         
         return true;
     }

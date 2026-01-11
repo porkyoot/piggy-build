@@ -34,6 +34,9 @@ public class PiggyBuildClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        // Ensure config is initialized and registered with base class
+        PiggyBuildConfig.getInstance();
+
         LOGGER.info("Ehlo from Piggy Build!");
 
         // 0. Register features
@@ -66,8 +69,13 @@ public class PiggyBuildClient implements ClientModInitializer {
         });
 
         // Register Config Sync Listener
-        is.pig.minecraft.lib.config.PiggyClientConfig.getInstance()
-                .registerConfigSyncListener((allowCheats, features) -> {
+        is.pig.minecraft.build.config.PiggyBuildConfig.getInstance()
+                .registerConfigSyncListener((allowCheatsStart, featuresStart) -> {
+                    // Fix raw type inference issues by casting
+                    Boolean allowCheats = (Boolean) allowCheatsStart;
+                    @SuppressWarnings("unchecked")
+                    java.util.Map<String, Boolean> features = (java.util.Map<String, Boolean>) featuresStart;
+
                     is.pig.minecraft.build.config.PiggyBuildConfig buildConfig = is.pig.minecraft.build.config.PiggyBuildConfig
                             .getInstance();
                     buildConfig.serverAllowCheats = allowCheats;
@@ -85,10 +93,11 @@ public class PiggyBuildClient implements ClientModInitializer {
 
                     // Also check specific feature flags
                     if (features != null) {
-                        if (features.containsKey("fast_place") && !features.get("fast_place")) {
+                        if (features.containsKey("fast_place") && !Boolean.TRUE.equals(features.get("fast_place"))) {
                             buildConfig.setFastPlaceEnabled(false);
                         }
-                        if (features.containsKey("flexible_placement") && !features.get("flexible_placement")) {
+                        if (features.containsKey("flexible_placement")
+                                && !Boolean.TRUE.equals(features.get("flexible_placement"))) {
                             buildConfig.setFlexiblePlacementEnabled(false);
                         }
                     }
