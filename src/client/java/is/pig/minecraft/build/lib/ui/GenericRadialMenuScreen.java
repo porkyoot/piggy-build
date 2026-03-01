@@ -1,14 +1,12 @@
 package is.pig.minecraft.build.lib.ui;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 
 import is.pig.minecraft.build.config.PiggyBuildConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
@@ -151,13 +149,9 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         poseStack.pushPose();
         poseStack.translate(0, 0, 10); // Z-offset
 
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableCull();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-
-        Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
+        // Use GuiGraphics built-in batch buffer for transparency instead of
+        // RenderSystem
+        VertexConsumer buffer = graphics.bufferSource().getBuffer(net.minecraft.client.renderer.RenderType.gui());
         Matrix4f mat = poseStack.last().pose();
 
         // Render Radial Segments
@@ -194,9 +188,7 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         // drawArc(buffer, mat, cx, cy, 0, INNER_RADIUS - 2, 0, Math.PI * 2, cr, cg, cb,
         // ca);
 
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
-        RenderSystem.enableCull();
-        RenderSystem.disableBlend();
+        graphics.bufferSource().endBatch(net.minecraft.client.renderer.RenderType.gui());
         poseStack.popPose();
     }
 
@@ -238,25 +230,22 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
 
     private void drawItemIcon(GuiGraphics graphics, T item, int x, int y) {
         boolean selected = (item == selectedItem);
-        RenderSystem.enableBlend();
-
         if (selected) {
             // Use Config Color for Tinting
             PiggyBuildConfig config = PiggyBuildConfig.getInstance();
             float[] rgba = config.getHighlightColor().getComponents(null);
-            RenderSystem.setShaderColor(
+            graphics.setColor(
                     rgba[0],
                     rgba[1],
                     rgba[2],
                     1.0f // Keep icon fully opaque, just tinted
             );
         } else {
-            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+            graphics.setColor(1f, 1f, 1f, 1f);
         }
 
         graphics.blit(item.getIconLocation(selected), x, y, 0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-        RenderSystem.disableBlend();
+        graphics.setColor(1f, 1f, 1f, 1f);
     }
 
     private void drawArc(VertexConsumer buffer, Matrix4f mat, float cx, float cy, float rIn, float rOut, double start,
@@ -277,13 +266,11 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
             float x2Out = (float) (cx + Math.cos(a2) * rOut);
             float y2Out = (float) (cy + Math.sin(a2) * rOut);
 
-            // Quad (2 Triangles)
+            // Quad CCW winding
             buffer.addVertex(mat, x1In, y1In, 0).setColor(r, g, b, a);
-            buffer.addVertex(mat, x1Out, y1Out, 0).setColor(r, g, b, a);
             buffer.addVertex(mat, x2In, y2In, 0).setColor(r, g, b, a);
-            buffer.addVertex(mat, x1Out, y1Out, 0).setColor(r, g, b, a);
             buffer.addVertex(mat, x2Out, y2Out, 0).setColor(r, g, b, a);
-            buffer.addVertex(mat, x2In, y2In, 0).setColor(r, g, b, a);
+            buffer.addVertex(mat, x1Out, y1Out, 0).setColor(r, g, b, a);
         }
     }
 }

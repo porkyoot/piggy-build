@@ -1,6 +1,5 @@
 package is.pig.minecraft.build.mvc.view;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import is.pig.minecraft.build.config.PiggyBuildConfig;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -75,25 +74,20 @@ public class FastPlaceOverlay {
         int indicatorX = centerX - ICON_SIZE / 2;
         int indicatorY = centerY + 10; // Below crosshair
 
-        // Set inverted color blend mode (like crosshair)
-        RenderSystem.enableBlend();
-        RenderSystem.blendFuncSeparate(
-                org.lwjgl.opengl.GL11.GL_ONE_MINUS_DST_COLOR, // srcRGB
-                org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_COLOR, // dstRGB
-                org.lwjgl.opengl.GL11.GL_ONE, // srcAlpha
-                org.lwjgl.opengl.GL11.GL_ZERO // dstAlpha
-        );
-
         // Set color with alpha based on cooldown progress
         float alpha = progress >= 1.0f ? 1.0f : 0.67f; // Full opacity when ready, slightly transparent when cooling
-        RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, alpha);
+
+        // Use GuiGraphics setColor instead of directly modifying RenderSystem shader
+        // color
+        // Direct RenderSystem changes without flushing corrupt batched rendering like
+        // the pause menu
+        graphics.setColor(1.0f, 1.0f, 1.0f, alpha);
 
         // Draw the icon
         graphics.blit(SPEED_ICON, indicatorX, indicatorY, 0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
 
-        // Restore default state
-        RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
-        RenderSystem.defaultBlendFunc();
+        // Restore default color
+        graphics.setColor(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
 }
