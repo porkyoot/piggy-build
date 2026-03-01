@@ -21,6 +21,10 @@ public class FastPlacementHandler {
     private boolean wasKeyDown = false;
     private long lastPlacementTime = 0;
 
+    // Track recently placed blocks to prevent ghost blocks
+    private final java.util.Map<net.minecraft.core.BlockPos, Long> recentlyPlaced = new java.util.HashMap<>();
+    private static final long GHOST_PREVENTION_MS = 100; // Don't re-place same block for 100ms
+
     /**
      * Called every client tick to handle fast placement logic
      */
@@ -33,6 +37,10 @@ public class FastPlacementHandler {
         }
 
         wasKeyDown = isKeyDown;
+
+        // Clean up old entries from recently placed map
+        long currentTime = System.currentTimeMillis();
+        recentlyPlaced.entrySet().removeIf(entry -> currentTime - entry.getValue() > GHOST_PREVENTION_MS);
 
         // If fast place is enabled, try to place continuously
         if (PiggyBuildConfig.getInstance().isFastPlaceEnabled()) {
@@ -70,10 +78,11 @@ public class FastPlacementHandler {
         // Check if feature is enabled (considers server overrides)
         PiggyBuildConfig config = PiggyBuildConfig.getInstance();
         boolean isEnabled = config.isFeatureFastPlaceEnabled();
-        
-        PiggyBuildClient.LOGGER.debug("[FastPlace Debug] isFeatureFastPlaceEnabled()={}, serverAllowCheats={}, isNoCheatingMode()={}, fastPlaceFeatureEnabled={}", 
-            isEnabled, config.serverAllowCheats, config.isNoCheatingMode(), config.isFastPlaceEnabled());
-        
+
+        PiggyBuildClient.LOGGER.debug(
+                "[FastPlace Debug] isFeatureFastPlaceEnabled()={}, serverAllowCheats={}, isNoCheatingMode()={}, fastPlaceFeatureEnabled={}",
+                isEnabled, config.serverAllowCheats, config.isNoCheatingMode(), config.isFastPlaceEnabled());
+
         if (!isEnabled) {
             // If the feature is disabled, just return silently. Feedback is shown
             // when the user attempts to ENABLE the feature (via setter/toggle).
@@ -129,11 +138,30 @@ public class FastPlacementHandler {
 
             BlockHitResult finalHitResult = hitResult;
 
-            // If directional or diagonal mode is active, modify the hit result
+            DirectionalPlacementHandler handler = null;
             if (directionalActive || diagonalActive) {
-                DirectionalPlacementHandler handler = InputController.getDirectionalPlacementHandler();
+                handler = InputController.getDirectionalPlacementHandler();
                 if (handler != null) {
                     finalHitResult = handler.modifyHitResult(client, hitResult);
+                }
+            }
+
+            if (finalHitResult == null) {
+                return;
+            }
+
+            net.minecraft.core.BlockPos blockPos = finalHitResult.getBlockPos();
+            if (finalHitResult.getType() == HitResult.Type.BLOCK) {
+                // The actual block placed is usually offset by the clicked face
+                blockPos = blockPos.relative(finalHitResult.getDirection());
+            }
+
+            // Don't place at the same position we just placed at (ghost block prevention)
+            long currentTime = System.currentTimeMillis();
+            if (recentlyPlaced.containsKey(blockPos)) {
+                long timeSincePlace = currentTime - recentlyPlaced.get(blockPos);
+                if (timeSincePlace < GHOST_PREVENTION_MS) {
+                    return; // Skip this block, it was recently placed locally
                 }
             }
 
@@ -142,8 +170,17 @@ public class FastPlacementHandler {
             InteractionResult result = client.gameMode.useItemOn(player, hand, finalHitResult);
 
             if (result.consumesAction()) {
+                // Advance the session lock ONLY if the block placed actually consumed an action
+                // locally
+                if (handler != null) {
+                    handler.onBlockPlaced(finalHitResult);
+                }
+
                 // Notify overlay for cooldown tracking
                 FastPlaceOverlay.onFastPlace();
+
+                // Track this position to prevent re-placing ghost blocks locally
+                recentlyPlaced.put(blockPos.immutable(), System.currentTimeMillis());
 
                 // Swing animation
                 if (result.shouldSwing()) {

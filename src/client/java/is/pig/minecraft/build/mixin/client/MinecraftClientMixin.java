@@ -48,7 +48,14 @@ public class MinecraftClientMixin {
             DirectionalPlacementHandler handler = InputController.getDirectionalPlacementHandler();
             if (handler != null) {
                 BlockHitResult modified = handler.modifyHitResult(mc, original);
-                return gameMode.useItemOn(player, hand, modified);
+                if (modified == null) {
+                    return InteractionResult.PASS;
+                }
+                InteractionResult result = gameMode.useItemOn(player, hand, modified);
+                if (result.consumesAction()) {
+                    handler.onBlockPlaced(modified);
+                }
+                return result;
             }
         }
 

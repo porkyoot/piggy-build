@@ -28,6 +28,31 @@ public class ConfigPersistence {
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
             .registerTypeAdapter(Color.class, new ColorTypeAdapter())
+            .registerTypeHierarchyAdapter(java.util.function.BiConsumer.class,
+                    new TypeAdapter<java.util.function.BiConsumer<?, ?>>() {
+                        @Override
+                        public void write(JsonWriter out, java.util.function.BiConsumer<?, ?> value)
+                                throws IOException {
+                            out.beginObject().endObject();
+                        }
+
+                        @Override
+                        public java.util.function.BiConsumer<?, ?> read(JsonReader in) throws IOException {
+                            in.skipValue();
+                            return null;
+                        }
+                    })
+            .setExclusionStrategies(new com.google.gson.ExclusionStrategy() {
+                @Override
+                public boolean shouldSkipField(com.google.gson.FieldAttributes f) {
+                    return f.getName().equals("syncListeners");
+                }
+
+                @Override
+                public boolean shouldSkipClass(Class<?> clazz) {
+                    return false;
+                }
+            })
             .create();
 
     /**
@@ -41,6 +66,7 @@ public class ConfigPersistence {
                 if (loaded != null) {
                     PiggyBuildConfig.setInstance(loaded);
                     LOGGER.debug("Configuration loaded successfully.");
+                    LOGGER.info("[DEBUG] Loaded No Cheating Mode: {}", loaded.isNoCheatingMode());
                 }
             } catch (com.google.gson.JsonSyntaxException | com.google.gson.JsonIOException e) {
                 LOGGER.error("Failed to parse configuration file: {}", CONFIG_FILE.getAbsolutePath(), e);

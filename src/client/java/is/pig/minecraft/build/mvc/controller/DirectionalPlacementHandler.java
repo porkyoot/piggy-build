@@ -116,9 +116,18 @@ public class DirectionalPlacementHandler {
         BlockPos pos;
 
         if (session.isLocked() && session.getLockedMode() == mode && session.getLastPlacedPos() != null) {
+            pos = session.getLastPlacedPos();
+
+            // Check if the previous block is STILL replaceable (i.e. not yet confirmed by
+            // the server)
+            if (client.level != null && client.level.getBlockState(pos).canBeReplaced()) {
+                // Instead of returning null effectively canceling the sequence,
+                // we return null to simply PAUSE the sequence until it's placed.
+                return null;
+            }
+
             offset = session.getLockedOffset();
             clickedFace = session.getLockedFace();
-            pos = session.getLastPlacedPos();
         } else {
             offset = PlacementCalculator.getOffsetDirection(hitResult);
             clickedFace = hitResult.getDirection();
@@ -141,14 +150,55 @@ public class DirectionalPlacementHandler {
         }
 
         if (result != null) {
-            BlockPos nextPos = result.getBlockPos();
-            if (nextPos.equals(pos)) {
-                nextPos = nextPos.relative(result.getDirection());
+            double reach = client.player != null ? client.player.blockInteractionRange() : 4.5;
+            if (client.player != null
+                    && client.player.getEyePosition().distanceToSqr(result.getLocation()) > reach * reach) {
+                // Out of reach: do not update lastPlacedPos so we can try again next tick
+                return null;
             }
-            session.setLastPlacedPos(nextPos);
+
+            // Do NOT update lastPlacedPos yet. We must wait until the block is ACTUALLY
+            // placed.
         }
 
         return result;
+    }
+
+    /**
+     * Called when a block is successfully placed to advance the placement sequence
+     * state.
+     */
+    public void onBlockPlaced(BlockHitResult result) {
+        PlacementSession session = PlacementSession.getInstance();
+        if (!session.isLocked()) {
+            return; // State progression only matters if we are in a sequence
+        }
+
+        // When diagonal/directional creates a new hit result, getBlockPos returns the
+        // block
+        // the ray "hit". To find where the block was placed, we offset it by the
+        // clicked face.
+        BlockPos nextPos = result.getBlockPos();
+
+        // If we clicked directly on the placed pos (like when looking away and building
+        // a line),
+        // we might need to offset it by the requested direction. In vanilla Minecraft,
+        // the item
+        // uses the clicked block, and places the block at
+        // hitResult.getBlockPos().relative(hitResult.getDirection()).
+        // In our modified hit result, getBlockPos() is ALREADY the target block where
+        // we place it.
+        // Or is it? BlockPlacer.createHitResult sets `pos` as the first argument, which
+        // becomes getBlockPos().
+        //
+        // Wait, looking at modifyHitResult:
+        // if (nextPos.equals(pos)) nextPos = nextPos.relative(result.getDirection());
+        // session.setLastPlacedPos(nextPos);
+
+        // Actually, if we just successfully placed a block, the new "lastPlacedPos" is
+        // the block we just generated in our hit result AFTER we apply the face offset.
+        nextPos = result.getBlockPos().relative(result.getDirection());
+        session.setLastPlacedPos(nextPos);
     }
 
     private BlockHitResult handleDirectionalMode(BlockHitResult hitResult, BlockPos pos, Direction offset) {
