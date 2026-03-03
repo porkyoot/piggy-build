@@ -65,8 +65,6 @@ public class ConfigPersistence {
                 PiggyBuildConfig loaded = GSON.fromJson(reader, PiggyBuildConfig.class);
                 if (loaded != null) {
                     PiggyBuildConfig.setInstance(loaded);
-                    LOGGER.debug("Configuration loaded successfully.");
-                    LOGGER.info("[DEBUG] Loaded No Cheating Mode: {}", loaded.isNoCheatingMode());
                 }
             } catch (com.google.gson.JsonSyntaxException | com.google.gson.JsonIOException e) {
                 LOGGER.error("Failed to parse configuration file: {}", CONFIG_FILE.getAbsolutePath(), e);
@@ -88,7 +86,6 @@ public class ConfigPersistence {
     public static void save() {
         try (FileWriter writer = new FileWriter(CONFIG_FILE)) {
             GSON.toJson(PiggyBuildConfig.getInstance(), writer);
-            LOGGER.debug("Configuration saved successfully.");
         } catch (IOException e) {
             LOGGER.error("Failed to save configuration", e);
         }

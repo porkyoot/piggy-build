@@ -112,8 +112,6 @@ public class FastBreakHandler {
 
                 // Track this position to prevent re-breaking ghost blocks locally
                 recentlyBroken.put(hitResult.getBlockPos().immutable(), lastBreakTime);
-
-                PiggyBuildClient.LOGGER.debug("[FastBreak] Broke block at {}", hitResult.getBlockPos());
             }
 
         } catch (Exception e) {

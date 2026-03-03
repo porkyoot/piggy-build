@@ -58,11 +58,6 @@ public class FastPlacementHandler {
         // Only persist and log if the setter actually changed the state
         if (config.isFastPlaceEnabled() == newState) {
             ConfigPersistence.save();
-            if (newState) {
-                PiggyBuildClient.LOGGER.debug("[FastPlace] Enabled");
-            } else {
-                PiggyBuildClient.LOGGER.debug("[FastPlace] Disabled");
-            }
         }
     }
 
@@ -78,10 +73,6 @@ public class FastPlacementHandler {
         // Check if feature is enabled (considers server overrides)
         PiggyBuildConfig config = PiggyBuildConfig.getInstance();
         boolean isEnabled = config.isFeatureFastPlaceEnabled();
-
-        PiggyBuildClient.LOGGER.debug(
-                "[FastPlace Debug] isFeatureFastPlaceEnabled()={}, serverAllowCheats={}, isNoCheatingMode()={}, fastPlaceFeatureEnabled={}",
-                isEnabled, config.serverAllowCheats, config.isNoCheatingMode(), config.isFastPlaceEnabled());
 
         if (!isEnabled) {
             // If the feature is disabled, just return silently. Feedback is shown
@@ -210,7 +201,6 @@ public class FastPlacementHandler {
             // 1. Auto-enable if currently disabled
             if (!config.isFastPlaceEnabled()) {
                 config.setFastPlaceEnabled(true);
-                PiggyBuildClient.LOGGER.debug("[FastPlace] Enabled via scroll");
             }
 
             // 2. Adjust Speed (Blocks Per Second) instead of raw delay

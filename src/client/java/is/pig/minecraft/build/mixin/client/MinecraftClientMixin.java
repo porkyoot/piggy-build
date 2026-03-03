@@ -59,6 +59,13 @@ public class MinecraftClientMixin {
             }
         }
 
+        // 3. Shape Placement Trigger
+        InteractionResult shapeResult = is.pig.minecraft.build.mvc.controller.ShapePlacementHandler.tryPlaceShape(mc,
+                hand);
+        if (shapeResult != null && shapeResult.consumesAction()) {
+            return shapeResult;
+        }
+
         return gameMode.useItemOn(player, hand, original);
     }
 }

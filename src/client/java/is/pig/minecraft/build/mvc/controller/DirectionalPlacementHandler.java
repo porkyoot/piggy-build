@@ -149,6 +149,25 @@ public class DirectionalPlacementHandler {
             result = hitResult;
         }
 
+        // Skip existing blocks in the placement path
+        if (result != null && session.isLocked() && client.level != null) {
+            BlockPos targetPlacementPos = result.getBlockPos().relative(result.getDirection());
+            int maxIter = 100;
+            while (maxIter-- > 0 && client.level.isLoaded(targetPlacementPos)
+                    && !client.level.getBlockState(targetPlacementPos).canBeReplaced()) {
+                pos = targetPlacementPos;
+                session.setLastPlacedPos(pos);
+
+                if (mode == PlacementMode.DIRECTIONAL) {
+                    result = handleDirectionalMode(workingHitResult, pos, offset);
+                } else if (mode == PlacementMode.DIAGONAL) {
+                    result = handleDiagonalMode(workingHitResult, pos, offset);
+                }
+
+                targetPlacementPos = result.getBlockPos().relative(result.getDirection());
+            }
+        }
+
         if (result != null) {
             double reach = client.player != null ? client.player.blockInteractionRange() : 4.5;
             if (client.player != null
