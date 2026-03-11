@@ -19,8 +19,12 @@ public class InputController {
     // Handlers (Logic separation)
     private final ShapeMenuHandler menuHandler = new ShapeMenuHandler();
     private static DirectionalPlacementHandler placementHandler = new DirectionalPlacementHandler();
-    private final FastPlacementHandler fastPlacementHandler = new FastPlacementHandler();
+    private static final FastPlacementHandler fastPlacementHandler = new FastPlacementHandler();
     private final FastBreakHandler fastBreakHandler = new FastBreakHandler();
+
+    public static FastPlacementHandler getFastPlacementHandler() {
+        return fastPlacementHandler;
+    }
 
     public void initialize() {
         registerKeys();
@@ -70,7 +74,7 @@ public class InputController {
             placementHandler.onTick(client);
             fastPlacementHandler.onTick(client);
             fastBreakHandler.onTick(client);
-
+            ShapePlacementHandler.onTick(client);
         });
 
         // 3. Block placement is now handled via MinecraftClientMixin

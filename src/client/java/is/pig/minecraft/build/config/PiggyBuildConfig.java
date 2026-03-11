@@ -17,14 +17,18 @@ public class PiggyBuildConfig extends PiggyClientConfig {
     public PiggyBuildConfig() {
         super();
         PiggyClientConfig.setInstance(this);
+        is.pig.minecraft.lib.config.PiggyConfigRegistry.getInstance().register(this);
+    }
+
+    @Override
+    public void save() {
+        ConfigPersistence.save();
     }
 
     // --- CONFIG FIELDS ---
     private Color highlightColor = new Color(0, 255, 230, 100);
     private Color placementOverlayColor = new Color(0, 255, 230, 255);
 
-    // Fast placement settings
-    private int fastPlaceDelayMs = 100;
     private boolean fastPlaceFeatureEnabled = false;
 
     // Flexible placement settings (master toggle for directional + diagonal)
@@ -37,7 +41,9 @@ public class PiggyBuildConfig extends PiggyClientConfig {
     }
 
     static void setInstance(PiggyBuildConfig instance) {
+        is.pig.minecraft.lib.config.PiggyConfigRegistry.getInstance().unregister(INSTANCE);
         INSTANCE = instance;
+        is.pig.minecraft.lib.config.PiggyConfigRegistry.getInstance().register(INSTANCE);
     }
 
     // --- GETTERS / SETTERS ---
@@ -56,14 +62,6 @@ public class PiggyBuildConfig extends PiggyClientConfig {
 
     public void setPlacementOverlayColor(Color placementOverlayColor) {
         this.placementOverlayColor = placementOverlayColor;
-    }
-
-    public int getFastPlaceDelayMs() {
-        return fastPlaceDelayMs;
-    }
-
-    public void setFastPlaceDelayMs(int delay) {
-        this.fastPlaceDelayMs = delay;
     }
 
     public boolean isFastPlaceEnabled() {
@@ -145,14 +143,13 @@ public class PiggyBuildConfig extends PiggyClientConfig {
                 isNoCheatingMode(),
                 flexiblePlacementEnabled);
     }
-
-    private int fastBreakDelayMs = 150;
-
-    public int getFastBreakDelayMs() {
-        return fastBreakDelayMs;
-    }
-
-    public void setFastBreakDelayMs(int fastBreakDelayMs) {
-        this.fastBreakDelayMs = fastBreakDelayMs;
+    
+    public boolean isFeatureShapeBuilderEnabled() {
+        return is.pig.minecraft.lib.features.CheatFeatureRegistry.isFeatureEnabled(
+                "shape_builder",
+                serverAllowCheats,
+                serverFeatures,
+                isNoCheatingMode(),
+                true); // Always enabled locally unless blocked by server or NoCheatingMode
     }
 }

@@ -54,6 +54,13 @@ public class PiggyBuildClient implements ClientModInitializer {
                         "Place blocks in different directions and diagonally",
                         true));
 
+        is.pig.minecraft.lib.features.CheatFeatureRegistry.register(
+                new is.pig.minecraft.lib.features.CheatFeature(
+                        "shape_builder",
+                        "Shape Builder",
+                        "Instantly place various block shapes",
+                        false));
+
         // 1. Load configuration
         ConfigPersistence.load();
 

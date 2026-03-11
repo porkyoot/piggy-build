@@ -54,6 +54,7 @@ public class MinecraftClientMixin {
                 InteractionResult result = gameMode.useItemOn(player, hand, modified);
                 if (result.consumesAction()) {
                     handler.onBlockPlaced(modified);
+                    is.pig.minecraft.build.mvc.controller.InputController.getFastPlacementHandler().notifyPlacement();
                 }
                 return result;
             }
@@ -63,9 +64,14 @@ public class MinecraftClientMixin {
         InteractionResult shapeResult = is.pig.minecraft.build.mvc.controller.ShapePlacementHandler.tryPlaceShape(mc,
                 hand);
         if (shapeResult != null && shapeResult.consumesAction()) {
+            is.pig.minecraft.build.mvc.controller.InputController.getFastPlacementHandler().notifyPlacement();
             return shapeResult;
         }
 
-        return gameMode.useItemOn(player, hand, original);
+        InteractionResult result = gameMode.useItemOn(player, hand, original);
+        if (result != null && result.consumesAction()) {
+            is.pig.minecraft.build.mvc.controller.InputController.getFastPlacementHandler().notifyPlacement();
+        }
+        return result;
     }
 }

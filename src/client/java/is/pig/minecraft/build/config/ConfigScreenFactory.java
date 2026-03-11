@@ -21,6 +21,14 @@ public class ConfigScreenFactory {
                 .category(ConfigCategory.createBuilder()
                         .name(Component.literal("Safety"))
                         .tooltip(is.pig.minecraft.lib.I18n.safetyTooltip())
+                        .option(Option.<Integer>createBuilder()
+                                .name(Component.literal("Click Speed (CPS)"))
+                                .description(OptionDescription.of(Component.literal(
+                                        "Clicks per second. Higher = Faster. 0 = Unlimited (Instant).")))
+                                .binding(10, config::getTickDelay, config::setTickDelay)
+                                .controller(opt -> IntegerSliderControllerBuilder
+                                        .create(opt).range(0, 20).step(1).formatValue(v -> Component.literal(v == 0 ? "Unlimited" : v + " CPS")))
+                                .build())
                         .option(Option.<Boolean>createBuilder()
                                 .name(Component.literal("No Cheating Mode"))
                                 .description(OptionDescription.of(
@@ -93,28 +101,6 @@ public class ConfigScreenFactory {
                                         config::isFastPlaceEnabled,
                                         config::setFastPlaceEnabled)
                                 .controller(TickBoxControllerBuilder::create)
-                                .build())
-                        .option(Option.<Integer>createBuilder()
-                                .name(Component.literal("Placement Delay"))
-                                .binding(
-                                        100,
-                                        config::getFastPlaceDelayMs,
-                                        config::setFastPlaceDelayMs)
-                                .controller(opt -> IntegerSliderControllerBuilder.create(opt)
-                                        .range(50, 500)
-                                        .step(10)
-                                        .formatValue(value -> Component.literal(value + " ms")))
-                                .build())
-                        .option(Option.<Integer>createBuilder()
-                                .name(Component.literal("Break Delay"))
-                                .binding(
-                                        150,
-                                        config::getFastBreakDelayMs,
-                                        config::setFastBreakDelayMs)
-                                .controller(opt -> IntegerSliderControllerBuilder.create(opt)
-                                        .range(50, 500)
-                                        .step(10)
-                                        .formatValue(value -> Component.literal(value + " ms")))
                                 .build())
                         .build())
 

@@ -76,7 +76,8 @@ public class FastBreakHandler {
         }
 
         // Check if enough time has passed since last break
-        long minDelay = PiggyBuildConfig.getInstance().getFastBreakDelayMs();
+        int cps = PiggyBuildConfig.getInstance().getTickDelay();
+        long minDelay = cps > 0 ? 1000L / cps : 0;
 
         if (currentTime - lastBreakTime < minDelay) {
             // PiggyBuildClient.LOGGER.info("Skipping break: Delta=" + (currentTime -

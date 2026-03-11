@@ -60,9 +60,10 @@ public class FastPlaceOverlay {
      */
     private static void renderAttackIndicatorStyle(GuiGraphics graphics, DeltaTracker tickDelta) {
         // Calculate progress (0.0 to 1.0) based on cooldown
-        int delayMs = PiggyBuildConfig.getInstance().getFastPlaceDelayMs();
+        int cps = PiggyBuildConfig.getInstance().getTickDelay();
+        int delayMs = cps > 0 ? 1000 / cps : 0;
         long timeSincePlace = System.currentTimeMillis() - lastPlaceTime;
-        float progress = Math.min(1.0f, timeSincePlace / (float) delayMs);
+        float progress = delayMs <= 0 ? 1.0f : Math.min(1.0f, timeSincePlace / (float) delayMs);
 
         // Position below crosshair (similar to attack indicator)
         int screenWidth = graphics.guiWidth();

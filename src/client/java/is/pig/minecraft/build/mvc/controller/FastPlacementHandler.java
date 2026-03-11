@@ -89,9 +89,14 @@ public class FastPlacementHandler {
             return;
         }
 
+        // Suppress vanilla placement unconditionally when fast place is active
+        // and pointing at block, let this handler do the rest.
+        ((MinecraftAccessorMixin) client).setRightClickDelay(100);
+
         // Check if enough time has passed since last placement
         long currentTime = System.currentTimeMillis();
-        long minDelay = PiggyBuildConfig.getInstance().getFastPlaceDelayMs();
+        int cps = PiggyBuildConfig.getInstance().getTickDelay();
+        long minDelay = cps > 0 ? 1000L / cps : 0;
 
         if (currentTime - lastPlacementTime < minDelay) {
             return;
@@ -106,14 +111,15 @@ public class FastPlacementHandler {
         performFastPlace(client, blockHit);
     }
 
+    public void notifyPlacement() {
+        this.lastPlacementTime = System.currentTimeMillis();
+    }
+
     /**
      * Actually perform the block placement
      */
     private void performFastPlace(Minecraft client, BlockHitResult hitResult) {
         LocalPlayer player = client.player;
-
-        // Override the delay to 0 for instant placement
-        ((MinecraftAccessorMixin) client).setRightClickDelay(0);
 
         // Update last placement time immediately to enforce rate limit
         // We do this regardless of success to prevent spamming the server/client logic
@@ -203,37 +209,30 @@ public class FastPlacementHandler {
                 config.setFastPlaceEnabled(true);
             }
 
-            // 2. Adjust Speed (Blocks Per Second) instead of raw delay
-            int currentDelay = config.getFastPlaceDelayMs();
-            // Calculate current speed (avoid div/0, min delay is 50ms so max speed is 20)
-            int currentSpeed = 1000 / Math.max(1, currentDelay);
-
+            // 2. Adjust Speed (Blocks Per Second) (CPS)
+            int currentCps = config.getTickDelay();
+            if (currentCps <= 0) currentCps = 20; // 0 is unlimited, treat as 20 for scrolling
+            
             // Adjust speed: +1 for Scroll Up, -1 for Scroll Down
             int change = amount > 0 ? 1 : -1;
-            int newSpeed = currentSpeed + change;
+            int newCps = currentCps + change;
 
             // Clamp speed: Min 1 block/sec (1000ms), Max 20 blocks/sec (50ms)
-            if (newSpeed < 1)
-                newSpeed = 1;
-            if (newSpeed > 20)
-                newSpeed = 20;
+            if (newCps < 1) newCps = 1;
+            if (newCps > 20) newCps = 20;
 
-            // Convert back to delay (ms)
-            int newDelay = 1000 / newSpeed;
-
-            if (newDelay != currentDelay) {
-                config.setFastPlaceDelayMs(newDelay);
-                config.setFastBreakDelayMs(newDelay); // Sync break delay
-                ConfigPersistence.save();
+            if (newCps != currentCps) {
+                config.setTickDelay(newCps);
+                config.save();
 
                 PiggyBuildClient.LOGGER
-                        .info("Config updated - New Delay: " + newDelay + "ms (Speed: " + newSpeed + ")");
+                        .info("Config updated - New CPS: " + newCps + " blocks/sec");
 
                 // 3. Simplified Feedback
                 LocalPlayer player = Minecraft.getInstance().player;
                 if (player != null) {
                     player.displayClientMessage(net.minecraft.network.chat.Component.literal(
-                            "Fast Build Speed: " + newSpeed + " blocks/sec"), true);
+                            "Fast Build Speed: " + newCps + " blocks/sec"), true);
                 }
             }
             return true;
