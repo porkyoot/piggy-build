@@ -41,7 +41,6 @@ public class ShapePlacementHandler {
         }
 
         if (anyPlaced) {
-            session.clearAnchor();
             return InteractionResult.SUCCESS;
         }
 
