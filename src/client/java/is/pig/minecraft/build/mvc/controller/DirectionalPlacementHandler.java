@@ -151,7 +151,7 @@ public class DirectionalPlacementHandler {
 
         // Skip existing blocks in the placement path
         if (result != null && session.isLocked() && client.level != null) {
-            BlockPos targetPlacementPos = result.getBlockPos().relative(result.getDirection());
+            BlockPos targetPlacementPos = getExpectedPlacementPos(mode, pos, clickedFace, offset);
             int maxIter = 100;
             while (maxIter-- > 0 && client.level.isLoaded(targetPlacementPos)
                     && !client.level.getBlockState(targetPlacementPos).canBeReplaced()) {
@@ -164,7 +164,7 @@ public class DirectionalPlacementHandler {
                     result = handleDiagonalMode(workingHitResult, pos, offset);
                 }
 
-                targetPlacementPos = result.getBlockPos().relative(result.getDirection());
+                targetPlacementPos = getExpectedPlacementPos(mode, pos, clickedFace, offset);
             }
         }
 
@@ -178,46 +178,20 @@ public class DirectionalPlacementHandler {
 
             // Do NOT update lastPlacedPos yet. We must wait until the block is ACTUALLY
             // placed.
+            BlockPos expectedPos = getExpectedPlacementPos(mode, pos, clickedFace, offset);
+            session.setPendingLastPlacedPos(expectedPos);
         }
 
         return result;
     }
 
-    /**
-     * Called when a block is successfully placed to advance the placement sequence
-     * state.
-     */
     public void onBlockPlaced(BlockHitResult result) {
         PlacementSession session = PlacementSession.getInstance();
-        if (!session.isLocked()) {
+        if (!session.isLocked() || session.getPendingLastPlacedPos() == null) {
             return; // State progression only matters if we are in a sequence
         }
 
-        // When diagonal/directional creates a new hit result, getBlockPos returns the
-        // block
-        // the ray "hit". To find where the block was placed, we offset it by the
-        // clicked face.
-        BlockPos nextPos = result.getBlockPos();
-
-        // If we clicked directly on the placed pos (like when looking away and building
-        // a line),
-        // we might need to offset it by the requested direction. In vanilla Minecraft,
-        // the item
-        // uses the clicked block, and places the block at
-        // hitResult.getBlockPos().relative(hitResult.getDirection()).
-        // In our modified hit result, getBlockPos() is ALREADY the target block where
-        // we place it.
-        // Or is it? BlockPlacer.createHitResult sets `pos` as the first argument, which
-        // becomes getBlockPos().
-        //
-        // Wait, looking at modifyHitResult:
-        // if (nextPos.equals(pos)) nextPos = nextPos.relative(result.getDirection());
-        // session.setLastPlacedPos(nextPos);
-
-        // Actually, if we just successfully placed a block, the new "lastPlacedPos" is
-        // the block we just generated in our hit result AFTER we apply the face offset.
-        nextPos = result.getBlockPos().relative(result.getDirection());
-        session.setLastPlacedPos(nextPos);
+        session.setLastPlacedPos(session.getPendingLastPlacedPos());
     }
 
     private BlockHitResult handleDirectionalMode(BlockHitResult hitResult, BlockPos pos, Direction offset) {
@@ -233,13 +207,25 @@ public class DirectionalPlacementHandler {
     private BlockHitResult handleDiagonalMode(BlockHitResult hitResult, BlockPos pos, Direction offset) {
         Direction clickedFace = hitResult.getDirection();
         if (offset == null) {
-            BlockPos skippedPos = pos.relative(clickedFace, 2);
-            Direction placementFace = clickedFace.getOpposite();
-            return BlockPlacer.createHitResult(skippedPos, placementFace);
+            return BlockPlacer.createHitResult(pos, clickedFace);
         } else {
             BlockPos diagonalPos = pos.relative(clickedFace).relative(offset);
             Direction placementFace = offset.getOpposite();
             return BlockPlacer.createHitResult(diagonalPos, placementFace);
         }
+    }
+
+    private BlockPos getExpectedPlacementPos(PlacementMode mode, BlockPos pos, Direction clickedFace, Direction offset) {
+        if (mode == PlacementMode.DIRECTIONAL) {
+            Direction targetFace = (offset == null) ? clickedFace.getOpposite() : offset;
+            return pos.relative(targetFace);
+        } else if (mode == PlacementMode.DIAGONAL) {
+            if (offset == null) {
+                return pos.relative(clickedFace);
+            } else {
+                return pos.relative(clickedFace).relative(offset);
+            }
+        }
+        return pos.relative(clickedFace);
     }
 }

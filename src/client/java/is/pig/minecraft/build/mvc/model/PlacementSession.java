@@ -16,6 +16,7 @@ public class PlacementSession {
     private Direction lockedFace = null; // Lock the clicked face too
     private PlacementMode lockedMode = null;
     private BlockPos lastPlacedPos = null; // Track last placed block for sequential placement
+    private BlockPos pendingLastPlacedPos = null;
 
     private PlacementSession() {
     }
@@ -65,6 +66,14 @@ public class PlacementSession {
         this.lastPlacedPos = pos;
     }
 
+    public BlockPos getPendingLastPlacedPos() {
+        return pendingLastPlacedPos;
+    }
+
+    public void setPendingLastPlacedPos(BlockPos pos) {
+        this.pendingLastPlacedPos = pos;
+    }
+
     /**
      * Lock the current placement direction, face, and mode
      */
@@ -84,5 +93,6 @@ public class PlacementSession {
         this.lockedFace = null;
         this.lockedMode = null;
         this.lastPlacedPos = null;
+        this.pendingLastPlacedPos = null;
     }
 }

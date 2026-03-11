@@ -143,8 +143,8 @@ public class FastPlacementHandler {
 
             net.minecraft.core.BlockPos blockPos = finalHitResult.getBlockPos();
             if (finalHitResult.getType() == HitResult.Type.BLOCK) {
-                // The actual block placed is usually offset by the clicked face
-                blockPos = blockPos.relative(finalHitResult.getDirection());
+                boolean replaceClicked = client.level != null && client.level.getBlockState(blockPos).canBeReplaced();
+                blockPos = replaceClicked ? blockPos : blockPos.relative(finalHitResult.getDirection());
             }
 
             // Don't place at the same position we just placed at (ghost block prevention)
