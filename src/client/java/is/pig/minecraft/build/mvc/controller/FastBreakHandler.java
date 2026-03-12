@@ -80,8 +80,6 @@ public class FastBreakHandler {
         long minDelay = cps > 0 ? 1000L / cps : 0;
 
         if (currentTime - lastBreakTime < minDelay) {
-            // PiggyBuildClient.LOGGER.info("Skipping break: Delta=" + (currentTime -
-            // lastBreakTime) + " < MinDelay=" + minDelay);
             return;
         }
 

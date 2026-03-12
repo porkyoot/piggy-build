@@ -109,7 +109,7 @@ public class PiggyBuildClient implements ClientModInitializer {
                         }
                     }
 
-                    LOGGER.info(
+                    LOGGER.debug(
                             "[ANTI-CHEAT DEBUG] PiggyBuildConfig updated from server sync: allowCheats={}, features={}",
                             allowCheats, features);
                 });

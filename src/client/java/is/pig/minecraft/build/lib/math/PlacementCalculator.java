@@ -10,28 +10,19 @@ import net.minecraft.world.phys.Vec3;
 
 public class PlacementCalculator {
 
-    // private static final Logger LOGGER = PiggyBuildClient.LOGGER;
     private static final double CENTER_MARGIN = 0.25;
-
-    private static Direction lastResult = null;
-    private static long lastLogTime = 0;
 
     public static Direction getOffsetDirection(BlockHitResult hit) {
         Direction face = hit.getDirection();
         Vec3 hitPos = hit.getLocation();
         BlockPos p = hit.getBlockPos();
 
-        // 1. Calculate local coordinates
-        // double x = hitPos.x - p.getX();
-        // double y = hitPos.y - p.getY();
-        // double z = hitPos.z - p.getZ();
-
-        // 2. Calculate UV
+        // 1. Calculate UV
         double[] uv = getFaceUV(p, hitPos, face);
         double u = uv[0];
         double v = uv[1];
 
-        // 3. Calculate distances
+        // 2. Calculate distances
         double distTop = v;
         double distBottom = 1.0 - v;
         double distLeft = u;
@@ -39,7 +30,7 @@ public class PlacementCalculator {
 
         double min = Math.min(Math.min(distTop, distBottom), Math.min(distLeft, distRight));
 
-        // 4. Determine result
+        // 3. Determine result
         Direction result = null; // Default: CENTER
 
         if (min > CENTER_MARGIN) {
@@ -52,23 +43,6 @@ public class PlacementCalculator {
             result = getDirectionFromRotation(face, 90);
         } else {
             result = getDirectionFromRotation(face, -90);
-        }
-
-        // --- LOGGING FIXED ---
-        long now = System.currentTimeMillis();
-        // Log when the result changes or every 2 seconds to avoid spamming
-        if (result != lastResult || (now - lastLogTime > 2000)) {
-
-            // NOTE: Use String.format for neat number formatting
-            // String logMessage = String.format(
-            // "Math Debug -> Face: %s | Local(x:%.2f, y:%.2f, z:%.2f) => UV(u:%.2f, v:%.2f)
-            // => Result: %s",
-            // face, x, y, z, u, v, (result == null ? "center" : result));
-
-            // LOGGER.info(logMessage);
-
-            lastResult = result;
-            lastLogTime = now;
         }
 
         return result;

@@ -67,8 +67,6 @@ public class BlockPlacer {
         boolean success = placeUsingGameMode(mc, player, gameMode, hitResult, hand);
 
         if (success) {
-            // PiggyBuildClient.LOGGER.info("[BlockPlacer] Placement successful via
-            // GameMode");
             return true;
         }
 
@@ -76,8 +74,6 @@ public class BlockPlacer {
         success = placeUsingPacket(mc, player, gameMode, hitResult, hand);
 
         if (success) {
-            // PiggyBuildClient.LOGGER.info("[BlockPlacer] Placement successful via
-            // Packet");
             return true;
         }
 
