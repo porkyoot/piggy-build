@@ -32,6 +32,7 @@ public class PiggyBuildClient implements ClientModInitializer {
 
     private final InputController controller = new InputController();
 
+    @SuppressWarnings("unchecked")
     @Override
     public void onInitializeClient() {
         // Ensure config is initialized and registered with base class

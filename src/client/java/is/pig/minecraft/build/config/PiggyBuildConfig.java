@@ -10,6 +10,7 @@ import is.pig.minecraft.lib.ui.BlockReason;
  * Configuration data model for Piggy Build.
  * Holds the state of user settings.
  */
+@SuppressWarnings("rawtypes")
 public class PiggyBuildConfig extends PiggyClientConfig {
 
     private static PiggyBuildConfig INSTANCE = new PiggyBuildConfig();
