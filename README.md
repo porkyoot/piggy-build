@@ -49,12 +49,16 @@ Feel free to fork the project or submit a Pull Request if you want to contribute
     *   Spheres
     *   Rings
     *   Blocks (Cubes)
+*   **Refined Placement Logic**: Shape placement now follows a sophisticated queue system that respects **CPS (Clicks Per Second) limits**.
+    *   **Anti-Cheat Friendly**: Prevents instant-place bugs and ensures placement frequency matches configurable server limits.
+    *   **Smooth Construction**: Blocks are placed sequentially at a controllable rate, making the building process feel more natural and preventing server kicks.
 
 ### 🛡️ Safety & Anti-Cheat
 Piggy Build comes with a **"No Cheating Mode" enabled by default**.
 *   **Safety First**: This mode prevents you from using "cheat" features (Fast Place, Directional Placement, etc.) while in **Survival** or **Adventure** mode.
 *   **Fair Play**: Prevents accidental bans on servers that detect fast interaction frequencies.
 *   **Creative Freedom**: All features remain fully unlocked in Creative Mode.
+*   **Server Enforcement**: When connected to a server with **Piggy Admin**, anti-cheat settings are automatically synchronized and enforced.
 
 ---
 
