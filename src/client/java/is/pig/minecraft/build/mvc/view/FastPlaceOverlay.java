@@ -5,6 +5,8 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.platform.GlStateManager;
 
 /**
  * HUD overlay that displays when Fast Placement mode is active.
@@ -78,17 +80,48 @@ public class FastPlaceOverlay {
         // Set color with alpha based on cooldown progress
         float alpha = progress >= 1.0f ? 1.0f : 0.67f; // Full opacity when ready, slightly transparent when cooling
 
-        // Use GuiGraphics setColor instead of directly modifying RenderSystem shader
-        // color
-        // Direct RenderSystem changes without flushing corrupt batched rendering like
-        // the pause menu
-        graphics.setColor(1.0f, 1.0f, 1.0f, alpha);
+        // Use custom RenderType for inversion (similar to crosshair)
+        // We use GUI_GHOSTRECIPE_LINK_OR_INVERTED or similar standard inversion state if available,
+        // but creating a specific one ensures it works as intended.
+        net.minecraft.client.renderer.RenderType invertedType = net.minecraft.client.renderer.RenderType.create(
+            "piggy_gui_inverted",
+            com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR,
+            com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS,
+            1536,
+            false,
+            false,
+            net.minecraft.client.renderer.RenderType.CompositeState.builder()
+                .setShaderState(new net.minecraft.client.renderer.RenderStateShard.ShaderStateShard(net.minecraft.client.renderer.GameRenderer::getPositionTexColorShader))
+                .setTextureState(new net.minecraft.client.renderer.RenderStateShard.TextureStateShard(SPEED_ICON, false, false))
+                .setTransparencyState(new net.minecraft.client.renderer.RenderStateShard.TransparencyStateShard("gui_inverted_transparency", () -> {
+                    RenderSystem.enableBlend();
+                    RenderSystem.blendFuncSeparate(
+                        GlStateManager.SourceFactor.ONE_MINUS_DST_COLOR,
+                        GlStateManager.DestFactor.ONE_MINUS_SRC_COLOR,
+                        GlStateManager.SourceFactor.ONE,
+                        GlStateManager.DestFactor.ZERO);
+                }, () -> {
+                    RenderSystem.disableBlend();
+                    RenderSystem.defaultBlendFunc();
+                }))
+                .createCompositeState(false)
+        );
 
-        // Draw the icon
-        graphics.blit(SPEED_ICON, indicatorX, indicatorY, 0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
+        com.mojang.blaze3d.vertex.VertexConsumer buffer = graphics.bufferSource().getBuffer(invertedType);
+        org.joml.Matrix4f matrix = graphics.pose().last().pose();
 
-        // Restore default color
-        graphics.setColor(1.0f, 1.0f, 1.0f, 1.0f);
+        float x1 = (float) indicatorX;
+        float y1 = (float) indicatorY;
+        float x2 = (float) (indicatorX + ICON_SIZE);
+        float y2 = (float) (indicatorY + ICON_SIZE);
+
+        buffer.addVertex(matrix, x1, y1, 0).setUv(0, 0).setColor(1.0f, 1.0f, 1.0f, alpha);
+        buffer.addVertex(matrix, x1, y2, 0).setUv(0, 1).setColor(1.0f, 1.0f, 1.0f, alpha);
+        buffer.addVertex(matrix, x2, y2, 0).setUv(1, 1).setColor(1.0f, 1.0f, 1.0f, alpha);
+        buffer.addVertex(matrix, x2, y1, 0).setUv(1, 0).setColor(1.0f, 1.0f, 1.0f, alpha);
+
+        // Force the buffer to draw immediately to ensure correct layering in GUI
+        graphics.flush();
     }
 
 }
