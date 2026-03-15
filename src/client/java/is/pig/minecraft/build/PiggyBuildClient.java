@@ -125,6 +125,7 @@ public class PiggyBuildClient implements ClientModInitializer {
 
             renderBuildShapes(mc, cameraPos, stack, buffers);
             renderDirectionalPlacement(mc, cameraPos, stack, buffers);
+            is.pig.minecraft.build.mvc.view.LightLevelOverlayRenderer.render(mc, cameraPos, stack, buffers);
         });
     }
 

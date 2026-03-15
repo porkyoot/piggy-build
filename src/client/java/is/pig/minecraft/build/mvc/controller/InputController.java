@@ -12,6 +12,7 @@ public class InputController {
 
     // Static keys accessible by handlers/views
     public static KeyMapping triggerKey;
+    public static KeyMapping lightLevelOverlayKey;
     public static KeyMapping directionalKey;
     public static KeyMapping diagonalKey;
     public static KeyMapping fastPlaceKey;
@@ -21,9 +22,14 @@ public class InputController {
     private static DirectionalPlacementHandler placementHandler = new DirectionalPlacementHandler();
     private static final FastPlacementHandler fastPlacementHandler = new FastPlacementHandler();
     private final FastBreakHandler fastBreakHandler = new FastBreakHandler();
+    private static final LightLevelOverlayHandler lightLevelOverlayHandler = new LightLevelOverlayHandler();
 
     public static FastPlacementHandler getFastPlacementHandler() {
         return fastPlacementHandler;
+    }
+
+    public static LightLevelOverlayHandler getLightLevelOverlayHandler() {
+        return lightLevelOverlayHandler;
     }
 
     public void initialize() {
@@ -56,6 +62,12 @@ public class InputController {
                 GLFW.GLFW_MOUSE_BUTTON_6,
                 "Piggy Build"));
 
+        lightLevelOverlayKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+                "Toggle Light Level Overlay",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_L,
+                "Piggy Build"));
+
     }
 
     private void registerEvents() {
@@ -75,6 +87,7 @@ public class InputController {
             fastPlacementHandler.onTick(client);
             fastBreakHandler.onTick(client);
             ShapePlacementHandler.onTick(client);
+            lightLevelOverlayHandler.onTick(client);
         });
 
         // 3. Block placement is now handled via MinecraftClientMixin

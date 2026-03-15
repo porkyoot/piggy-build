@@ -65,6 +65,14 @@ public class ConfigScreenFactory {
                                         config::setPlacementOverlayColor)
                                 .controller(opt -> ColorControllerBuilder.create(opt).allowAlpha(true))
                                 .build())
+                        .option(Option.<Color>createBuilder()
+                                .name(Component.literal("Light Level Overlay Color"))
+                                .binding(
+                                        new Color(255, 0, 0, 255),
+                                        config::getLightLevelOverlayColor,
+                                        config::setLightLevelOverlayColor)
+                                .controller(opt -> ColorControllerBuilder.create(opt).allowAlpha(true))
+                                .build())
                         .build())
 
                 // FLEXIBLE PLACEMENT CATEGORY
