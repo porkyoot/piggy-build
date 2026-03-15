@@ -73,6 +73,14 @@ public class ConfigScreenFactory {
                                         config::setLightLevelOverlayColor)
                                 .controller(opt -> ColorControllerBuilder.create(opt).allowAlpha(true))
                                 .build())
+                        .option(Option.<Color>createBuilder()
+                                .name(Component.literal("Sky Light Level Overlay Color"))
+                                .binding(
+                                        new Color(255, 165, 0, 255),
+                                        config::getSkyLightLevelOverlayColor,
+                                        config::setSkyLightLevelOverlayColor)
+                                .controller(opt -> ColorControllerBuilder.create(opt).allowAlpha(true))
+                                .build())
                         .build())
 
                 // FLEXIBLE PLACEMENT CATEGORY

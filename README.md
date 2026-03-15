@@ -43,7 +43,12 @@ Feel free to fork the project or submit a Pull Request if you want to contribute
 *   **Fast Placement**: Hold down the button to place blocks rapidly at a configurable speed.
 *   **Fast Breaking**: Creative-mode utility to break blocks faster.
 
-### 📐 Shape Guides
+### 📐 Shape & Visual Guides
+*   **Light Level Overlay**: Press `L` to toggle a completely dynamic overlay that highlights areas where monsters can spawn!
+    *   **Island Effect Outline**: Drawing inspiration from the best visual mods, the overlay perfectly traces the borders of danger. 
+    *   **Tier 1 (Orange)**: Warns you about areas that are exposed to the sky. Mobs will only spawn here at night.
+    *   **Tier 2 (Red)**: Highlights deep dark areas (caves, under roofs) where mobs can spawn at any time.
+    *   **Seamless Textures**: The outline intelligently maps to the floor and walls, seamlessly combining without any z-fighting or overlaps.
 *   **Shape Selectors**: Detailed guides for placing blocks in specific shapes.
     *   Lines
     *   Spheres
@@ -72,6 +77,7 @@ You can rebind these keys in the standard Minecraft Controls menu under **"Piggy
 | **Directional Placement** | `Mouse Button 5` | Locks placement orientation to the face you are looking at. |
 | **Diagonal Placement** | `Mouse Button 4` | Toggles diagonal placement mode (45-degree angle). |
 | **Fast Block Placement** | `Mouse Button 6` | Activates rapid block placement while held. Scroll to adjust speed. |
+| **Light Level Overlay** | `L` | Toggles the dynamic danger boundary outlines for mob spawning. |
 
 ---
 
@@ -81,6 +87,8 @@ Access the configuration menu via **Mod Menu**.
 
 *   **Highlight Color**: Customize the color of the shape guides.
 *   **Placement Overlay Color**: Change the color of the directional arrows/overlays.
+*   **Light Level Overlay Color**: Configures the primary (Red) color for deep Danger areas.
+*   **Sky Light Level Overlay Color**: Configures the secondary (Orange) color for Warning areas exposed to the sky.
 *   **Fast Place Speed**: Adjust the delay (in ms) between block placements.
 *   **Fast Place Toggle**: Enable/Disable fast placement globally.
 *   **No Cheating Mode**: Toggle anti-cheat safety (prevents use in Survival/Adventure).

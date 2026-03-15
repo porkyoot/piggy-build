@@ -35,16 +35,16 @@ public class LightLevelOverlayRenderer {
                         .createCompositeState(false));
     }
 
+    private static int getDangerLevel(Minecraft mc, BlockPos pos) {
+        if (mc.level.getBrightness(LightLayer.BLOCK, pos) > 0) return 0;
+        boolean exposedToSky = mc.level.canSeeSky(pos) || mc.level.getBrightness(LightLayer.SKY, pos) == 15;
+        return exposedToSky ? 1 : 2;
+    }
+
     public static void render(Minecraft mc, Vec3 cameraPos, PoseStack stack, MultiBufferSource.BufferSource buffers) {
         if (!InputController.getLightLevelOverlayHandler().isActive() || mc.level == null || mc.player == null) {
             return;
         }
-
-        Color color = PiggyBuildConfig.getInstance().getLightLevelOverlayColor();
-        float r = color.getRed() / 255.0f;
-        float g = color.getGreen() / 255.0f;
-        float b = color.getBlue() / 255.0f;
-        float a = color.getAlpha() / 255.0f;
 
         BlockPos playerPos = mc.player.blockPosition();
         int radius = 16;
@@ -58,17 +58,25 @@ public class LightLevelOverlayRenderer {
                 for (int y = -radiusY; y <= radiusY; y++) {
                     BlockPos pos = playerPos.offset(x, y, z);
                     
-                    if (mc.level.getBrightness(LightLayer.BLOCK, pos) == 0) {
+                    int myDanger = getDangerLevel(mc, pos);
+                    if (myDanger > 0) {
+                        Color blockColor = myDanger == 1 ? PiggyBuildConfig.getInstance().getSkyLightLevelOverlayColor() : PiggyBuildConfig.getInstance().getLightLevelOverlayColor();
+                        
+                        float r = blockColor.getRed() / 255.0f;
+                        float g = blockColor.getGreen() / 255.0f;
+                        float b = blockColor.getBlue() / 255.0f;
+                        float a = blockColor.getAlpha() / 255.0f;
+
                         BlockState state = mc.level.getBlockState(pos);
                         if (!state.canOcclude()) {
                             BlockPos below = pos.below();
                             BlockState belowState = mc.level.getBlockState(below);
                             
                             if (belowState.isFaceSturdy(mc.level, below, Direction.UP)) {
-                                boolean n = mc.level.getBrightness(LightLayer.BLOCK, pos.north()) > 0;
-                                boolean s = mc.level.getBrightness(LightLayer.BLOCK, pos.south()) > 0;
-                                boolean e = mc.level.getBrightness(LightLayer.BLOCK, pos.east()) > 0;
-                                boolean w = mc.level.getBrightness(LightLayer.BLOCK, pos.west()) > 0;
+                                boolean n = getDangerLevel(mc, pos.north()) < myDanger;
+                                boolean s = getDangerLevel(mc, pos.south()) < myDanger;
+                                boolean e = getDangerLevel(mc, pos.east()) < myDanger;
+                                boolean w = getDangerLevel(mc, pos.west()) < myDanger;
 
                                 if (n || s || e || w) {
                                     Direction primaryDir = Direction.NORTH;

@@ -30,6 +30,7 @@ public class PiggyBuildConfig extends PiggyClientConfig {
     private Color highlightColor = new Color(0, 255, 230, 100);
     private Color placementOverlayColor = new Color(0, 255, 230, 255);
     private Color lightLevelOverlayColor = new Color(255, 0, 0, 255);
+    private Color skyLightLevelOverlayColor = new Color(255, 165, 0, 255);
 
     private boolean fastPlaceFeatureEnabled = false;
 
@@ -72,6 +73,14 @@ public class PiggyBuildConfig extends PiggyClientConfig {
 
     public void setLightLevelOverlayColor(Color lightLevelOverlayColor) {
         this.lightLevelOverlayColor = lightLevelOverlayColor;
+    }
+
+    public Color getSkyLightLevelOverlayColor() {
+        return skyLightLevelOverlayColor;
+    }
+
+    public void setSkyLightLevelOverlayColor(Color skyLightLevelOverlayColor) {
+        this.skyLightLevelOverlayColor = skyLightLevelOverlayColor;
     }
 
     public boolean isFastPlaceEnabled() {
