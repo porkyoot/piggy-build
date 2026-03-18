@@ -207,7 +207,9 @@ public class DirectionalPlacementHandler {
     private BlockHitResult handleDiagonalMode(BlockHitResult hitResult, BlockPos pos, Direction offset) {
         Direction clickedFace = hitResult.getDirection();
         if (offset == null) {
-            return BlockPlacer.createHitResult(pos, clickedFace);
+            BlockPos skippedPos = pos.relative(clickedFace, 2);
+            Direction placementFace = clickedFace.getOpposite();
+            return BlockPlacer.createHitResult(skippedPos, placementFace);
         } else {
             BlockPos diagonalPos = pos.relative(clickedFace).relative(offset);
             Direction placementFace = offset.getOpposite();
@@ -221,7 +223,7 @@ public class DirectionalPlacementHandler {
             return pos.relative(targetFace);
         } else if (mode == PlacementMode.DIAGONAL) {
             if (offset == null) {
-                return pos.relative(clickedFace);
+                return pos.relative(clickedFace, 2);
             } else {
                 return pos.relative(clickedFace).relative(offset);
             }
