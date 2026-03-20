@@ -74,6 +74,7 @@ public class PiggyBuildClient implements ClientModInitializer {
         // 4. HUD overlay rendering
         HudRenderCallback.EVENT.register((graphics, tickDelta) -> {
             FastPlaceOverlay.render(graphics, tickDelta);
+            is.pig.minecraft.build.mvc.view.AutoParkourOverlay.render(graphics, tickDelta);
         });
 
         // Register Config Sync Listener

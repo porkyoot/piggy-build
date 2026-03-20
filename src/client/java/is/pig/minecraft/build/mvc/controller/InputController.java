@@ -16,6 +16,7 @@ public class InputController {
     public static KeyMapping directionalKey;
     public static KeyMapping diagonalKey;
     public static KeyMapping fastPlaceKey;
+    public static KeyMapping autoParkourKey;
 
     // Handlers (Logic separation)
     private final ShapeMenuHandler menuHandler = new ShapeMenuHandler();
@@ -23,6 +24,7 @@ public class InputController {
     private static final FastPlacementHandler fastPlacementHandler = new FastPlacementHandler();
     private final FastBreakHandler fastBreakHandler = new FastBreakHandler();
     private static final LightLevelOverlayHandler lightLevelOverlayHandler = new LightLevelOverlayHandler();
+    private static final AutoParkourHandler autoParkourHandler = new AutoParkourHandler();
 
     public static FastPlacementHandler getFastPlacementHandler() {
         return fastPlacementHandler;
@@ -68,6 +70,12 @@ public class InputController {
                 GLFW.GLFW_KEY_L,
                 "Piggy Build"));
 
+        autoParkourKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+                "Toggle Auto Parkour",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_P,
+                "Piggy Build"));
+
     }
 
     private void registerEvents() {
@@ -88,6 +96,7 @@ public class InputController {
             fastBreakHandler.onTick(client);
             ShapePlacementHandler.onTick(client);
             lightLevelOverlayHandler.onTick(client);
+            autoParkourHandler.onTick(client);
         });
 
         // 3. Block placement is now handled via MinecraftClientMixin

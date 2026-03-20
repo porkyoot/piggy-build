@@ -120,6 +120,24 @@ public class ConfigScreenFactory {
                                 .build())
                         .build())
 
+                // AUTO PARKOUR CATEGORY
+                .category(ConfigCategory.createBuilder()
+                        .name(Component.literal("Auto Parkour"))
+                        .tooltip(Component.literal("Configure auto parkour settings"))
+                        .option(Option.<Boolean>createBuilder()
+                                .name(Component.literal("Enable Auto Parkour"))
+                                .description(OptionDescription.of(
+                                        Component.literal("Automatically place blocks below you when running and jumping."),
+                                        Component.literal("If Anti-Cheat is active, this cannot be enabled.")))
+                                .available(config.isAutoParkourEditable())
+                                .binding(
+                                        false,
+                                        config::isAutoParkourEnabled,
+                                        config::setAutoParkourEnabled)
+                                .controller(TickBoxControllerBuilder::create)
+                                .build())
+                        .build())
+
                 .save(ConfigPersistence::save)
                 .build()
                 .generateScreen(parent);

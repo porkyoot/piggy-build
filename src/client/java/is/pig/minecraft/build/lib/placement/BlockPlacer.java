@@ -67,6 +67,7 @@ public class BlockPlacer {
         boolean success = placeUsingGameMode(mc, player, gameMode, hitResult, hand);
 
         if (success) {
+            triggerInventoryRefill(mc);
             return true;
         }
 
@@ -74,11 +75,26 @@ public class BlockPlacer {
         success = placeUsingPacket(mc, player, gameMode, hitResult, hand);
 
         if (success) {
+            triggerInventoryRefill(mc);
             return true;
         }
 
         PiggyBuildClient.LOGGER.warn("[BlockPlacer] Placement failed");
         return false;
+    }
+
+    /**
+     * Cross-mod compatibility: Try to notify piggy-inventory's AutoRefillHandler
+     * to immediately refill blocks if the hand just became empty, bypassing game tick delays.
+     */
+    private static void triggerInventoryRefill(Minecraft mc) {
+        try {
+            Class<?> clazz = Class.forName("is.pig.minecraft.inventory.handler.AutoRefillHandler");
+            Object instance = clazz.getMethod("getInstance").invoke(null);
+            clazz.getMethod("onTick", Minecraft.class).invoke(instance, mc);
+        } catch (Exception e) {
+            // Piggy Inventory not installed, ignore.
+        }
     }
 
     /**
@@ -146,6 +162,9 @@ public class BlockPlacer {
                 InteractionResult result = itemStack.useOn(context);
 
                 if (result.consumesAction()) {
+                    if (itemStack.isEmpty()) {
+                        player.setItemInHand(hand, ItemStack.EMPTY);
+                    }
                     if (result.shouldSwing()) {
                         player.swing(hand);
                     }

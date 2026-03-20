@@ -37,6 +37,9 @@ public class PiggyBuildConfig extends PiggyClientConfig {
     // Flexible placement settings (master toggle for directional + diagonal)
     private boolean flexiblePlacementEnabled = true;
 
+    // Auto Parkour settings
+    private boolean autoParkourEnabled = false;
+
     // --- SINGLETON ACCESS ---
 
     public static PiggyBuildConfig getInstance() {
@@ -122,6 +125,27 @@ public class PiggyBuildConfig extends PiggyClientConfig {
         this.flexiblePlacementEnabled = enabled;
     }
 
+    public boolean isAutoParkourEnabled() {
+        return autoParkourEnabled;
+    }
+
+    public void setAutoParkourEnabled(boolean enabled) {
+        if (enabled) {
+            boolean serverForces = !this.serverAllowCheats
+                    || (this.serverFeatures != null && this.serverFeatures.containsKey("auto_parkour")
+                            && !Boolean.TRUE.equals(this.serverFeatures.get("auto_parkour")));
+            
+            if (serverForces) {
+                // Using existing BlockReason if applicable; generic block if not. 
+                // Using "auto_parkour" string is enough for Manager format.
+                AntiCheatFeedbackManager.getInstance().onFeatureBlocked("auto_parkour", BlockReason.SERVER_ENFORCEMENT);
+                this.autoParkourEnabled = false;
+                return;
+            }
+        }
+        this.autoParkourEnabled = enabled;
+    }
+
     // --- HELPERS FOR GUI AVAILABILITY ---
 
     public boolean isFastPlaceEditable() {
@@ -139,6 +163,15 @@ public class PiggyBuildConfig extends PiggyClientConfig {
         
         if (!this.serverAllowCheats) return false;
         if (this.serverFeatures != null && this.serverFeatures.containsKey("flexible_placement") && !Boolean.TRUE.equals(this.serverFeatures.get("flexible_placement"))) return false;
+        
+        return true;
+    }
+
+    public boolean isAutoParkourEditable() {
+        if (isNoCheatingMode()) return false;
+        
+        if (!this.serverAllowCheats) return false;
+        if (this.serverFeatures != null && this.serverFeatures.containsKey("auto_parkour") && !Boolean.TRUE.equals(this.serverFeatures.get("auto_parkour"))) return false;
         
         return true;
     }
@@ -161,6 +194,15 @@ public class PiggyBuildConfig extends PiggyClientConfig {
                 serverFeatures,
                 isNoCheatingMode(),
                 flexiblePlacementEnabled);
+    }
+    
+    public boolean isFeatureAutoParkourEnabled() {
+        return is.pig.minecraft.lib.features.CheatFeatureRegistry.isFeatureEnabled(
+                "auto_parkour",
+                serverAllowCheats,
+                serverFeatures,
+                isNoCheatingMode(),
+                autoParkourEnabled);
     }
     
     public boolean isFeatureShapeBuilderEnabled() {
