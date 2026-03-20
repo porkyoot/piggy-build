@@ -234,8 +234,8 @@ public class FastPlacementHandler {
                 // 3. Simplified Feedback
                 LocalPlayer player = Minecraft.getInstance().player;
                 if (player != null) {
-                    player.displayClientMessage(net.minecraft.network.chat.Component.literal(
-                            "Fast Build Speed: " + newCps + " blocks/sec"), true);
+                    is.pig.minecraft.lib.util.PiggyMessenger.sendClientMessage(
+                            player, "piggy.build.fast_place.speed_update", newCps);
                 }
             }
             return true;
