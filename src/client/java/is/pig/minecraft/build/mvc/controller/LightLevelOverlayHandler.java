@@ -1,7 +1,6 @@
 package is.pig.minecraft.build.mvc.controller;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
 
 public class LightLevelOverlayHandler {
     
@@ -15,10 +14,16 @@ public class LightLevelOverlayHandler {
 
         if (isPressed && !wasPressed) {
             active = !active;
-            client.player.displayClientMessage(Component.literal("Light Level Overlay: " + (active ? "ON" : "OFF")), true);
         }
 
         wasPressed = isPressed;
+
+        if (active) {
+            is.pig.minecraft.lib.ui.IconQueueOverlay.queueIcon(
+                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("piggy", "textures/gui/icons/light_level.png"),
+                1000, false
+            );
+        }
     }
 
     public boolean isActive() {

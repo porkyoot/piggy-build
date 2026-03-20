@@ -4,7 +4,7 @@ import is.pig.minecraft.build.PiggyBuildClient;
 import is.pig.minecraft.build.config.PiggyBuildConfig;
 import is.pig.minecraft.build.config.ConfigPersistence;
 import is.pig.minecraft.build.mixin.client.MinecraftAccessorMixin;
-import is.pig.minecraft.build.mvc.view.FastPlaceOverlay;
+import is.pig.minecraft.lib.ui.IconQueueOverlay;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.InteractionHand;
@@ -174,7 +174,10 @@ public class FastPlacementHandler {
                 }
 
                 // Notify overlay for cooldown tracking
-                FastPlaceOverlay.onFastPlace();
+                IconQueueOverlay.queueIcon(
+                    net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("piggy", "textures/gui/icons/fast_place.png"),
+                    1000, false
+                );
 
                 // Track this position to prevent re-placing ghost blocks locally
                 recentlyPlaced.put(blockPos.immutable(), System.currentTimeMillis());

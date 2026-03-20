@@ -24,16 +24,18 @@ public class AutoParkourHandler {
             is.pig.minecraft.build.config.PiggyBuildConfig config = is.pig.minecraft.build.config.PiggyBuildConfig.getInstance();
             config.setAutoParkourEnabled(!config.isAutoParkourEnabled());
             is.pig.minecraft.build.config.ConfigPersistence.save();
-            if (client.player != null) {
-                client.player.displayClientMessage(
-                    net.minecraft.network.chat.Component.literal("Auto Parkour: " + (config.isAutoParkourEnabled() ? "§aON" : "§cOFF")), true);
-            }
         }
         wasKeyDown = isKeyDown;
 
-        if (!is.pig.minecraft.build.config.PiggyBuildConfig.getInstance().isFeatureAutoParkourEnabled()) {
+        if (!is.pig.minecraft.build.config.PiggyBuildConfig.getInstance().isFeatureAutoParkourEnabled() ||
+            !is.pig.minecraft.build.config.PiggyBuildConfig.getInstance().isAutoParkourEnabled()) {
             return;
         }
+
+        is.pig.minecraft.lib.ui.IconQueueOverlay.queueIcon(
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("piggy", "textures/gui/icons/auto_parkour.png"),
+            1000, false
+        );
 
         LocalPlayer player = client.player;
         if (player == null || client.level == null || client.gameMode == null) {

@@ -10,13 +10,11 @@ import is.pig.minecraft.build.config.ConfigPersistence;
 import is.pig.minecraft.build.mvc.controller.InputController;
 import is.pig.minecraft.build.mvc.model.BuildSession;
 import is.pig.minecraft.build.mvc.model.PlacementSession;
-import is.pig.minecraft.build.mvc.view.FastPlaceOverlay;
 import is.pig.minecraft.build.mvc.view.DirectionalPlacementRenderer;
 import is.pig.minecraft.build.mvc.view.HighlightRenderType;
 import is.pig.minecraft.build.mvc.view.WorldShapeRenderer;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -72,10 +70,7 @@ public class PiggyBuildClient implements ClientModInitializer {
         is.pig.minecraft.lib.ui.AntiCheatHudOverlay.register();
 
         // 4. HUD overlay rendering
-        HudRenderCallback.EVENT.register((graphics, tickDelta) -> {
-            FastPlaceOverlay.render(graphics, tickDelta);
-            is.pig.minecraft.build.mvc.view.AutoParkourOverlay.render(graphics, tickDelta);
-        });
+        // FastPlace and AutoParkour now use piggy-lib's IconQueueOverlay
 
         // Register Config Sync Listener
         is.pig.minecraft.build.config.PiggyBuildConfig.getInstance()
