@@ -1,6 +1,5 @@
 package is.pig.minecraft.build.mvc.controller;
 
-import is.pig.minecraft.build.config.PiggyBuildConfig;
 import is.pig.minecraft.build.lib.placement.BlockPlacer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -32,18 +31,36 @@ public class AutoParkourHandler {
             return;
         }
 
-        is.pig.minecraft.lib.ui.IconQueueOverlay.queueIcon(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("piggy", "textures/gui/icons/auto_parkour.png"),
-            1000, false
-        );
-
         LocalPlayer player = client.player;
         if (player == null || client.level == null || client.gameMode == null) {
             return;
         }
 
         ItemStack mainHandItem = player.getMainHandItem();
-        if (mainHandItem.isEmpty() || !(mainHandItem.getItem() instanceof BlockItem)) {
+        boolean isHoldingBlock = !mainHandItem.isEmpty() && (mainHandItem.getItem() instanceof BlockItem);
+        boolean flashing = false;
+        
+        if (!isHoldingBlock) {
+            flashing = true;
+        } else {
+            int blockCount = 0;
+            for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+                ItemStack stack = player.getInventory().getItem(i);
+                if (!stack.isEmpty() && stack.getItem() == mainHandItem.getItem()) {
+                    blockCount += stack.getCount();
+                }
+            }
+            if (blockCount <= 16) {
+                flashing = true;
+            }
+        }
+
+        is.pig.minecraft.lib.ui.IconQueueOverlay.queueIcon(
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("piggy", "textures/gui/icons/auto_parkour.png"),
+            1000, flashing
+        );
+
+        if (!isHoldingBlock) {
             return;
         }
 
