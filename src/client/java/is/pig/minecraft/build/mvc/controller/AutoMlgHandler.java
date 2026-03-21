@@ -124,9 +124,15 @@ public class AutoMlgHandler {
                     Item bestItem = player.getInventory().getItem(globalBestSlot).getItem();
                     if (state == MlgState.IDLE && bestItem == Items.CHORUS_FRUIT) {
                         originalSlot = player.getInventory().selected;
+                        
+                        if (globalBestSlot >= 9) {
+                            client.gameMode.handleInventoryMouseClick(player.inventoryMenu.containerId, globalBestSlot, 8, net.minecraft.world.inventory.ClickType.SWAP, player);
+                            globalBestSlot = 8;
+                        }
+
                         mlgSlot = globalBestSlot;
-                        isPearl = bestItem == Items.ENDER_PEARL;
-                        isChorus = bestItem == Items.CHORUS_FRUIT;
+                        isPearl = false;
+                        isChorus = true;
 
                         swapSlot(client, globalBestSlot);
 
@@ -321,6 +327,10 @@ public class AutoMlgHandler {
         BlockState impactState = client.level.getBlockState(impactPos);
         BlockState placeState = client.level.getBlockState(placePos);
 
+        if (tryAmbientIntercept(client, player, impactPos, placePos)) {
+            return;
+        }
+
         if (isSafeBlock(impactState) || isSafeBlock(placeState)) {
             return;
         }
@@ -331,22 +341,23 @@ public class AutoMlgHandler {
         }
 
         boolean isPearlItem = player.getInventory().getItem(bestSlot).getItem() == net.minecraft.world.item.Items.ENDER_PEARL;
+        boolean isWaterItem = player.getInventory().getItem(bestSlot).getItem() == net.minecraft.world.item.Items.WATER_BUCKET;
+        boolean isLavaItem = player.getInventory().getItem(bestSlot).getItem() == net.minecraft.world.item.Items.LAVA_BUCKET;
+        boolean isBoatItem = player.getInventory().getItem(bestSlot).getItem() instanceof net.minecraft.world.item.BoatItem;
+        
+        boolean isSolidMlg = !isPearlItem && !isWaterItem && !isLavaItem && !isBoatItem;
         
         // Dynamically scale the required distance: Terminal fall (3.92b/t) triggers at ~22.0 blocks. Shorter falls trigger closer.
         double dynDistance = Math.abs(player.getDeltaMovement().y) * 5.5; 
-        double requiredDistance = isPearlItem ? Math.max(12.0, dynDistance) : 4.5;
+        double requiredDistance = isPearlItem ? Math.max(12.0, dynDistance) : (isSolidMlg ? 5.5 : 4.5);
         
-        if (eyePos.distanceTo(targetCenter) > requiredDistance) {
+        Vec3 evalCenter = isSolidMlg ? Vec3.atCenterOf(placePos) : targetCenter;
+        
+        if (eyePos.distanceTo(evalCenter) > requiredDistance) {
             return;
         }
 
-        PiggyBuildClient.LOGGER.info("[AutoMLG] Danger detected! Distance to impact: {}, Predicted Damage: {}, Euclidean Reach: {}, Impact Pos: {}", dist, predictedDamage, eyePos.distanceTo(targetCenter), impactPos);
-
-        if (eyePos.distanceTo(targetCenter) <= 4.5) {
-            if (tryAmbientIntercept(client, player, impactPos, placePos)) {
-                return;
-            }
-        }
+        PiggyBuildClient.LOGGER.info("[AutoMLG] Danger detected! Distance to impact: {}, Predicted Damage: {}, Euclidean Reach: {}, Impact Pos: {}", dist, predictedDamage, eyePos.distanceTo(evalCenter), impactPos);
 
         originalSlot = player.getInventory().selected;
         mlgSlot = bestSlot;
@@ -420,6 +431,7 @@ public class AutoMlgHandler {
             } else {
                 PiggyBuildClient.LOGGER.info("[AutoMLG] Executed useItemOn successfully");
             }
+
             player.setXRot(originalPitch);
         }
         state = MlgState.CLEANUP;
@@ -504,8 +516,15 @@ public class AutoMlgHandler {
                 }
             }
             else if (!isPearl) {
-                breakQueue.add(placedPos);
-                PiggyBuildClient.LOGGER.info("[AutoMLG] Queued solid block at {} for destruction.", placedPos);
+                BlockState bState = client.level.getBlockState(placedPos);
+                if (bState.is(net.minecraft.world.level.block.Blocks.SLIME_BLOCK) ||
+                    bState.is(net.minecraft.world.level.block.Blocks.HAY_BLOCK) ||
+                    bState.getBlock() instanceof net.minecraft.world.level.block.BedBlock) {
+                    PiggyBuildClient.LOGGER.info("[AutoMLG] Bouncing block detected at {}. Exempting from destruction.", placedPos);
+                } else {
+                    breakQueue.add(placedPos);
+                    PiggyBuildClient.LOGGER.info("[AutoMLG] Queued solid block at {} for destruction.", placedPos);
+                }
             }
         }
 
@@ -577,35 +596,40 @@ public class AutoMlgHandler {
     }
 
     private boolean tryAmbientIntercept(Minecraft client, LocalPlayer player, BlockPos impactPos, BlockPos placePos) {
-        net.minecraft.world.phys.AABB searchBox = new net.minecraft.world.phys.AABB(impactPos).inflate(2.0);
-        for (net.minecraft.world.entity.Entity entity : client.level.getEntities(player, searchBox)) {
-            if (entity instanceof net.minecraft.world.entity.vehicle.Boat ||
-                entity instanceof net.minecraft.world.entity.vehicle.AbstractMinecart) {
-                if (!entity.hasPassenger(player)) {
-                    if (client.getConnection() != null) {
-                        client.getConnection().send(net.minecraft.network.protocol.game.ServerboundInteractPacket.createInteractionPacket(entity, false, net.minecraft.world.InteractionHand.MAIN_HAND));
-                        PiggyBuildClient.LOGGER.info("[AutoMLG] Successfully intercepted ambient vehicle!");
-                        return true;
+        Vec3 eyePos = player.getEyePosition();
+        Vec3 targetCenter = Vec3.atBottomCenterOf(placePos);
+        
+        if (eyePos.distanceTo(targetCenter) <= 4.5) {
+            net.minecraft.world.phys.AABB searchBox = new net.minecraft.world.phys.AABB(impactPos).inflate(2.0);
+            for (net.minecraft.world.entity.Entity entity : client.level.getEntities(player, searchBox)) {
+                if (entity instanceof net.minecraft.world.entity.vehicle.Boat ||
+                    entity instanceof net.minecraft.world.entity.vehicle.AbstractMinecart) {
+                    if (!entity.hasPassenger(player)) {
+                        if (client.getConnection() != null) {
+                            client.getConnection().send(net.minecraft.network.protocol.game.ServerboundInteractPacket.createInteractionPacket(entity, false, net.minecraft.world.InteractionHand.MAIN_HAND));
+                            PiggyBuildClient.LOGGER.info("[AutoMLG] Successfully intercepted ambient vehicle!");
+                            return true;
+                        }
                     }
                 }
-            }
-            if (entity instanceof net.minecraft.world.entity.LivingEntity living) {
-                if (living instanceof net.minecraft.world.entity.animal.horse.AbstractHorse horse && horse.isTamed()) {
-                    if (client.getConnection() != null) {
-                        client.getConnection().send(net.minecraft.network.protocol.game.ServerboundInteractPacket.createInteractionPacket(entity, false, net.minecraft.world.InteractionHand.MAIN_HAND));
-                        return true;
+                if (entity instanceof net.minecraft.world.entity.LivingEntity living) {
+                    if (living instanceof net.minecraft.world.entity.animal.horse.AbstractHorse horse && horse.isTamed()) {
+                        if (client.getConnection() != null) {
+                            client.getConnection().send(net.minecraft.network.protocol.game.ServerboundInteractPacket.createInteractionPacket(entity, false, net.minecraft.world.InteractionHand.MAIN_HAND));
+                            return true;
+                        }
                     }
-                }
-                if (living instanceof net.minecraft.world.entity.animal.Pig pig && pig.isSaddled()) {
-                    if (client.getConnection() != null) {
-                        client.getConnection().send(net.minecraft.network.protocol.game.ServerboundInteractPacket.createInteractionPacket(entity, false, net.minecraft.world.InteractionHand.MAIN_HAND));
-                        return true;
+                    if (living instanceof net.minecraft.world.entity.animal.Pig pig && pig.isSaddled()) {
+                        if (client.getConnection() != null) {
+                            client.getConnection().send(net.minecraft.network.protocol.game.ServerboundInteractPacket.createInteractionPacket(entity, false, net.minecraft.world.InteractionHand.MAIN_HAND));
+                            return true;
+                        }
                     }
-                }
-                if (living instanceof net.minecraft.world.entity.monster.Strider strider && strider.isSaddled()) {
-                    if (client.getConnection() != null) {
-                        client.getConnection().send(net.minecraft.network.protocol.game.ServerboundInteractPacket.createInteractionPacket(entity, false, net.minecraft.world.InteractionHand.MAIN_HAND));
-                        return true;
+                    if (living instanceof net.minecraft.world.entity.monster.Strider strider && strider.isSaddled()) {
+                        if (client.getConnection() != null) {
+                            client.getConnection().send(net.minecraft.network.protocol.game.ServerboundInteractPacket.createInteractionPacket(entity, false, net.minecraft.world.InteractionHand.MAIN_HAND));
+                            return true;
+                        }
                     }
                 }
             }
@@ -613,23 +637,6 @@ public class AutoMlgHandler {
 
         BlockState state = client.level.getBlockState(impactPos);
         BlockState placeS = client.level.getBlockState(placePos);
-
-        BlockPos bedPos = null;
-        if (state.getBlock() instanceof net.minecraft.world.level.block.BedBlock) bedPos = impactPos;
-        else if (placeS.getBlock() instanceof net.minecraft.world.level.block.BedBlock) bedPos = placePos;
-
-        if (bedPos != null && client.level.dimension() == net.minecraft.world.level.Level.OVERWORLD) {
-            long timeOfDay = client.level.getDayTime() % 24000;
-            boolean isNight = timeOfDay >= 12541 && timeOfDay <= 23458;
-            if (isNight || client.level.isThundering()) {
-                net.minecraft.world.phys.BlockHitResult hitResult = is.pig.minecraft.build.lib.placement.BlockPlacer.createHitResult(bedPos, net.minecraft.core.Direction.UP);
-                if (client.getConnection() != null) {
-                    client.getConnection().send(new net.minecraft.network.protocol.game.ServerboundUseItemOnPacket(net.minecraft.world.InteractionHand.MAIN_HAND, hitResult, 0));
-                    PiggyBuildClient.LOGGER.info("[AutoMLG] Intercepted ambient Bed to force sleep.");
-                    return true;
-                }
-            }
-        }
 
         return false;
     }
@@ -693,14 +700,11 @@ public class AutoMlgHandler {
         }
 
         if (item == net.minecraft.world.item.Items.HAY_BLOCK) {
-            float reducedDamage = (fallDist * 0.2f) - 3.0f;
-            return reducedDamage < 20.0f;
+            return true;
         }
 
         if (item instanceof net.minecraft.world.item.BedItem) {
-            if (player.level().dimension() != net.minecraft.world.level.Level.OVERWORLD) return false;
-            float reducedDamage = (fallDist * 0.5f) - 3.0f;
-            return reducedDamage < 20.0f;
+            return true;
         }
 
         return false;
