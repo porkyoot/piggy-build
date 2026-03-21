@@ -40,6 +40,10 @@ public class PiggyBuildConfig extends PiggyClientConfig {
     // Auto Parkour settings
     private boolean autoParkourEnabled = false;
 
+    // Auto MLG settings
+    private boolean autoMlgEnabled = false;
+    private boolean autoMlgAlways = false;
+
     // --- SINGLETON ACCESS ---
 
     public static PiggyBuildConfig getInstance() {
@@ -146,6 +150,35 @@ public class PiggyBuildConfig extends PiggyClientConfig {
         this.autoParkourEnabled = enabled;
     }
 
+    public boolean isAutoMlgEnabled() {
+        return autoMlgEnabled;
+    }
+
+    public boolean isAutoMlgAlways() {
+        return autoMlgAlways;
+    }
+
+    public void setAutoMlgAlways(boolean enabled) {
+        this.autoMlgAlways = enabled;
+    }
+
+    public void setAutoMlgEnabled(boolean enabled) {
+        if (enabled) {
+            boolean serverForces = !this.serverAllowCheats
+                    || (this.serverFeatures != null && this.serverFeatures.containsKey("auto_mlg")
+                            && !Boolean.TRUE.equals(this.serverFeatures.get("auto_mlg")));
+            
+            if (serverForces) {
+                // Using existing BlockReason if applicable; generic block if not. 
+                // Using "auto_mlg" string is enough for Manager format.
+                AntiCheatFeedbackManager.getInstance().onFeatureBlocked("auto_mlg", BlockReason.SERVER_ENFORCEMENT);
+                this.autoMlgEnabled = false;
+                return;
+            }
+        }
+        this.autoMlgEnabled = enabled;
+    }
+
     // --- HELPERS FOR GUI AVAILABILITY ---
 
     public boolean isFastPlaceEditable() {
@@ -172,6 +205,15 @@ public class PiggyBuildConfig extends PiggyClientConfig {
         
         if (!this.serverAllowCheats) return false;
         if (this.serverFeatures != null && this.serverFeatures.containsKey("auto_parkour") && !Boolean.TRUE.equals(this.serverFeatures.get("auto_parkour"))) return false;
+        
+        return true;
+    }
+
+    public boolean isAutoMlgEditable() {
+        if (isNoCheatingMode()) return false;
+        
+        if (!this.serverAllowCheats) return false;
+        if (this.serverFeatures != null && this.serverFeatures.containsKey("auto_mlg") && !Boolean.TRUE.equals(this.serverFeatures.get("auto_mlg"))) return false;
         
         return true;
     }
@@ -203,6 +245,15 @@ public class PiggyBuildConfig extends PiggyClientConfig {
                 serverFeatures,
                 isNoCheatingMode(),
                 autoParkourEnabled);
+    }
+    
+    public boolean isFeatureAutoMlgEnabled() {
+        return is.pig.minecraft.lib.features.CheatFeatureRegistry.isFeatureEnabled(
+                "auto_mlg",
+                serverAllowCheats,
+                serverFeatures,
+                isNoCheatingMode(),
+                autoMlgEnabled);
     }
     
     public boolean isFeatureShapeBuilderEnabled() {

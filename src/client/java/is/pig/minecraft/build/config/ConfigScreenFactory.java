@@ -138,6 +138,36 @@ public class ConfigScreenFactory {
                                 .build())
                         .build())
 
+                // AUTO MLG CATEGORY
+                .category(ConfigCategory.createBuilder()
+                        .name(Component.literal("Auto MLG"))
+                        .tooltip(Component.literal("Configure auto MLG settings"))
+                        .option(Option.<Boolean>createBuilder()
+                                .name(Component.literal("Enable Auto MLG"))
+                                .description(OptionDescription.of(
+                                        Component.literal("Automatically place water/slime/beds to save you from fall damage."),
+                                        Component.literal("If Anti-Cheat is active, this cannot be enabled.")))
+                                .available(config.isAutoMlgEditable())
+                                .binding(
+                                        false,
+                                        config::isAutoMlgEnabled,
+                                        config::setAutoMlgEnabled)
+                                .controller(TickBoxControllerBuilder::create)
+                                .build())
+                        .option(Option.<Boolean>createBuilder()
+                                .name(Component.literal("Always MLG"))
+                                .description(OptionDescription.of(
+                                        Component.literal("Perform MLG on any fall that causes damage, even if it wouldn't kill you."),
+                                        Component.literal("If disabled, MLG only triggers for fatal falls.")))
+                                .available(config.isAutoMlgEditable())
+                                .binding(
+                                        false,
+                                        config::isAutoMlgAlways,
+                                        config::setAutoMlgAlways)
+                                .controller(TickBoxControllerBuilder::create)
+                                .build())
+                        .build())
+
                 .save(ConfigPersistence::save)
                 .build()
                 .generateScreen(parent);

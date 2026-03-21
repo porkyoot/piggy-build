@@ -60,6 +60,13 @@ public class PiggyBuildClient implements ClientModInitializer {
                         "Instantly place various block shapes",
                         false));
 
+        is.pig.minecraft.lib.features.CheatFeatureRegistry.register(
+                new is.pig.minecraft.lib.features.CheatFeature(
+                        "auto_mlg",
+                        "Auto MLG",
+                        "Automatically place blocks/water to cancel fall damage",
+                        false));
+
         // 1. Load configuration
         ConfigPersistence.load();
 
@@ -103,6 +110,14 @@ public class PiggyBuildClient implements ClientModInitializer {
                         if (features.containsKey("flexible_placement")
                                 && !Boolean.TRUE.equals(features.get("flexible_placement"))) {
                             buildConfig.setFlexiblePlacementEnabled(false);
+                        }
+                        if (features.containsKey("auto_parkour")
+                                && !Boolean.TRUE.equals(features.get("auto_parkour"))) {
+                            buildConfig.setAutoParkourEnabled(false);
+                        }
+                        if (features.containsKey("auto_mlg")
+                                && !Boolean.TRUE.equals(features.get("auto_mlg"))) {
+                            buildConfig.setAutoMlgEnabled(false);
                         }
                     }
 
