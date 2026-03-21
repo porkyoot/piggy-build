@@ -48,8 +48,20 @@ public class AutoMlgHandler {
     private final java.util.Set<Integer> vehiclesToBreak = new java.util.HashSet<>();
     private BlockPos currentlyMining = null;
 
+    private boolean queuedPearlDeploy = false;
+
     public void onTick(Minecraft client) {
         if (InputController.autoMlgKey == null) return;
+        
+        LocalPlayer player = client.player;
+        if (player != null && queuedPearlDeploy) {
+            queuedPearlDeploy = false;
+            client.gameMode.useItem(player, net.minecraft.world.InteractionHand.MAIN_HAND);
+            PiggyBuildClient.LOGGER.info("[AutoMLG] Executed queued Pearl Deploy natively with preserved velocity!");
+            state = MlgState.CLEANUP;
+            cleanupDelayTicks = 0;
+            return;
+        }
 
         boolean isKeyDown = InputController.autoMlgKey.isDown();
         if (isKeyDown && !wasKeyDown) {
@@ -74,7 +86,6 @@ public class AutoMlgHandler {
             return;
         }
 
-        LocalPlayer player = client.player;
         if (player == null || client.level == null || client.gameMode == null) {
             resetMlg();
             return;
@@ -111,7 +122,7 @@ public class AutoMlgHandler {
                     );
 
                     Item bestItem = player.getInventory().getItem(globalBestSlot).getItem();
-                    if (state == MlgState.IDLE && (bestItem == Items.ENDER_PEARL || bestItem == Items.CHORUS_FRUIT)) {
+                    if (state == MlgState.IDLE && bestItem == Items.CHORUS_FRUIT) {
                         originalSlot = player.getInventory().selected;
                         mlgSlot = globalBestSlot;
                         isPearl = bestItem == Items.ENDER_PEARL;
@@ -127,13 +138,46 @@ public class AutoMlgHandler {
                             PiggyBuildClient.LOGGER.info("[AutoMLG] Early Chorus ingestion triggered unconditionally!");
                         } else if (isPearl) {
                             float originalPitch = player.getXRot();
-                            player.setXRot(90.0f);
+                            float originalYaw = player.getYRot();
+                            
+                            float targetPitch = 75.0f;
+                            float targetYaw = originalYaw;
+                            Vec3 eyePos = player.getEyePosition();
+
+                            outer:
+                            for (float p = 75.0f; p >= 45.0f; p -= 5.0f) {
+                                for (float y = 0.0f; y < 360.0f; y += 45.0f) {
+                                    double radP = Math.toRadians(p);
+                                    double radY = Math.toRadians(y);
+                                    double vx = -Math.sin(radY) * Math.cos(radP);
+                                    double vy = -Math.sin(radP);
+                                    double vz = Math.cos(radY) * Math.cos(radP);
+                                    Vec3 dir = new Vec3(vx, vy, vz).scale(512.0);
+                                    net.minecraft.world.phys.BlockHitResult hit = client.level.clip(
+                                        new net.minecraft.world.level.ClipContext(eyePos, eyePos.add(dir), net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.ANY, player)
+                                    );
+                                    if (hit.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK) {
+                                        BlockState hitState = client.level.getBlockState(hit.getBlockPos());
+                                        if (isSafePearlLanding(hitState)) {
+                                            targetPitch = p;
+                                            targetYaw = originalYaw + y; // Add player's yaw if rotating relative, but wait, `y` is absolute yaw here.
+                                            // Wait, `vx = -sin(y)` is correct for absolute Minecraft yaw.
+                                            targetYaw = y;
+                                            break outer;
+                                        }
+                                    }
+                                }
+                            }
+
+                            player.setXRot(targetPitch);
+                            player.setYRot(targetYaw);
                             if (client.getConnection() != null) {
-                                client.getConnection().send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Rot(player.getYRot(), 90.0f, player.onGround()));
+                                client.getConnection().send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.PosRot(player.getX(), player.getY(), player.getZ(), targetYaw, targetPitch, player.onGround()));
                             }
                             client.gameMode.useItem(player, net.minecraft.world.InteractionHand.MAIN_HAND);
                             player.setXRot(originalPitch);
-                            PiggyBuildClient.LOGGER.info("[AutoMLG] Early Pearl deployed unconditionally!");
+                            player.setYRot(originalYaw);
+                            PiggyBuildClient.LOGGER.info("[AutoMLG] Early Pearl deployed at pitch {}, yaw {}!", targetPitch, targetYaw);
                         }
 
                         state = MlgState.CLEANUP;
@@ -213,7 +257,14 @@ public class AutoMlgHandler {
 
         // Limit simulation to precisely 3 ticks to guarantee zero horizontal WASD drift 
         // which causes ghost placements on distant ledges!
-        for (int ticks = 1; ticks <= 3; ticks++) { 
+        int maxTicks = 3;
+        for (int i = 0; i < 36; i++) {
+            if (player.getInventory().getItem(i).getItem() == net.minecraft.world.item.Items.ENDER_PEARL) {
+                maxTicks = 20;
+                break;
+            }
+        }
+        for (int ticks = 1; ticks <= maxTicks; ticks++) { 
             simPos = simPos.add(simVel);
             simVel = new Vec3(simVel.x * 0.91, (simVel.y - 0.08) * 0.98, simVel.z * 0.91);
 
@@ -279,7 +330,13 @@ public class AutoMlgHandler {
             return;
         }
 
-        if (eyePos.distanceTo(targetCenter) > 4.5) {
+        boolean isPearlItem = player.getInventory().getItem(bestSlot).getItem() == net.minecraft.world.item.Items.ENDER_PEARL;
+        
+        // Dynamically scale the required distance: Terminal fall (3.92b/t) triggers at ~22.0 blocks. Shorter falls trigger closer.
+        double dynDistance = Math.abs(player.getDeltaMovement().y) * 5.5; 
+        double requiredDistance = isPearlItem ? Math.max(12.0, dynDistance) : 4.5;
+        
+        if (eyePos.distanceTo(targetCenter) > requiredDistance) {
             return;
         }
 
@@ -296,6 +353,7 @@ public class AutoMlgHandler {
         isWater = player.getInventory().getItem(bestSlot).getItem() == net.minecraft.world.item.Items.WATER_BUCKET;
         isBoat = player.getInventory().getItem(bestSlot).getItem() instanceof net.minecraft.world.item.BoatItem;
         isLava = player.getInventory().getItem(bestSlot).getItem() == net.minecraft.world.item.Items.LAVA_BUCKET;
+        isPearl = player.getInventory().getItem(bestSlot).getItem() == net.minecraft.world.item.Items.ENDER_PEARL;
         placedPos = placePos;
 
         PiggyBuildClient.LOGGER.info("[AutoMLG] Target placing MLG item at {} natively onto {}", placePos, impactPos);
@@ -312,7 +370,7 @@ public class AutoMlgHandler {
 
         PiggyBuildClient.LOGGER.info("[AutoMLG] Triggering MLG! Slot: {}, Item: {}", bestSlot, player.getInventory().getItem(bestSlot).getItem().toString());
 
-        if (isWater || isBoat || isLava) {
+        if (isWater || isBoat || isLava || isPearl) {
             double dX = targetCenter.x - eyePos.x;
             double dY = targetCenter.y - eyePos.y;
             double dZ = targetCenter.z - eyePos.z;
@@ -320,8 +378,15 @@ public class AutoMlgHandler {
             float targetYaw = (float) (Math.atan2(dZ, dX) * (180.0 / Math.PI)) - 90.0f;
             float targetPitch = (float) -(Math.atan2(dY, dXZ) * (180.0 / Math.PI));
 
+            if (isPearl && targetPitch > 84.0f) {
+                targetPitch = 84.0f;
+                // At exactly 84.0 pitch, horizontal velocity is 1.5 * cos(84) = 0.156 b/t.
+                // In exactly 2 ticks, it travels 0.31 blocks horizontally, JUST BARELY escaping the player's 0.3-radius hitbox securely!
+                PiggyBuildClient.LOGGER.info("[AutoMLG-Debug] Mathematically maximized pearl pitch to 84.0 to bypass velocity swept-collisions.");
+            }
+
             float originalYaw = player.getYRot();
-            if (client.getConnection() != null) {
+            if (client.getConnection() != null && !isPearl) {
                 client.getConnection().send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Rot(targetYaw, targetPitch, player.onGround()));
             }
             player.setYRot(targetYaw);
@@ -331,6 +396,11 @@ public class AutoMlgHandler {
                 is.pig.minecraft.build.lib.placement.BlockPlacer.placeBlock(impactPos, net.minecraft.core.Direction.UP, net.minecraft.world.InteractionHand.MAIN_HAND);
                 PiggyBuildClient.LOGGER.info("[AutoMLG] Executed BlockPlacer.placeBlock() to bypass waterlogging on {} at Yaw {} Pitch {}", impactPos, targetYaw, targetPitch);
             } else {
+                if (isPearl) {
+                    queuedPearlDeploy = true;
+                    PiggyBuildClient.LOGGER.info("[AutoMLG-Debug] Queued Pearl deployment for next native tick to perfectly preserve fallback velocity.");
+                    return; // Skips state transition this tick!
+                }
                 client.gameMode.useItem(player, net.minecraft.world.InteractionHand.MAIN_HAND);
                 PiggyBuildClient.LOGGER.info("[AutoMLG] Executed useItem() natively at true computed rotations: Yaw {} Pitch {}", targetYaw, targetPitch);
             }
@@ -394,6 +464,7 @@ public class AutoMlgHandler {
                 if (bucketSlot != -1) {
                     swapSlot(client, bucketSlot);
                     float originalPitch = player.getXRot();
+                    float originalYaw = player.getYRot();
 
                     if (foundWater != null) {
                         placedPos = foundWater;
@@ -408,6 +479,8 @@ public class AutoMlgHandler {
                         if (client.getConnection() != null) {
                             client.getConnection().send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Rot(scoopYaw, scoopPitch, player.onGround()));
                         }
+                        player.setYRot(scoopYaw);
+                        player.setXRot(scoopPitch);
                     } else {
                         if (client.getConnection() != null) {
                             client.getConnection().send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Rot(player.getYRot(), 90.0f, player.onGround()));
@@ -417,6 +490,7 @@ public class AutoMlgHandler {
 
                     client.gameMode.useItem(player, net.minecraft.world.InteractionHand.MAIN_HAND);
                     player.setXRot(originalPitch);
+                    player.setYRot(originalYaw);
                     PiggyBuildClient.LOGGER.info("[AutoMLG] Liquid payload picked up via bucket at {}.", placedPos);
                 } else {
                     PiggyBuildClient.LOGGER.info("[AutoMLG] Could not find an empty bucket to retrieve liquid.");
@@ -577,6 +651,17 @@ public class AutoMlgHandler {
         return false;
     }
 
+    private boolean isSafePearlLanding(BlockState state) {
+        if (state.getFluidState().is(net.minecraft.world.level.material.Fluids.LAVA) || state.getFluidState().is(net.minecraft.world.level.material.Fluids.FLOWING_LAVA)) return false;
+        if (state.is(net.minecraft.world.level.block.Blocks.MAGMA_BLOCK)) return false;
+        if (state.is(net.minecraft.world.level.block.Blocks.CACTUS)) return false;
+        if (state.is(net.minecraft.world.level.block.Blocks.CAMPFIRE) || state.is(net.minecraft.world.level.block.Blocks.SOUL_CAMPFIRE)) return false;
+        if (state.is(net.minecraft.world.level.block.Blocks.SWEET_BERRY_BUSH)) return false;
+        if (state.is(net.minecraft.world.level.block.Blocks.WITHER_ROSE)) return false;
+        if (state.is(net.minecraft.world.level.block.Blocks.POINTED_DRIPSTONE)) return false;
+        return true;
+    }
+
     private boolean isValidMlg(Item item, LocalPlayer player, float fallDist, BlockState impactState, BlockPos placePos) {
         if (item == net.minecraft.world.item.Items.CHORUS_FRUIT) return true;
         if (item == net.minecraft.world.item.Items.WATER_BUCKET) {
@@ -587,6 +672,7 @@ public class AutoMlgHandler {
             return player.getHealth() > 6.0f;
         }
         if (item == net.minecraft.world.item.Items.ENDER_PEARL) {
+            if (impactState != null && !isSafePearlLanding(impactState)) return false;
             return player.getHealth() > 6.0f;
         }
         if (item == net.minecraft.world.item.Items.POWDER_SNOW_BUCKET) return true;
