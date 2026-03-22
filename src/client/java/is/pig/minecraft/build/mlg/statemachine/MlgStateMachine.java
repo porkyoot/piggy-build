@@ -107,4 +107,16 @@ public class MlgStateMachine {
     public FallPredictionResult getCurrentPrediction() {
         return currentPrediction;
     }
+
+    public void forceFallState(Minecraft client) {
+        if (client.player == null || client.level == null) return;
+        
+        Optional<FallPredictionResult> livePrediction = is.pig.minecraft.build.mlg.prediction.FallSimulator.simulate(client.player, client.level);
+        if (livePrediction.isPresent() && livePrediction.get().isFatal()) {
+            this.currentPrediction = livePrediction.get();
+            transitionTo(MlgState.FALLING);
+        } else {
+            LOGGER.info("[MLG] Forced fall state but trajectory is non-fatal. Ignored.");
+        }
+    }
 }

@@ -56,35 +56,44 @@ public class BlockPlacer {
     }
 
     public static boolean placeBlock(BlockHitResult hitResult, InteractionHand hand, boolean ignoreGlobalCps) {
-        Minecraft mc = Minecraft.getInstance();
-
-        if (mc.player == null || mc.gameMode == null) {
-            return false;
-        }
-
         try {
-            ItemStack itemStack = mc.player.getItemInHand(hand);
-            boolean isWaterBucket = itemStack.is(net.minecraft.world.item.Items.WATER_BUCKET);
-            BlockPos targetPos = hitResult.getBlockPos().relative(hitResult.getDirection());
-            
-            java.util.function.BooleanSupplier verifyCondition = () -> {
-                if (mc.level == null) return false;
-                net.minecraft.world.level.block.state.BlockState state = mc.level.getBlockState(targetPos);
-                return isWaterBucket ? state.is(net.minecraft.world.level.block.Blocks.WATER) : !state.isAir();
-            };
-
-            ((MinecraftAccessorMixin) mc).setRightClickDelay(0);
-            var action = new is.pig.minecraft.lib.action.world.InteractBlockAction(hitResult, hand, "piggy-build", verifyCondition);
-            if (ignoreGlobalCps) action.setIgnoreGlobalCps(true);
-            is.pig.minecraft.lib.action.PiggyActionQueue.getInstance().enqueue(action);
-            ((MinecraftAccessorMixin) mc).setRightClickDelay(4);
-            
-            triggerInventoryRefill(mc);
-            return true;
+            is.pig.minecraft.lib.action.IAction action = createAction(hitResult, hand, ignoreGlobalCps);
+            if (action != null) {
+                Minecraft mc = Minecraft.getInstance();
+                ((MinecraftAccessorMixin) mc).setRightClickDelay(0);
+                is.pig.minecraft.lib.action.PiggyActionQueue.getInstance().enqueue(action);
+                ((MinecraftAccessorMixin) mc).setRightClickDelay(4);
+                
+                triggerInventoryRefill(mc);
+                return true;
+            }
         } catch (Exception e) {
             PiggyBuildClient.LOGGER.error("[BlockPlacer] Placement using action failed", e);
             return false;
         }
+        return false;
+    }
+
+    public static is.pig.minecraft.lib.action.IAction createAction(BlockHitResult hitResult, InteractionHand hand, boolean ignoreGlobalCps) {
+        Minecraft mc = Minecraft.getInstance();
+
+        if (mc.player == null || mc.gameMode == null) {
+            return null;
+        }
+
+        ItemStack itemStack = mc.player.getItemInHand(hand);
+        boolean isWaterBucket = itemStack.is(net.minecraft.world.item.Items.WATER_BUCKET);
+        BlockPos targetPos = hitResult.getBlockPos().relative(hitResult.getDirection());
+        
+        java.util.function.BooleanSupplier verifyCondition = () -> {
+            if (mc.level == null) return false;
+            net.minecraft.world.level.block.state.BlockState state = mc.level.getBlockState(targetPos);
+            return isWaterBucket ? state.is(net.minecraft.world.level.block.Blocks.WATER) : !state.isAir();
+        };
+
+        var action = new is.pig.minecraft.lib.action.world.InteractBlockAction(hitResult, hand, "piggy-build", verifyCondition);
+        if (ignoreGlobalCps) action.setIgnoreGlobalCps(true);
+        return action;
     }
 
     /**

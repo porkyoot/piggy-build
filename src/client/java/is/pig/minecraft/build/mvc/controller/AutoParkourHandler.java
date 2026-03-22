@@ -13,6 +13,9 @@ public class AutoParkourHandler {
 
     private long lastPlacementTime = 0;
     private boolean wasKeyDown = false;
+    
+    // Track block placements for async rollback detection
+    private final java.util.Map<BlockPos, Long> pendingVerifications = new java.util.HashMap<>();
 
     public void onTick(Minecraft client) {
         if (InputController.autoParkourKey == null) return;
@@ -29,6 +32,21 @@ public class AutoParkourHandler {
         if (!is.pig.minecraft.build.config.PiggyBuildConfig.getInstance().isFeatureAutoParkourEnabled() ||
             !is.pig.minecraft.build.config.PiggyBuildConfig.getInstance().isAutoParkourEnabled()) {
             return;
+        }
+
+        // Async failure check for server rollbacks
+        long now = System.currentTimeMillis();
+        var it = pendingVerifications.entrySet().iterator();
+        while (it.hasNext()) {
+            var entry = it.next();
+            if (now >= entry.getValue()) {
+                BlockPos pos = entry.getKey();
+                if (client.level != null && client.level.getBlockState(pos).canBeReplaced()) {
+                    is.pig.minecraft.build.PiggyBuildClient.LOGGER.warn("AutoParkour block reverted! Falling back to MLG...");
+                    is.pig.minecraft.build.mlg.statemachine.MlgStateMachine.getInstance().forceFallState(client);
+                }
+                it.remove();
+            }
         }
 
         LocalPlayer player = client.player;
@@ -119,7 +137,7 @@ public class AutoParkourHandler {
             return;
         }
 
-        // Check CPS limit
+        // Check CPS limit locally so we don't spam the global queue continuously
         long currentTime = System.currentTimeMillis();
         int cps = is.pig.minecraft.build.config.PiggyBuildConfig.getInstance().getTickDelay();
         long minDelay = cps > 0 ? 1000L / cps : 0;
@@ -128,11 +146,26 @@ public class AutoParkourHandler {
             return;
         }
 
-        // Attempt placement
-        boolean success = BlockPlacer.placeBlock(targetPos, Direction.UP, InteractionHand.MAIN_HAND, minDelay == 0);
+        boolean ignoreGlobalCps = (cps <= 0);
+        net.minecraft.world.phys.BlockHitResult hitResult = BlockPlacer.createHitResult(targetPos, Direction.UP);
+        is.pig.minecraft.lib.action.IAction act = BlockPlacer.createAction(hitResult, InteractionHand.MAIN_HAND, ignoreGlobalCps);
         
-        if (success) {
-            lastPlacementTime = System.currentTimeMillis();
+        if (act != null) {
+            // AutoParkour uses HIGH priority 
+            var bulkAction = new is.pig.minecraft.lib.action.BulkAction(
+                    "piggy-build-parkour",
+                    is.pig.minecraft.lib.action.ActionPriority.HIGH,
+                    java.util.Collections.singletonList(act),
+                    () -> true, // Instant pass, let the ActionQueue advance immediately
+                    0, 
+                    "Auto Parkour Placement"
+            );
+            
+            if (ignoreGlobalCps) bulkAction.setIgnoreGlobalCps(true);
+            is.pig.minecraft.lib.action.PiggyActionQueue.getInstance().enqueue(bulkAction);
+
+            lastPlacementTime = currentTime;
+            pendingVerifications.put(targetPos, currentTime + 250); // Validate 5 ticks later asynchronously
         }
     }
 }

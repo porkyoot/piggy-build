@@ -11,7 +11,6 @@ import net.minecraft.core.Direction.Axis;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import is.pig.minecraft.build.mvc.model.BuildSession;
-import is.pig.minecraft.build.lib.placement.BlockPlacer;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -21,41 +20,9 @@ public class ShapePlacementHandler {
     private static final float EPSILON = 0.002f;
     
     private static final Queue<BlockPos> placementQueue = new LinkedList<>();
-    private static long lastPlacementTime = 0;
 
     public static void onTick(Minecraft client) {
-        if (placementQueue.isEmpty() || client.player == null) return;
-        
-        int cps = PiggyBuildConfig.getInstance().getTickDelay();
-        long minDelay = cps > 0 ? 1000L / cps : 0;
-        
-        long currentTime = System.currentTimeMillis();
-        
-        if (minDelay == 0) {
-            // Uncapped
-            while (!placementQueue.isEmpty()) {
-                BlockPos pos = placementQueue.poll();
-                placeAt(client, InteractionHand.MAIN_HAND, pos, true);
-            }
-            lastPlacementTime = currentTime;
-        } else {
-            // Rate Limited
-            if (currentTime - lastPlacementTime >= minDelay) {
-                int blocksToPlace = (int) ((currentTime - lastPlacementTime) / minDelay);
-                if (blocksToPlace > placementQueue.size()) {
-                    blocksToPlace = placementQueue.size();
-                }
-                
-                for (int i = 0; i < blocksToPlace; i++) {
-                    placeAt(client, InteractionHand.MAIN_HAND, placementQueue.poll(), false);
-                }
-                
-                lastPlacementTime += blocksToPlace * minDelay;
-                if (lastPlacementTime > currentTime) {
-                    lastPlacementTime = currentTime;
-                }
-            }
-        }
+        // Handled via BulkActions natively in PiggyActionQueue now
     }
 
     public static InteractionResult tryPlaceShape(Minecraft client, InteractionHand hand) {
@@ -99,8 +66,6 @@ public class ShapePlacementHandler {
             return InteractionResult.PASS;
         }
 
-        int initialSize = placementQueue.size();
-
         if (shape == BuildShape.LINE) {
             queueLine(client, anchor, axis, radius);
         } else if (shape == BuildShape.RING) {
@@ -109,10 +74,28 @@ public class ShapePlacementHandler {
             queueSphere(client, anchor, radius);
         }
 
-        if (placementQueue.size() > initialSize) {
-            if (initialSize == 0) {
-                lastPlacementTime = System.currentTimeMillis();
+        if (!placementQueue.isEmpty()) {
+            int cps = PiggyBuildConfig.getInstance().getTickDelay();
+            boolean ignoreGlobalCps = (cps <= 0);
+            
+            java.util.List<is.pig.minecraft.lib.action.IAction> actions = new java.util.ArrayList<>();
+            while (!placementQueue.isEmpty()) {
+                BlockPos pos = placementQueue.poll();
+                net.minecraft.world.phys.BlockHitResult hitResult = is.pig.minecraft.build.lib.placement.BlockPlacer.createHitResult(pos, Direction.UP);
+                is.pig.minecraft.lib.action.IAction act = is.pig.minecraft.build.lib.placement.BlockPlacer.createAction(hitResult, InteractionHand.MAIN_HAND, ignoreGlobalCps);
+                if (act != null) actions.add(act);
             }
+            
+            if (!actions.isEmpty()) {
+                var bulkAction = new is.pig.minecraft.lib.action.BulkAction(
+                        "piggy-build",
+                        "Shape Placement",
+                        actions
+                );
+                if (ignoreGlobalCps) bulkAction.setIgnoreGlobalCps(true);
+                is.pig.minecraft.lib.action.PiggyActionQueue.getInstance().enqueue(bulkAction);
+            }
+            
             return InteractionResult.SUCCESS;
         }
 
@@ -185,13 +168,5 @@ public class ShapePlacementHandler {
         }
     }
 
-    private static boolean placeAt(Minecraft client, InteractionHand hand, BlockPos targetPos, boolean ignoreGlobalCps) {
-        if (client.level == null || !client.level.getBlockState(targetPos).canBeReplaced()) {
-            return false;
-        }
 
-        // Just use the simplest placement: center face UP for prediction/packet.
-        // BlockPlacer.placeBlock takes care of generating the correct packet.
-        return BlockPlacer.placeBlock(targetPos, Direction.UP, hand, ignoreGlobalCps);
-    }
 }
