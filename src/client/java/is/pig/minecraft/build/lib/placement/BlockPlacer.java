@@ -3,17 +3,10 @@ package is.pig.minecraft.build.lib.placement;
 import is.pig.minecraft.build.PiggyBuildClient;
 import is.pig.minecraft.build.mixin.client.MinecraftAccessorMixin;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.client.multiplayer.MultiPlayerGameMode;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.network.protocol.game.ServerboundUseItemOnPacket;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -56,31 +49,34 @@ public class BlockPlacer {
      */
     public static boolean placeBlock(BlockHitResult hitResult, InteractionHand hand) {
         Minecraft mc = Minecraft.getInstance();
-        LocalPlayer player = mc.player;
-        MultiPlayerGameMode gameMode = mc.gameMode;
 
-        if (player == null || gameMode == null) {
+        if (mc.player == null || mc.gameMode == null) {
             return false;
         }
 
-        // Method 1: Try the clean approach - let the game handle everything
-        boolean success = placeUsingGameMode(mc, player, gameMode, hitResult, hand);
+        try {
+            ItemStack itemStack = mc.player.getItemInHand(hand);
+            boolean isWaterBucket = itemStack.is(net.minecraft.world.item.Items.WATER_BUCKET);
+            BlockPos targetPos = hitResult.getBlockPos().relative(hitResult.getDirection());
+            
+            java.util.function.BooleanSupplier verifyCondition = () -> {
+                if (mc.level == null) return false;
+                net.minecraft.world.level.block.state.BlockState state = mc.level.getBlockState(targetPos);
+                return isWaterBucket ? state.is(net.minecraft.world.level.block.Blocks.WATER) : !state.isAir();
+            };
 
-        if (success) {
+            ((MinecraftAccessorMixin) mc).setRightClickDelay(0);
+            is.pig.minecraft.lib.action.PiggyActionQueue.getInstance().enqueue(
+                new is.pig.minecraft.lib.action.world.InteractBlockAction(hitResult, hand, "piggy-build", verifyCondition)
+            );
+            ((MinecraftAccessorMixin) mc).setRightClickDelay(4);
+            
             triggerInventoryRefill(mc);
             return true;
+        } catch (Exception e) {
+            PiggyBuildClient.LOGGER.error("[BlockPlacer] Placement using action failed", e);
+            return false;
         }
-
-        // Method 2: If that fails, use direct packet + prediction
-        success = placeUsingPacket(mc, player, gameMode, hitResult, hand);
-
-        if (success) {
-            triggerInventoryRefill(mc);
-            return true;
-        }
-
-        PiggyBuildClient.LOGGER.warn("[BlockPlacer] Placement failed");
-        return false;
     }
 
     /**
@@ -95,88 +91,6 @@ public class BlockPlacer {
         } catch (Exception e) {
             // Piggy Inventory not installed, ignore.
         }
-    }
-
-    /**
-     * Method 1: Use the standard GameMode.useItemOn approach.
-     * This is the cleanest and most compatible method.
-     */
-    private static boolean placeUsingGameMode(Minecraft mc, LocalPlayer player,
-            MultiPlayerGameMode gameMode,
-            BlockHitResult hitResult,
-            InteractionHand hand) {
-        try {
-            // Clear any click delay to allow immediate placement
-            ((MinecraftAccessorMixin) mc).setRightClickDelay(0);
-
-            // Use the standard placement method
-            InteractionResult result = gameMode.useItemOn(player, hand, hitResult);
-
-            // Handle the result
-            if (result.consumesAction()) {
-                // Swing animation
-                if (result.shouldSwing()) {
-                    player.swing(hand);
-                }
-
-                // Restore normal delay
-                ((MinecraftAccessorMixin) mc).setRightClickDelay(4);
-
-                return true;
-            }
-
-            // Restore delay even on failure
-            ((MinecraftAccessorMixin) mc).setRightClickDelay(4);
-
-        } catch (Exception e) {
-            PiggyBuildClient.LOGGER.error("[BlockPlacer] GameMode method failed", e);
-        }
-
-        return false;
-    }
-
-    /**
-     * Method 2: Direct packet sending + client prediction.
-     * More manual control, used as fallback.
-     */
-    private static boolean placeUsingPacket(Minecraft mc, LocalPlayer player,
-            MultiPlayerGameMode gameMode,
-            BlockHitResult hitResult,
-            InteractionHand hand) {
-        try {
-            ClientPacketListener connection = mc.getConnection();
-            if (connection == null) {
-                return false;
-            }
-
-            // Send the packet to server
-            ServerboundUseItemOnPacket packet = new ServerboundUseItemOnPacket(hand, hitResult, 0);
-            connection.send(packet);
-
-            // Do client-side prediction
-            ItemStack itemStack = player.getItemInHand(hand);
-            Level level = player.level();
-
-            if (!itemStack.isEmpty() && level != null) {
-                UseOnContext context = new UseOnContext(player, hand, hitResult);
-                InteractionResult result = itemStack.useOn(context);
-
-                if (result.consumesAction()) {
-                    if (itemStack.isEmpty()) {
-                        player.setItemInHand(hand, ItemStack.EMPTY);
-                    }
-                    if (result.shouldSwing()) {
-                        player.swing(hand);
-                    }
-                    return true;
-                }
-            }
-
-        } catch (Exception e) {
-            PiggyBuildClient.LOGGER.error("[BlockPlacer] Packet method failed", e);
-        }
-
-        return false;
     }
 
     /**

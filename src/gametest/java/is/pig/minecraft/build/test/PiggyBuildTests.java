@@ -649,4 +649,37 @@ public class PiggyBuildTests {
         System.out.println("[TEST] Ghost block prevention logic verified");
         context.succeed();
     }
+
+    /**
+     * Test action timeout mechanism safely running without Minecraft client
+     */
+    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
+    public void testActionTimeout(GameTestHelper context) {
+        is.pig.minecraft.lib.action.PiggyActionQueue queue = is.pig.minecraft.lib.action.PiggyActionQueue.getInstance();
+        queue.clear("test-timeout");
+
+        queue.enqueue(new is.pig.minecraft.lib.action.AbstractAction("test-timeout", is.pig.minecraft.lib.action.ActionPriority.NORMAL, 10) {
+            @Override protected void onExecute(net.minecraft.client.Minecraft client) {}
+            @Override protected boolean verify(net.minecraft.client.Minecraft client) { return false; }
+            @Override public String getName() { return "Timeout Test Action"; }
+        });
+
+        for (int i = 0; i < 15; i++) {
+            queue.tick(null);
+        }
+
+        boolean[] executed = {false};
+        queue.enqueue(new is.pig.minecraft.lib.action.AbstractAction("test-timeout") {
+            @Override protected void onExecute(net.minecraft.client.Minecraft client) {}
+            @Override protected boolean verify(net.minecraft.client.Minecraft client) { executed[0] = true; return true; }
+            @Override public String getName() { return "Marker Action"; }
+        });
+
+        queue.tick(null); // start marker
+        queue.tick(null); // verify marker
+
+        context.assertTrue(executed[0], "Queue should have dropped the timed-out action and processed the next one");
+        System.out.println("[TEST] Action timeout logic successfully dropped frozen action");
+        context.succeed();
+    }
 }
