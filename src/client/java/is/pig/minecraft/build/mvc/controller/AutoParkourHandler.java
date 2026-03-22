@@ -129,7 +129,7 @@ public class AutoParkourHandler {
         }
 
         // Attempt placement
-        boolean success = BlockPlacer.placeBlock(targetPos, Direction.UP, InteractionHand.MAIN_HAND);
+        boolean success = BlockPlacer.placeBlock(targetPos, Direction.UP, InteractionHand.MAIN_HAND, minDelay == 0);
         
         if (success) {
             lastPlacementTime = System.currentTimeMillis();

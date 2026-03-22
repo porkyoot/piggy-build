@@ -8,7 +8,6 @@ import is.pig.minecraft.lib.ui.IconQueueOverlay;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
@@ -120,7 +119,6 @@ public class FastPlacementHandler {
      * Actually perform the block placement
      */
     private void performFastPlace(Minecraft client, BlockHitResult hitResult) {
-        LocalPlayer player = client.player;
 
         // Update last placement time immediately to enforce rate limit
         // We do this regardless of success to prevent spamming the server/client logic
