@@ -35,7 +35,7 @@ public class ShapePlacementHandler {
             // Uncapped
             while (!placementQueue.isEmpty()) {
                 BlockPos pos = placementQueue.poll();
-                placeAt(client, InteractionHand.MAIN_HAND, pos);
+                placeAt(client, InteractionHand.MAIN_HAND, pos, true);
             }
             lastPlacementTime = currentTime;
         } else {
@@ -47,7 +47,7 @@ public class ShapePlacementHandler {
                 }
                 
                 for (int i = 0; i < blocksToPlace; i++) {
-                    placeAt(client, InteractionHand.MAIN_HAND, placementQueue.poll());
+                    placeAt(client, InteractionHand.MAIN_HAND, placementQueue.poll(), false);
                 }
                 
                 lastPlacementTime += blocksToPlace * minDelay;
@@ -185,13 +185,13 @@ public class ShapePlacementHandler {
         }
     }
 
-    private static boolean placeAt(Minecraft client, InteractionHand hand, BlockPos targetPos) {
+    private static boolean placeAt(Minecraft client, InteractionHand hand, BlockPos targetPos, boolean ignoreGlobalCps) {
         if (client.level == null || !client.level.getBlockState(targetPos).canBeReplaced()) {
             return false;
         }
 
         // Just use the simplest placement: center face UP for prediction/packet.
         // BlockPlacer.placeBlock takes care of generating the correct packet.
-        return BlockPlacer.placeBlock(targetPos, Direction.UP, hand);
+        return BlockPlacer.placeBlock(targetPos, Direction.UP, hand, ignoreGlobalCps);
     }
 }

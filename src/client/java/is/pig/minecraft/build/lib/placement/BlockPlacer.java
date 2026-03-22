@@ -27,6 +27,10 @@ public class BlockPlacer {
      * @return true if placement was successful
      */
     public static boolean placeBlock(BlockPos pos, Direction face, InteractionHand hand) {
+        return placeBlock(pos, face, hand, false);
+    }
+
+    public static boolean placeBlock(BlockPos pos, Direction face, InteractionHand hand, boolean ignoreGlobalCps) {
         Minecraft mc = Minecraft.getInstance();
 
         if (mc.player == null || mc.gameMode == null) {
@@ -36,7 +40,7 @@ public class BlockPlacer {
         // Create a BlockHitResult for this position and face
         BlockHitResult hitResult = createHitResult(pos, face);
 
-        return placeBlock(hitResult, hand);
+        return placeBlock(hitResult, hand, ignoreGlobalCps);
     }
 
     /**
@@ -48,6 +52,10 @@ public class BlockPlacer {
      * @return true if placement was successful
      */
     public static boolean placeBlock(BlockHitResult hitResult, InteractionHand hand) {
+        return placeBlock(hitResult, hand, false);
+    }
+
+    public static boolean placeBlock(BlockHitResult hitResult, InteractionHand hand, boolean ignoreGlobalCps) {
         Minecraft mc = Minecraft.getInstance();
 
         if (mc.player == null || mc.gameMode == null) {
@@ -66,9 +74,9 @@ public class BlockPlacer {
             };
 
             ((MinecraftAccessorMixin) mc).setRightClickDelay(0);
-            is.pig.minecraft.lib.action.PiggyActionQueue.getInstance().enqueue(
-                new is.pig.minecraft.lib.action.world.InteractBlockAction(hitResult, hand, "piggy-build", verifyCondition)
-            );
+            var action = new is.pig.minecraft.lib.action.world.InteractBlockAction(hitResult, hand, "piggy-build", verifyCondition);
+            if (ignoreGlobalCps) action.setIgnoreGlobalCps(true);
+            is.pig.minecraft.lib.action.PiggyActionQueue.getInstance().enqueue(action);
             ((MinecraftAccessorMixin) mc).setRightClickDelay(4);
             
             triggerInventoryRefill(mc);

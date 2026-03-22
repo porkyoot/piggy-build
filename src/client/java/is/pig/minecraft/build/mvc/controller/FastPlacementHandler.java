@@ -98,7 +98,8 @@ public class FastPlacementHandler {
         int cps = PiggyBuildConfig.getInstance().getTickDelay();
         long minDelay = cps > 0 ? 1000L / cps : 0;
 
-        if (currentTime - lastPlacementTime < minDelay) {
+        // Allow up to 25ms of jitter to align with ticks, since client tick is 50ms
+        if (minDelay > 0 && (currentTime - lastPlacementTime + 25) < minDelay) {
             return;
         }
 
@@ -142,6 +143,9 @@ public class FastPlacementHandler {
                     finalHitResult = handler.modifyHitResult(client, hitResult);
                 }
             }
+            
+            int cps = PiggyBuildConfig.getInstance().getTickDelay();
+            boolean ignoreGlobalCps = (cps <= 0);
 
             if (finalHitResult == null) {
                 return;
@@ -162,11 +166,10 @@ public class FastPlacementHandler {
                 }
             }
 
-            // Perform the placement through the game mode with the (possibly modified) hit
-            // result
-            InteractionResult result = client.gameMode.useItemOn(player, hand, finalHitResult);
+            // Perform the placement through the centralized block placer which queues an InteractBlockAction
+            boolean success = is.pig.minecraft.build.lib.placement.BlockPlacer.placeBlock(finalHitResult, hand, ignoreGlobalCps);
 
-            if (result.consumesAction()) {
+            if (success) {
                 // Advance the session lock ONLY if the block placed actually consumed an action
                 // locally
                 if (handler != null) {
@@ -181,11 +184,6 @@ public class FastPlacementHandler {
 
                 // Track this position to prevent re-placing ghost blocks locally
                 recentlyPlaced.put(blockPos.immutable(), System.currentTimeMillis());
-
-                // Swing animation
-                if (result.shouldSwing()) {
-                    player.swing(hand);
-                }
             }
 
         } catch (Exception e) {
@@ -214,15 +212,26 @@ public class FastPlacementHandler {
 
             // 2. Adjust Speed (Blocks Per Second) (CPS)
             int currentCps = config.getTickDelay();
-            if (currentCps <= 0) currentCps = 20; // 0 is unlimited, treat as 20 for scrolling
-            
-            // Adjust speed: +1 for Scroll Up, -1 for Scroll Down
-            int change = amount > 0 ? 1 : -1;
-            int newCps = currentCps + change;
+            int newCps = currentCps;
 
-            // Clamp speed: Min 1 block/sec (1000ms), Max 20 blocks/sec (50ms)
-            if (newCps < 1) newCps = 1;
-            if (newCps > 20) newCps = 20;
+            // Adjust speed: +1 for Scroll Up, -1 for Scroll Down
+            if (amount > 0) {
+                // Scroll Up: Increase speed (up to 20, then 0 for unlimited)
+                if (currentCps == 0) {
+                    newCps = 0; // Already maxed at unlimited
+                } else if (currentCps >= 20) {
+                    newCps = 0; // Jump to unlimited
+                } else {
+                    newCps = currentCps + 1;
+                }
+            } else {
+                // Scroll Down: Decrease speed
+                if (currentCps <= 0) {
+                    newCps = 20; // Jump down from unlimited to 20
+                } else {
+                    newCps = Math.max(1, currentCps - 1);
+                }
+            }
 
             if (newCps != currentCps) {
                 config.setTickDelay(newCps);

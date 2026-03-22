@@ -4,6 +4,7 @@ import dev.isxander.yacl3.api.*;
 import dev.isxander.yacl3.api.controller.ColorControllerBuilder;
 import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
 import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
+import dev.isxander.yacl3.api.controller.StringControllerBuilder;
 
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -83,58 +84,97 @@ public class ConfigScreenFactory {
                                 .build())
                         .build())
 
-                // FLEXIBLE PLACEMENT CATEGORY
+                // FEATURES CATEGORY
                 .category(ConfigCategory.createBuilder()
-                        .name(Component.literal("Flexible Placement"))
-                        .tooltip(Component.literal("Settings for Directional and Diagonal placement"))
-                        .option(Option.<Boolean>createBuilder()
-                                .name(Component.literal("Enable Flexible Placement"))
-                                .description(OptionDescription.of(
-                                        Component.literal("Master switch for Directional and Diagonal placement."),
-                                        Component.literal(""),
-                                        Component.literal("If Anti-Cheat is active, this cannot be enabled.")))
-                                .available(config.isFlexiblePlacementEditable()) // Gray out if enforced
-                                .binding(
-                                        true,
-                                        config::isFlexiblePlacementEnabled,
-                                        config::setFlexiblePlacementEnabled)
-                                .controller(TickBoxControllerBuilder::create)
+                        .name(Component.literal("Features"))
+                        .tooltip(Component.literal("Configuration for all build features and their keybindings."))
+                        
+                        // Flexible Placement Group
+                        .group(OptionGroup.createBuilder()
+                                .name(Component.literal("Flexible Placement"))
+                                .option(Option.<Boolean>createBuilder()
+                                        .name(Component.literal("Enable Flexible Placement"))
+                                        .description(OptionDescription.of(
+                                                Component.literal("Master switch for Directional and Diagonal placement."),
+                                                Component.literal(""),
+                                                Component.literal("If Anti-Cheat is active, this cannot be enabled.")))
+                                        .available(config.isFlexiblePlacementEditable()) // Gray out if enforced
+                                        .binding(
+                                                true,
+                                                config::isFlexiblePlacementEnabled,
+                                                config::setFlexiblePlacementEnabled)
+                                        .controller(TickBoxControllerBuilder::create)
+                                        .build())
+                                .option(Option.<String>createBuilder()
+                                        .name(Component.literal("Directional Keybinding"))
+                                        .available(false)
+                                        .binding(
+                                                "",
+                                                () -> is.pig.minecraft.build.mvc.controller.InputController.directionalKey.getTranslatedKeyMessage().getString(),
+                                                v -> {})
+                                        .controller(dev.isxander.yacl3.api.controller.StringControllerBuilder::create)
+                                        .build())
+                                .option(Option.<String>createBuilder()
+                                        .name(Component.literal("Diagonal Keybinding"))
+                                        .available(false)
+                                        .binding(
+                                                "",
+                                                () -> is.pig.minecraft.build.mvc.controller.InputController.diagonalKey.getTranslatedKeyMessage().getString(),
+                                                v -> {})
+                                        .controller(dev.isxander.yacl3.api.controller.StringControllerBuilder::create)
+                                        .build())
                                 .build())
-                        .build())
-
-                // FAST PLACEMENT CATEGORY
-                .category(ConfigCategory.createBuilder()
-                        .name(Component.literal("Fast Placement"))
-                        .tooltip(Component.literal("Configure fast block placement settings"))
-                        .option(Option.<Boolean>createBuilder()
-                                .name(Component.literal("Enable Fast Place/Break"))
-                                .description(OptionDescription.of(
-                                        Component.literal("Enables fast placement and breaking features."),
-                                        Component.literal("If Anti-Cheat is active, this cannot be enabled.")))
-                                .available(config.isFastPlaceEditable()) // Gray out if enforced
-                                .binding(
-                                        false,
-                                        config::isFastPlaceEnabled,
-                                        config::setFastPlaceEnabled)
-                                .controller(TickBoxControllerBuilder::create)
+                                
+                        // Fast Placement Group
+                        .group(OptionGroup.createBuilder()
+                                .name(Component.literal("Fast Placement"))
+                                .option(Option.<Boolean>createBuilder()
+                                        .name(Component.literal("Enable Fast Place/Break"))
+                                        .description(OptionDescription.of(
+                                                Component.literal("Enables fast placement and breaking features."),
+                                                Component.literal("If Anti-Cheat is active, this cannot be enabled.")))
+                                        .available(config.isFastPlaceEditable()) // Gray out if enforced
+                                        .binding(
+                                                false,
+                                                config::isFastPlaceEnabled,
+                                                config::setFastPlaceEnabled)
+                                        .controller(TickBoxControllerBuilder::create)
+                                        .build())
+                                .option(Option.<String>createBuilder()
+                                        .name(Component.literal("Fast Place Keybinding"))
+                                        .available(false)
+                                        .binding(
+                                                "",
+                                                () -> is.pig.minecraft.build.mvc.controller.InputController.fastPlaceKey.getTranslatedKeyMessage().getString(),
+                                                v -> {})
+                                        .controller(dev.isxander.yacl3.api.controller.StringControllerBuilder::create)
+                                        .build())
                                 .build())
-                        .build())
 
-                // AUTO PARKOUR CATEGORY
-                .category(ConfigCategory.createBuilder()
-                        .name(Component.literal("Auto Parkour"))
-                        .tooltip(Component.literal("Configure auto parkour settings"))
-                        .option(Option.<Boolean>createBuilder()
-                                .name(Component.literal("Enable Auto Parkour"))
-                                .description(OptionDescription.of(
-                                        Component.literal("Automatically place blocks below you when running and jumping."),
-                                        Component.literal("If Anti-Cheat is active, this cannot be enabled.")))
-                                .available(config.isAutoParkourEditable())
-                                .binding(
-                                        false,
-                                        config::isAutoParkourEnabled,
-                                        config::setAutoParkourEnabled)
-                                .controller(TickBoxControllerBuilder::create)
+                        // Auto Parkour Group
+                        .group(OptionGroup.createBuilder()
+                                .name(Component.literal("Auto Parkour"))
+                                .option(Option.<Boolean>createBuilder()
+                                        .name(Component.literal("Enable Auto Parkour"))
+                                        .description(OptionDescription.of(
+                                                Component.literal("Automatically place blocks below you when running and jumping."),
+                                                Component.literal("If Anti-Cheat is active, this cannot be enabled.")))
+                                        .available(config.isAutoParkourEditable())
+                                        .binding(
+                                                false,
+                                                config::isAutoParkourEnabled,
+                                                config::setAutoParkourEnabled)
+                                        .controller(TickBoxControllerBuilder::create)
+                                        .build())
+                                .option(Option.<String>createBuilder()
+                                        .name(Component.literal("Auto Parkour Keybinding"))
+                                        .available(false)
+                                        .binding(
+                                                "",
+                                                () -> is.pig.minecraft.build.mvc.controller.InputController.autoParkourKey.getTranslatedKeyMessage().getString(),
+                                                v -> {})
+                                        .controller(dev.isxander.yacl3.api.controller.StringControllerBuilder::create)
+                                        .build())
                                 .build())
                         .build())
 
