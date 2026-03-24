@@ -4,6 +4,7 @@ import is.pig.minecraft.build.mlg.method.strategy.MlgCleanupStrategy;
 import is.pig.minecraft.build.mlg.method.strategy.MlgExecutionConditionStrategy;
 import is.pig.minecraft.build.mlg.method.strategy.MlgExecutionStrategy;
 import is.pig.minecraft.build.mlg.method.strategy.MlgPreparationStrategy;
+import is.pig.minecraft.build.mlg.method.strategy.MlgTickOffsetStrategy;
 import is.pig.minecraft.build.mlg.method.strategy.MlgViabilityStrategy;
 import is.pig.minecraft.build.mlg.prediction.FallPredictionResult;
 import is.pig.minecraft.lib.action.PiggyActionQueue;
@@ -13,16 +14,40 @@ public record ComposedMlgMethod(
         boolean negatesAllDamage,
         int getReliabilityScore,
         int getCleanupDifficulty,
-        int getPreparationTickOffset,
+        MlgTickOffsetStrategy preparationTickOffset,
         MlgViabilityStrategy viability,
         MlgPreparationStrategy preparation,
         MlgExecutionConditionStrategy executionCondition,
         MlgExecutionStrategy execution,
-        MlgCleanupStrategy cleanup
+        MlgCleanupStrategy cleanup,
+        float getSelfDamage,
+        float getFallDamageMultiplier,
+        boolean requiresBounceSettlement,
+        boolean isPositionDependent
 ) implements MlgMethod {
 
     @Override
     public boolean isViable(Minecraft client, FallPredictionResult prediction) {
+        if (client.player != null) {
+            float expectedFallDamage = 0.0f;
+            
+            if (getSelfDamage() > 0) {
+                expectedFallDamage += getSelfDamage();
+            }
+            
+            if (!negatesAllDamage() && getFallDamageMultiplier() > 0.0f) {
+                float baseDamage = Math.max(0, prediction.fallDistance() - 3.0f);
+                expectedFallDamage += baseDamage * getFallDamageMultiplier();
+            }
+
+            if (expectedFallDamage > 0) {
+                float actualDamageTaken = is.pig.minecraft.build.mlg.prediction.HealthPrediction.applyDamageResistances(client.player, expectedFallDamage);
+                if (actualDamageTaken >= (client.player.getHealth() + client.player.getAbsorptionAmount())) {
+                    return false;
+                }
+            }
+        }
+
         if (viability == null) return true;
         return viability.isViable(client, prediction);
     }
@@ -54,6 +79,17 @@ public record ComposedMlgMethod(
         }
     }
 
+    @Override
+    public boolean isCleanupFinished(Minecraft client, FallPredictionResult prediction) {
+        if (cleanup == null) return true;
+        return cleanup.isFinished(client, prediction);
+    }
+
+    public int getPreparationTickOffset(Minecraft client, FallPredictionResult prediction) {
+        if (preparationTickOffset == null) return 15;
+        return preparationTickOffset.getOffset(client, prediction);
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -62,7 +98,11 @@ public record ComposedMlgMethod(
         private boolean negatesAllDamage = false;
         private int reliabilityScore = 50;
         private int cleanupDifficulty = 1;
-        private int preparationTickOffset = 15;
+        private MlgTickOffsetStrategy preparationTickOffset;
+        private float selfDamage = 0.0f;
+        private float fallDamageMultiplier = 0.0f;
+        private boolean requiresBounceSettlement = false;
+        private boolean isPositionDependent = true;
         
         private MlgViabilityStrategy viability;
         private MlgPreparationStrategy preparation;
@@ -85,7 +125,7 @@ public record ComposedMlgMethod(
             return this;
         }
 
-        public Builder preparationTickOffset(int preparationTickOffset) {
+        public Builder preparationTickOffset(MlgTickOffsetStrategy preparationTickOffset) {
             this.preparationTickOffset = preparationTickOffset;
             return this;
         }
@@ -115,6 +155,26 @@ public record ComposedMlgMethod(
             return this;
         }
 
+        public Builder selfDamage(float selfDamage) {
+            this.selfDamage = selfDamage;
+            return this;
+        }
+
+        public Builder fallDamageMultiplier(float fallDamageMultiplier) {
+            this.fallDamageMultiplier = fallDamageMultiplier;
+            return this;
+        }
+
+        public Builder requiresBounceSettlement(boolean requiresBounceSettlement) {
+            this.requiresBounceSettlement = requiresBounceSettlement;
+            return this;
+        }
+
+        public Builder isPositionDependent(boolean isPositionDependent) {
+            this.isPositionDependent = isPositionDependent;
+            return this;
+        }
+
         public ComposedMlgMethod build() {
             return new ComposedMlgMethod(
                     negatesAllDamage,
@@ -125,7 +185,11 @@ public record ComposedMlgMethod(
                     preparation,
                     executionCondition,
                     execution,
-                    cleanup
+                    cleanup,
+                    selfDamage,
+                    fallDamageMultiplier,
+                    requiresBounceSettlement,
+                    isPositionDependent
             );
         }
     }

@@ -8,11 +8,15 @@ import is.pig.minecraft.lib.action.world.AttackEntityAction;
 import is.pig.minecraft.lib.action.world.BreakBlockAction;
 import is.pig.minecraft.lib.action.world.InteractBlockAction;
 import is.pig.minecraft.lib.action.world.UseItemAction;
+import is.pig.minecraft.lib.action.PiggyActionQueue;
+import is.pig.minecraft.build.mlg.prediction.FallPredictionResult;
 import is.pig.minecraft.lib.inventory.search.InventorySearcher;
 import is.pig.minecraft.lib.inventory.search.ItemCondition;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -32,6 +36,19 @@ import java.util.function.Supplier;
 public final class MlgStrategies {
 
     private MlgStrategies() {}
+
+    // --- UTILS ---
+    private static SetRotationAction lookAt(Vec3 targetVec, Minecraft client) {
+        if (client.player == null) return new SetRotationAction(0, 0, "piggy-build");
+        Vec3 diff = targetVec.subtract(client.player.getEyePosition());
+        double distance = diff.horizontalDistance();
+        float yaw = (float) (Math.atan2(diff.z, diff.x) * (180.0 / Math.PI)) - 90.0f;
+        float pitch = (float) -(Math.atan2(diff.y, distance) * (180.0 / Math.PI));
+        return new SetRotationAction(pitch, yaw, "piggy-build") {
+            @Override
+            public ActionPriority getPriority() { return ActionPriority.NORMAL; }
+        };
+    }
 
     // --- VIABILITY ---
 
@@ -140,7 +157,44 @@ public final class MlgStrategies {
         };
     }
 
+    // --- PREPARATION TIMING ---
+    
+    public static MlgTickOffsetStrategy dynamicPreparation() {
+        return (client, prediction) -> {
+            if (client.player == null) return 15;
+            double velocityY = Math.abs(client.player.getDeltaMovement().y);
+            // Dynamic scale: Base 10 ticks + up to 20 velocity ticks + up to ~10 distance ticks.
+            int offset = (int) (10 + (velocityY * 5.0) + (prediction.fallDistance() * 0.05));
+            return Math.min(30, Math.max(10, offset));
+        };
+    }
+
+    public static MlgTickOffsetStrategy fixedPreparationTicks(int ticks) {
+        return (client, prediction) -> ticks;
+    }
+
     // --- EXECUTION CONDITIONS ---
+
+    public static MlgExecutionConditionStrategy dynamicReach() {
+        return (client, prediction) -> {
+            if (client.player == null) return false;
+            BlockPos targetPos = prediction.landingPos();
+            
+            // Interaction face natively at the top-center of the target block
+            Vec3 target = Vec3.atCenterOf(targetPos).add(0, 0.5, 0);
+            double distance = client.player.getEyePosition().distanceTo(target);
+            
+            double velocityY = Math.abs(client.player.getDeltaMovement().y);
+            
+            // Server strict interactive bounds scale rigidly up to ~4.5 blocks.
+            // When falling slowly, deploy explicitly at 4.0 blocks to strictly pass server survival audits.
+            // When intercepting physics at terminal speeds (3.9 blocks/tick), deploy earlier (5.5) completely
+            // overriding interpolation single-tick frame loss assuring actions broadcast before impact arrays calculate.
+            double dynamicReachMargin = Math.min(5.5, 4.0 + (velocityY * 0.5));
+            
+            return distance <= dynamicReachMargin;
+        };
+    }
 
     public static MlgExecutionConditionStrategy withinDistance(double blocks) {
         return (client, prediction) -> {
@@ -161,8 +215,35 @@ public final class MlgStrategies {
 
     public static MlgExecutionStrategy interactBlock(BiPredicate<Minecraft, BlockPos> verification) {
         return (queue, client, prediction) -> {
+            is.pig.minecraft.lib.util.PiggyLog logger = new is.pig.minecraft.lib.util.PiggyLog("piggy-build", "MlgExecution");
             BlockPos pos = prediction.landingPos().below();
             BlockHitResult hitResult = new BlockHitResult(Vec3.atCenterOf(pos).add(0, 0.5, 0), Direction.UP, pos, false);
+            Vec3 hitVec = hitResult.getLocation();
+            double hitVecDist = client.player.getEyePosition().distanceTo(hitVec);
+            
+            logger.info("[MLG EXEC] ---- Executing Interaction! ----");
+            logger.info(String.format("[MLG EXEC] Target Block: %s, Computed HitVec Dist: %.2f", pos, hitVecDist));
+            
+            // Server strict survival interaction reach is ~4.5. Additionally, the targeted block MUST
+            // not geometrically intersect the player's collision bounds otherwise the Server rejects it
+            // resulting in a deadly "ghost block". At extreme velocities, clients leap entirely over this
+            // physical margin in a single tick!
+            // Solution: We definitively inject an intermediate position packet anchoring the player perfectly
+            // 4.0 blocks above the target natively prior to Interaction execution smoothing out the networking 
+            // bounds effortlessly beating Vanilla validations completely natively!
+            double targetEyeY = hitVec.y + 4.0;
+            double targetFeetY = targetEyeY - client.player.getEyeHeight();
+            
+            // Ensure the interpolation respects the downward gravity momentum flawlessly avoiding Anti-Cheat flagged uplifts
+            if (client.getConnection() != null && targetFeetY <= client.player.getY()) {
+                logger.info(String.format("[MLG EXEC] Interpolating Physics! Injecting intermediate Pos Packet at Y: %.2f", targetFeetY));
+                client.getConnection().send(new ServerboundMovePlayerPacket.Pos(
+                        client.player.getX(), targetFeetY, client.player.getZ(), client.player.onGround()));
+            }
+
+            if (client.player != null) {
+                logger.info(String.format("[MLG EXEC] Main Hand: %s", BuiltInRegistries.ITEM.getKey(client.player.getMainHandItem().getItem())));
+            }
             
             BooleanSupplier verifySuccess = () -> {
                 boolean result = verification.test(client, pos);
@@ -221,77 +302,137 @@ public final class MlgStrategies {
     // --- CLEANUP ---
 
     public static MlgCleanupStrategy breakBlock() {
-        return (queue, client, prediction) -> {
-            BlockPos targetPos = prediction.landingPos();
-            queue.enqueue(new BreakBlockAction(targetPos, "piggy-build", ActionPriority.NORMAL));
+        return new MlgCleanupStrategy() {
+            @Override
+            public void queueCleanup(PiggyActionQueue queue, Minecraft client, FallPredictionResult prediction) {
+                BlockPos targetPos = prediction.landingPos();
+                queue.enqueue(new BreakBlockAction(targetPos, "piggy-build", ActionPriority.NORMAL));
+            }
+
+            @Override
+            public boolean isFinished(Minecraft client, FallPredictionResult prediction) {
+                if (client.level == null) return true;
+                return client.level.isEmptyBlock(prediction.landingPos());
+            }
         };
     }
 
     public static MlgCleanupStrategy breakBlockWithToolSwap(Item toolTarget) {
-        return (queue, client, prediction) -> {
-            BlockPos targetPos = prediction.landingPos();
-            
-            try {
-                if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("piggy-inventory")) {
-                    Class<?> handlerClass = Class.forName("is.pig.minecraft.inventory.mvc.controller.ToolSwapHandler");
-                    Object handlerInstance = handlerClass.getDeclaredConstructor().newInstance();
-                    java.lang.reflect.Method getBestToolSlotMethod = handlerClass.getMethod("getBestToolSlot", Minecraft.class, BlockPos.class, BlockState.class);
-                    BlockState targetState = client.level != null ? client.level.getBlockState(targetPos) : net.minecraft.world.level.block.Blocks.COBWEB.defaultBlockState();
-                    int bestSlot = (Integer) getBestToolSlotMethod.invoke(handlerInstance, client, targetPos, targetState);
+        return new MlgCleanupStrategy() {
+            @Override
+            public void queueCleanup(PiggyActionQueue queue, Minecraft client, FallPredictionResult prediction) {
+                BlockPos targetPos = prediction.landingPos();
+                
+                try {
+                    if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("piggy-inventory")) {
+                        Class<?> handlerClass = Class.forName("is.pig.minecraft.inventory.mvc.controller.ToolSwapHandler");
+                        Object handlerInstance = handlerClass.getDeclaredConstructor().newInstance();
+                        java.lang.reflect.Method getBestToolSlotMethod = handlerClass.getMethod("getBestToolSlot", Minecraft.class, BlockPos.class, BlockState.class);
+                        BlockState targetState = client.level != null ? client.level.getBlockState(targetPos) : net.minecraft.world.level.block.Blocks.COBWEB.defaultBlockState();
+                        int bestSlot = (Integer) getBestToolSlotMethod.invoke(handlerInstance, client, targetPos, targetState);
 
-                    if (bestSlot != -1 && client.player != null && bestSlot != client.player.getInventory().selected) {
-                        queue.enqueue(new SelectHotbarSlotAction(bestSlot, "piggy-build") {
-                            @Override
-                            public ActionPriority getPriority() {
-                                return ActionPriority.NORMAL;
-                            }
-                        });
+                        if (bestSlot != -1 && client.player != null && bestSlot != client.player.getInventory().selected) {
+                            queue.enqueue(new SelectHotbarSlotAction(bestSlot, "piggy-build") {
+                                @Override
+                                public ActionPriority getPriority() {
+                                    return ActionPriority.NORMAL;
+                                }
+                            });
+                        }
                     }
+                } catch (Exception t) {
+                    // Silently fallback if piggy-inventory isn't linked/available successfully
                 }
-            } catch (Exception t) {
-                // Silently fallback if piggy-inventory isn't linked/available successfully
+
+                queue.enqueue(new BreakBlockAction(targetPos, "piggy-build", ActionPriority.NORMAL));
             }
 
-            queue.enqueue(new BreakBlockAction(targetPos, "piggy-build", ActionPriority.NORMAL));
+            @Override
+            public boolean isFinished(Minecraft client, FallPredictionResult prediction) {
+                if (client.level == null) return true;
+                return client.level.isEmptyBlock(prediction.landingPos());
+            }
         };
     }
 
     public static MlgCleanupStrategy scoopItem() {
-        return (queue, client, prediction) -> {
-            BooleanSupplier verifyScooped = () -> client.level != null && client.level.getBlockState(prediction.landingPos()).isAir();
-            
-            queue.enqueue(new UseItemAction(InteractionHand.MAIN_HAND, "piggy-build", verifyScooped) {
-                @Override
-                public ActionPriority getPriority() {
-                    return ActionPriority.NORMAL;
+        return new MlgCleanupStrategy() {
+            @Override
+            public void queueCleanup(PiggyActionQueue queue, Minecraft client, FallPredictionResult prediction) {
+                if (client.player == null) return;
+                
+                int bucketSlot = is.pig.minecraft.lib.inventory.search.InventorySearcher.findSlotInHotbar(client.player.getInventory(), s -> s.is(net.minecraft.world.item.Items.BUCKET));
+                if (bucketSlot != -1 && bucketSlot != client.player.getInventory().selected) {
+                    queue.enqueue(new SelectHotbarSlotAction(bucketSlot, "piggy-build") {
+                        @Override
+                        public ActionPriority getPriority() {
+                            return ActionPriority.NORMAL;
+                        }
+                    });
                 }
-            });
+
+                queue.enqueue(lookAt(Vec3.atCenterOf(prediction.landingPos()), client));
+
+                BooleanSupplier verifyScooped = () -> client.level != null && client.level.getBlockState(prediction.landingPos()).isAir();
+                
+                queue.enqueue(new UseItemAction(InteractionHand.MAIN_HAND, "piggy-build", verifyScooped) {
+                    @Override
+                    public ActionPriority getPriority() {
+                        return ActionPriority.NORMAL;
+                    }
+                });
+            }
+
+            @Override
+            public boolean isFinished(Minecraft client, FallPredictionResult prediction) {
+                if (client.level == null || client.player == null) return true;
+                
+                if (!client.level.getBlockState(prediction.landingPos()).is(net.minecraft.world.level.block.Blocks.WATER)) return true;
+                
+                // If the block is technically still water (flowing, updating), but our hand natively holds the filled Water Bucket,
+                // we've successfully scooped! Returning true here explicitly terminates the recursive placement desync organically.
+                if (client.player.getMainHandItem().is(net.minecraft.world.item.Items.WATER_BUCKET)) return true;
+                
+                return false;
+            }
         };
     }
 
     public static MlgCleanupStrategy attackEntity(Class<? extends Entity> entityClass) {
-        return (queue, client, prediction) -> {
-            Supplier<Entity> entityLocator = () -> {
-                if (client.level == null || client.player == null) return null;
-                List<? extends Entity> entities = client.level.getEntitiesOfClass(
-                        entityClass,
-                        client.player.getBoundingBox().inflate(4),
-                        e -> true);
-                if (entities.isEmpty()) return null;
-                
-                Entity closest = null;
-                double minDistance = Double.MAX_VALUE;
-                for (Entity e : entities) {
-                    double dist = e.distanceToSqr(client.player);
-                    if (dist < minDistance) {
-                        minDistance = dist;
-                        closest = e;
+        return new MlgCleanupStrategy() {
+            @Override
+            public void queueCleanup(PiggyActionQueue queue, Minecraft client, FallPredictionResult prediction) {
+                Supplier<Entity> entityLocator = () -> {
+                    if (client.level == null || client.player == null) return null;
+                    List<? extends Entity> entities = client.level.getEntitiesOfClass(
+                            entityClass,
+                            client.player.getBoundingBox().inflate(4),
+                            e -> true);
+                    if (entities.isEmpty()) return null;
+                    
+                    Entity closest = null;
+                    double minDistance = Double.MAX_VALUE;
+                    for (Entity e : entities) {
+                        double dist = e.distanceToSqr(client.player);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            closest = e;
+                        }
                     }
-                }
-                return closest;
-            };
+                    return closest;
+                };
 
-            queue.enqueue(new AttackEntityAction(entityLocator, "piggy-build", ActionPriority.HIGHEST));
+                queue.enqueue(new AttackEntityAction(entityLocator, "piggy-build", ActionPriority.NORMAL));
+            }
+
+            @Override
+            public boolean isFinished(Minecraft client, FallPredictionResult prediction) {
+                if (client.level == null || client.player == null) return true;
+                return client.level.getEntitiesOfClass(
+                        entityClass,
+                        new net.minecraft.world.phys.AABB(prediction.landingPos()).inflate(2),
+                        e -> true).isEmpty();
+            }
         };
     }
 
@@ -352,13 +493,23 @@ public final class MlgStrategies {
     }
 
     public static MlgCleanupStrategy releaseUseItem() {
-        return (queue, client, prediction) -> {
-            queue.enqueue(new is.pig.minecraft.lib.action.player.HoldKeyAction(client.options.keyUse, false, "piggy-build") {
-                @Override
-                public ActionPriority getPriority() {
-                    return ActionPriority.HIGHEST;
-                }
-            });
+        return new MlgCleanupStrategy() {
+            @Override
+            public void queueCleanup(PiggyActionQueue queue, Minecraft client, FallPredictionResult prediction) {
+                queue.enqueue(new is.pig.minecraft.lib.action.player.HoldKeyAction(client.options.keyUse, false, "piggy-build") {
+                    @Override
+                    public ActionPriority getPriority() {
+                        return ActionPriority.NORMAL;
+                    }
+                });
+            }
+
+            @Override
+            public boolean isFinished(Minecraft client, FallPredictionResult prediction) {
+                // Key releasing events conclude unconditionally physically upon Action queue execution!
+                // Wait for the release action to perfectly drain from the queue before reporting finished natively.
+                return !PiggyActionQueue.getInstance().hasActions("piggy-build");
+            }
         };
     }
 }

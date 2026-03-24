@@ -20,10 +20,9 @@ public interface MlgMethod {
     void queuePreparationActions(PiggyActionQueue queue, Minecraft client, FallPredictionResult prediction);
 
     /**
-     * Determines how many ticks before impact the PREPARATION actions should be triggered.
-     * Defaults to 5; higher values trigger preparation immediately if required (e.g., Chorus Fruit consumption).
+     * Determines how many ticks before impact the PREPARATION actions should be triggered dynamically.
      */
-    int getPreparationTickOffset();
+    int getPreparationTickOffset(Minecraft client, FallPredictionResult prediction);
 
     /**
      * Queues actions to execute the MLG placing.
@@ -36,7 +35,34 @@ public interface MlgMethod {
     void queueCleanupActions(PiggyActionQueue queue, Minecraft client, FallPredictionResult prediction);
 
     /**
+     * Dynamically continuously queries if the requested cleanup actions have fully resolved geometry in the world natively.
+     */
+    boolean isCleanupFinished(Minecraft client, FallPredictionResult prediction);
+
+    /**
      * Dynamically determines whether the execution actions should be triggered based on player reach, velocity, or ticks to impact.
      */
     boolean canExecute(Minecraft client, FallPredictionResult prediction);
+
+    /**
+     * Determines the base self-inflicted recoil damage of this method (e.g. 5.0f for pearls) mathematically prior to armor evaluations
+     */
+    float getSelfDamage();
+
+    /**
+     * The percentage of raw fall damage preserved if this method executes (e.g. 0.2f for Hay Bales, 0.5f for Beds).
+     * Only evaluated strictly if negatesAllDamage is false.
+     */
+    float getFallDamageMultiplier();
+
+    /**
+     * Determines whether the State Machine should dynamically hold in RECOVERY for 10 ticks measuring kinetic cessation strictly bypassing Slime/Bed ricochets safely.
+     */
+    boolean requiresBounceSettlement();
+
+    /**
+     * Determines whether the method critically relies on the player landing precisely on the original predicted trajectory.
+     * Set to false for teleportations or entity mounts.
+     */
+    boolean isPositionDependent();
 }
