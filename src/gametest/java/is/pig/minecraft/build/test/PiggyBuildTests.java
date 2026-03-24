@@ -366,14 +366,14 @@ public class PiggyBuildTests {
      */
     @GameTest(template = FabricGameTest.EMPTY_STRUCTURE)
     public void testPlacementModeEnum(GameTestHelper context) {
-        is.pig.minecraft.build.lib.placement.PlacementMode[] modes = is.pig.minecraft.build.lib.placement.PlacementMode
+        is.pig.minecraft.lib.placement.PlacementMode[] modes = is.pig.minecraft.lib.placement.PlacementMode
                 .values();
 
         context.assertTrue(modes.length == 3, "Should have 3 placement modes");
 
         // Verify all modes exist
         boolean hasVanilla = false, hasDirectional = false, hasDiagonal = false;
-        for (is.pig.minecraft.build.lib.placement.PlacementMode mode : modes) {
+        for (is.pig.minecraft.lib.placement.PlacementMode mode : modes) {
             switch (mode) {
                 case VANILLA:
                     hasVanilla = true;
@@ -411,7 +411,7 @@ public class PiggyBuildTests {
         // Lock with specific parameters
         Direction offset = Direction.NORTH;
         Direction face = Direction.UP;
-        is.pig.minecraft.build.lib.placement.PlacementMode mode = is.pig.minecraft.build.lib.placement.PlacementMode.DIRECTIONAL;
+        is.pig.minecraft.lib.placement.PlacementMode mode = is.pig.minecraft.lib.placement.PlacementMode.DIRECTIONAL;
 
         session.lock(offset, face, mode);
 
@@ -476,7 +476,7 @@ public class PiggyBuildTests {
         net.minecraft.world.phys.BlockHitResult hitResultNorth = new net.minecraft.world.phys.BlockHitResult(hitNorth,
                 Direction.UP, testPos, false);
 
-        Direction resultNorth = is.pig.minecraft.build.lib.math.PlacementCalculator.getOffsetDirection(hitResultNorth);
+        Direction resultNorth = is.pig.minecraft.lib.placement.PlacementCalculator.getOffsetDirection(hitResultNorth);
         context.assertTrue(resultNorth == Direction.NORTH || resultNorth == null,
                 "North edge on UP should map to NORTH or center");
 
@@ -496,7 +496,7 @@ public class PiggyBuildTests {
         net.minecraft.world.phys.BlockHitResult hitResult = new net.minecraft.world.phys.BlockHitResult(centerHit,
                 Direction.UP, testPos, false);
 
-        Direction result = is.pig.minecraft.build.lib.math.PlacementCalculator.getOffsetDirection(hitResult);
+        Direction result = is.pig.minecraft.lib.placement.PlacementCalculator.getOffsetDirection(hitResult);
 
         context.assertTrue(result == null, "Center hit should return null");
         System.out.println("[TEST] Placement center detection: center hit -> null (no offset)");

@@ -165,7 +165,7 @@ public class FastPlacementHandler {
             }
 
             // Perform the placement through the centralized block placer which queues an InteractBlockAction
-            boolean success = is.pig.minecraft.build.lib.placement.BlockPlacer.placeBlock(finalHitResult, hand, ignoreGlobalCps);
+            boolean success = is.pig.minecraft.lib.placement.BlockPlacer.placeBlock(finalHitResult, hand, ignoreGlobalCps);
 
             if (success) {
                 // Advance the session lock ONLY if the block placed actually consumed an action

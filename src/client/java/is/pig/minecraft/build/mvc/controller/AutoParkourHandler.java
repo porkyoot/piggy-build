@@ -1,6 +1,6 @@
 package is.pig.minecraft.build.mvc.controller;
 
-import is.pig.minecraft.build.lib.placement.BlockPlacer;
+import is.pig.minecraft.lib.placement.BlockPlacer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;

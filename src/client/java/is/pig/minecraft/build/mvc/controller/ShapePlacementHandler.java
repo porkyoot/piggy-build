@@ -81,8 +81,8 @@ public class ShapePlacementHandler {
             java.util.List<is.pig.minecraft.lib.action.IAction> actions = new java.util.ArrayList<>();
             while (!placementQueue.isEmpty()) {
                 BlockPos pos = placementQueue.poll();
-                net.minecraft.world.phys.BlockHitResult hitResult = is.pig.minecraft.build.lib.placement.BlockPlacer.createHitResult(pos, Direction.UP);
-                is.pig.minecraft.lib.action.IAction act = is.pig.minecraft.build.lib.placement.BlockPlacer.createAction(hitResult, InteractionHand.MAIN_HAND, ignoreGlobalCps);
+                net.minecraft.world.phys.BlockHitResult hitResult = is.pig.minecraft.lib.placement.BlockPlacer.createHitResult(pos, Direction.UP);
+                is.pig.minecraft.lib.action.IAction act = is.pig.minecraft.lib.placement.BlockPlacer.createAction(hitResult, InteractionHand.MAIN_HAND, ignoreGlobalCps);
                 if (act != null) actions.add(act);
             }
             

@@ -1,9 +1,9 @@
 package is.pig.minecraft.build.mvc.controller;
 
 import is.pig.minecraft.build.config.PiggyBuildConfig;
-import is.pig.minecraft.build.lib.math.PlacementCalculator;
-import is.pig.minecraft.build.lib.placement.BlockPlacer;
-import is.pig.minecraft.build.lib.placement.PlacementMode;
+import is.pig.minecraft.lib.placement.PlacementCalculator;
+import is.pig.minecraft.lib.placement.BlockPlacer;
+import is.pig.minecraft.lib.placement.PlacementMode;
 import is.pig.minecraft.build.mvc.model.PlacementSession;
 import is.pig.minecraft.lib.ui.AntiCheatFeedbackManager;
 import is.pig.minecraft.lib.ui.BlockReason;

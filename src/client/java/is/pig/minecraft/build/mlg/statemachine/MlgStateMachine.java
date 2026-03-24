@@ -31,7 +31,7 @@ public class MlgStateMachine {
                 .and(MlgStrategies.notUltrawarm()))
             .preparation(MlgStrategies.swapToItemAndLookDown(net.minecraft.world.item.Items.WATER_BUCKET))
             .execution(MlgStrategies.interactBlock((client, pos) -> client.level != null && client.level.getBlockState(pos.above()).is(net.minecraft.world.level.block.Blocks.WATER)))
-            .cleanup(MlgStrategies.scoopItem())
+            .cleanup(MlgStrategies.scoopItem(net.minecraft.world.level.block.Blocks.WATER, net.minecraft.world.item.Items.WATER_BUCKET))
             .build(),
 
         ComposedMlgMethod.builder()
@@ -45,6 +45,7 @@ public class MlgStateMachine {
             .preparation(MlgStrategies.swapToItemAndLookDown(net.minecraft.world.item.Items.SLIME_BLOCK))
             .execution(MlgStrategies.interactBlock((client, pos) -> client.level != null && client.level.getBlockState(pos.above()).is(net.minecraft.world.level.block.Blocks.SLIME_BLOCK)))
             .cleanup(MlgStrategies.breakBlock())
+            .requiresBounceSettlement(false)
             .build(),
 
         ComposedMlgMethod.builder()
@@ -130,14 +131,48 @@ public class MlgStateMachine {
             .fallDamageMultiplier(0.5f) // Beds reduce fall damage by 50%
             .reliabilityScore(70)
             .cleanupDifficulty(5)
-            .requiresBounceSettlement(true)
+            .requiresBounceSettlement(false)
             .preparationTickOffset(MlgStrategies.dynamicPreparation())
             .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireItem(net.minecraft.world.item.Items.RED_BED)
+            .viability(MlgStrategies.requireItemClass(net.minecraft.world.item.BedItem.class)
                 .and(MlgStrategies.requireReplaceableLanding()))
-            .preparation(MlgStrategies.swapToItemAndLookDown(net.minecraft.world.item.Items.RED_BED))
-            .execution(MlgStrategies.interactBlock((client, pos) -> client.level != null && client.level.getBlockState(pos.above()).is(net.minecraft.tags.BlockTags.BEDS)))
+            .preparation(MlgStrategies.swapToItemClassAndLookDown(net.minecraft.world.item.BedItem.class))
+            .execution((queue, client, prediction) -> {
+                MlgStrategies.interactBlock((c, pos) -> c.level != null && c.level.getBlockState(pos.above()).is(net.minecraft.tags.BlockTags.BEDS)).queueExecution(queue, client, prediction);
+                queue.enqueue(new is.pig.minecraft.lib.action.player.HoldKeyAction(client.options.keyUse, false, "piggy-build") {
+                    @Override
+                    public is.pig.minecraft.lib.action.ActionPriority getPriority() {
+                        return is.pig.minecraft.lib.action.ActionPriority.HIGHEST;
+                    }
+                });
+            })
             .cleanup(MlgStrategies.breakBlockWithToolSwap(net.minecraft.world.item.Items.WOODEN_AXE))
+            .build(),
+
+        ComposedMlgMethod.builder()
+            .negatesAllDamage(true)
+            .reliabilityScore(98)
+            .cleanupDifficulty(3)
+            .preparationTickOffset(MlgStrategies.dynamicPreparation())
+            .executionCondition(MlgStrategies.dynamicReach())
+            .viability(MlgStrategies.requireItem(net.minecraft.world.item.Items.POWDER_SNOW_BUCKET)
+                .and(MlgStrategies.requireReplaceableLanding()))
+            .preparation(MlgStrategies.swapToItemAndLookDown(net.minecraft.world.item.Items.POWDER_SNOW_BUCKET))
+            .execution(MlgStrategies.interactBlock((client, pos) -> client.level != null && client.level.getBlockState(pos.above()).is(net.minecraft.world.level.block.Blocks.POWDER_SNOW)))
+            .cleanup(MlgStrategies.scoopItem(net.minecraft.world.level.block.Blocks.POWDER_SNOW, net.minecraft.world.item.Items.POWDER_SNOW_BUCKET))
+            .build(),
+
+        ComposedMlgMethod.builder()
+            .negatesAllDamage(true)
+            .reliabilityScore(85)
+            .cleanupDifficulty(3)
+            .preparationTickOffset(MlgStrategies.dynamicPreparation())
+            .executionCondition(MlgStrategies.dynamicReach())
+            .viability(MlgStrategies.requireItem(net.minecraft.world.item.Items.TWISTING_VINES)
+                .and(MlgStrategies.requireReplaceableLanding()))
+            .preparation(MlgStrategies.swapToItemAndLookDown(net.minecraft.world.item.Items.TWISTING_VINES))
+            .execution(MlgStrategies.interactBlock((client, pos) -> client.level != null && client.level.getBlockState(pos.above()).is(net.minecraft.world.level.block.Blocks.TWISTING_VINES)))
+            .cleanup(MlgStrategies.breakBlock())
             .build()
     );
 
@@ -233,29 +268,35 @@ public class MlgStateMachine {
                 }
                 case RECOVERY -> {
                     // Holding organically. Wait for positive momentum bounces to settle fully natively!
-                    if (client.player.onGround() && client.player.getDeltaMovement().y <= 0.0) {
+                    if (client.player.onGround() && Math.abs(client.player.getDeltaMovement().y) < 0.001) {
                         idleGroundTicks++;
-                    } else if (client.player.isInWater() || client.player.onClimbable()) {
+                    } else if ((client.player.isInWater() || client.player.onClimbable()) && Math.abs(client.player.getDeltaMovement().y) < 0.001) {
                         idleGroundTicks++;
                     } else {
                         idleGroundTicks = 0;
                     }
                     
-                    int requiredTicks = activeMethod.requiresBounceSettlement() ? 10 : 0;
+                    int requiredTicks = activeMethod.requiresBounceSettlement() ? 15 : 0;
                     if (idleGroundTicks >= requiredTicks) {
-                        activeMethod.queueCleanupActions(PiggyActionQueue.getInstance(), client, currentPrediction);
-                        stateChangedThisTick = transitionTo(MlgState.CLEANUP);
+                        // Prevent 0-tick RECOVERY escapes which infinitely loop! 
+                        // Only gracefully exit into IDLE once the physics engine acknowledges the block and negates the fatal prediction, or confirms an upward bounce natively!
+                        if (livePrediction.isEmpty() || !livePrediction.get().isFatal() || client.player.getDeltaMovement().y > 0 || idleGroundTicks > 10) {
+                            activeMethod.queueCleanupActions(PiggyActionQueue.getInstance(), client, currentPrediction);
+                            activeMethod = null;
+                            currentPrediction = null;
+                            stateChangedThisTick = transitionTo(MlgState.IDLE);
+                        }
                     } else if (client.player.getDeltaMovement().y < 0) {
                         // Monitor recursive slides preventing death drops organically during extended mid-air tracking natively
                         if (activeMethod.isPositionDependent() && livePrediction.isPresent() && livePrediction.get().isFatal()) {
-                            // Verify they haven't simply bounced and started falling directly back onto our safety cushion natively!
+                            // Instantaneous horizontal drift check bypassing server-client BlockState desynchronization delays natively
                             net.minecraft.core.BlockPos oldPos = currentPrediction.landingPos();
                             net.minecraft.core.BlockPos newPos = livePrediction.get().landingPos();
-                            boolean severelyMissed = Math.abs(oldPos.getX() - newPos.getX()) > 1 
-                                                  || Math.abs(oldPos.getZ() - newPos.getZ()) > 1 
-                                                  || Math.abs(oldPos.getY() - newPos.getY()) > 2;
+                            
+                            // If they drift even 1 block horizontally from a 1x1 slime pad, it is completely fatal!
+                            boolean severelyMissed = Math.abs(oldPos.getX() - newPos.getX()) > 0 || Math.abs(oldPos.getZ() - newPos.getZ()) > 0;
 
-                            if (severelyMissed && currentPrediction.ticksToImpact() > 5) {
+                            if (severelyMissed) {
                                 PiggyActionQueue.getInstance().clear("piggy-build");
                                 activeMethod.queueCleanupActions(PiggyActionQueue.getInstance(), client, currentPrediction);
                                 currentPrediction = livePrediction.get();
@@ -263,45 +304,8 @@ public class MlgStateMachine {
                                 stateChangedThisTick = transitionTo(MlgState.FALLING);
                             }
                         }
-                    }
                 }
-                case CLEANUP -> {
-                    if (client.player.getDeltaMovement().y < 0 && !client.player.onGround() && !client.player.isInWater()) {
-                        // Catch lethal slides gracefully allowing instant re-prediction loops organically!
-                        if (activeMethod.isPositionDependent() && livePrediction.isPresent() && livePrediction.get().isFatal()) {
-                            net.minecraft.core.BlockPos oldPos = currentPrediction.landingPos();
-                            net.minecraft.core.BlockPos newPos = livePrediction.get().landingPos();
-                            boolean severelyMissed = Math.abs(oldPos.getX() - newPos.getX()) > 1 
-                                                  || Math.abs(oldPos.getZ() - newPos.getZ()) > 1 
-                                                  || Math.abs(oldPos.getY() - newPos.getY()) > 2;
-
-                            if (severelyMissed && currentPrediction.ticksToImpact() > 5) {
-                                PiggyActionQueue.getInstance().clear("piggy-build");
-                                activeMethod.queueCleanupActions(PiggyActionQueue.getInstance(), client, currentPrediction);
-                                activeMethod = null;
-                                currentPrediction = livePrediction.get();
-                                stateChangedThisTick = transitionTo(MlgState.FALLING);
-                            }
-                        }
-                    } else {
-                        // Dynamically poll the state natively checking geometric bounds endlessly verifying execution completes!
-                        if (activeMethod.isCleanupFinished(client, currentPrediction)) {
-                            // Infinite retry concluded successfully! Dropping execution queue locally.
-                            PiggyActionQueue.getInstance().clear("piggy-build");
-                            activeMethod = null;
-                            currentPrediction = null;
-                            stateChangedThisTick = transitionTo(MlgState.IDLE);
-                        } else {
-                            // Cleanup verification failed. Automatically attempt queue restoration preserving state natively
-                            if (!PiggyActionQueue.getInstance().hasActions("piggy-build")) {
-                                // Strictly mask executions preventing server spam dropping when outside safe reach envelopes!
-                                if (client.player.getEyePosition().distanceTo(Vec3.atCenterOf(currentPrediction.landingPos()).add(0, 0.5, 0)) <= 4.5) {
-                                    activeMethod.queueCleanupActions(PiggyActionQueue.getInstance(), client, currentPrediction);
-                                }
-                            }
-                        }
-                    }
-                }
+            }
             }
             loopCount++;
         } while (stateChangedThisTick && loopCount < 5);
@@ -313,6 +317,7 @@ public class MlgStateMachine {
             LOGGER.info("[MLG] Transitioning to " + newState);
             this.currentState = newState;
             this.idleGroundTicks = 0;
+            is.pig.minecraft.lib.action.PiggyActionQueue.getInstance().setSuppressAutoRefill(newState != MlgState.IDLE);
             return true;
         }
         return false;

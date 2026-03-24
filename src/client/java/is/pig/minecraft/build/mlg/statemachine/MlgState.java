@@ -27,10 +27,5 @@ public enum MlgState {
     /**
      * Placement done, waiting to land safely or bounce.
      */
-    RECOVERY,
-
-    /**
-     * Player landed safely, removing the water/block.
-     */
-    CLEANUP
+    RECOVERY
 }

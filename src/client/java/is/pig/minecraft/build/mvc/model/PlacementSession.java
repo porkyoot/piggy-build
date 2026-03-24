@@ -1,6 +1,6 @@
 package is.pig.minecraft.build.mvc.model;
 
-import is.pig.minecraft.build.lib.placement.PlacementMode;
+import is.pig.minecraft.lib.placement.PlacementMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 

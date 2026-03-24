@@ -2,7 +2,7 @@ package is.pig.minecraft.build.mvc.view;
 
 import com.mojang.blaze3d.vertex.*;
 
-import is.pig.minecraft.build.lib.math.PlacementCalculator;
+import is.pig.minecraft.lib.placement.PlacementCalculator;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
