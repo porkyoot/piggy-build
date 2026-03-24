@@ -65,4 +65,19 @@ public interface MlgMethod {
      * Set to false for teleportations or entity mounts.
      */
     boolean isPositionDependent();
+
+    /**
+     * Determines if this method unconditionally negates physical fall damage organically.
+     */
+    boolean negatesAllDamage();
+
+    /**
+     * Metric evaluating physics reliability globally [0-100].
+     */
+    int getReliabilityScore();
+
+    /**
+     * Difficulty scale for automated cleanup organically.
+     */
+    int getCleanupDifficulty();
 }

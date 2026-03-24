@@ -9,11 +9,11 @@ import java.util.Optional;
 
 public class MlgMethodSelector {
 
-    public static Optional<MlgMethod> selectBestMethod(Minecraft client, FallPredictionResult prediction, List<ComposedMlgMethod> availableMethods) {
+    public static Optional<MlgMethod> selectBestMethod(Minecraft client, FallPredictionResult prediction, List<MlgMethod> availableMethods) {
         return availableMethods.stream()
                 .filter(method -> method.isViable(client, prediction))
-                .max(Comparator.comparing((ComposedMlgMethod m) -> m.negatesAllDamage() ? 1 : 0)
-                        .thenComparing(ComposedMlgMethod::getReliabilityScore)
+                .max(Comparator.comparing((MlgMethod m) -> m.negatesAllDamage() ? 1 : 0)
+                        .thenComparing(MlgMethod::getReliabilityScore)
                         .thenComparing(m -> -m.getCleanupDifficulty()))
                 .map(m -> m);
     }

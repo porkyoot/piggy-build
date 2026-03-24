@@ -1,15 +1,12 @@
 package is.pig.minecraft.build.mlg.statemachine;
 
-import is.pig.minecraft.build.mlg.method.ComposedMlgMethod;
 import is.pig.minecraft.build.mlg.method.MlgMethod;
 import is.pig.minecraft.build.mlg.method.MlgMethodSelector;
-import is.pig.minecraft.build.mlg.method.strategy.MlgStrategies;
 import is.pig.minecraft.build.mlg.prediction.FallPredictionResult;
+import is.pig.minecraft.build.mlg.method.impl.*;
 import is.pig.minecraft.lib.action.PiggyActionQueue;
 import is.pig.minecraft.lib.util.PiggyLog;
 import net.minecraft.client.Minecraft;
-import net.minecraft.world.phys.Vec3;
-import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,241 +16,23 @@ public class MlgStateMachine {
     private static final MlgStateMachine INSTANCE = new MlgStateMachine();
     private static final PiggyLog LOGGER = new PiggyLog("piggy-build", "MlgStateMachine");
 
-    private static final List<ComposedMlgMethod> METHODS = List.of(
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(true)
-            .reliabilityScore(99)
-            .cleanupDifficulty(0)
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireExistingMountableEntity())
-            .preparation(MlgStrategies.lookDownWithoutItemSwap())
-            .execution(MlgStrategies.mountExistingEntity())
-            .cleanup(MlgStrategies.noCleanup())
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(true)
-            .reliabilityScore(98)
-            .cleanupDifficulty(3)
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireRailAndMinecart())
-            .preparation(MlgStrategies.swapToItemClassAndLookDown(net.minecraft.world.item.MinecartItem.class))
-            .execution(MlgStrategies.placeMinecartAndMountEntity(stack -> stack.getItem() instanceof net.minecraft.world.item.MinecartItem, net.minecraft.world.entity.vehicle.AbstractMinecart.class, (client, pos) -> client.level != null && !client.level.getEntitiesOfClass(net.minecraft.world.entity.vehicle.AbstractMinecart.class, new net.minecraft.world.phys.AABB(pos).inflate(2), e -> true).isEmpty()))
-            .cleanup(MlgStrategies.attackEntityWithWeaponSwap(net.minecraft.world.entity.vehicle.AbstractMinecart.class))
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(true)
-            .reliabilityScore(90)
-            .cleanupDifficulty(0)
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireSaddleAndUnsaddledAnimal())
-            .preparation(MlgStrategies.swapToItemAndLookDown(net.minecraft.world.item.Items.SADDLE))
-            .execution(MlgStrategies.saddleAndMountEntity())
-            .cleanup(MlgStrategies.noCleanup())
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(true)
-            .reliabilityScore(99)
-            .cleanupDifficulty(0)
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireExistingMountableEntity())
-            .preparation(MlgStrategies.lookDownWithoutItemSwap())
-            .execution(MlgStrategies.mountExistingEntity())
-            .cleanup(MlgStrategies.noCleanup())
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(true)
-            .reliabilityScore(100)
-            .cleanupDifficulty(1)
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireItem(net.minecraft.world.item.Items.WATER_BUCKET)
-                .and(MlgStrategies.requireReplaceableLanding())
-                .and(MlgStrategies.notUltrawarm()))
-            .preparation(MlgStrategies.swapToItemAndLookDown(net.minecraft.world.item.Items.WATER_BUCKET))
-            .execution(MlgStrategies.interactBlock(stack -> stack.is(net.minecraft.world.item.Items.WATER_BUCKET), (client, pos) -> client.level != null && client.level.getBlockState(pos.above()).is(net.minecraft.world.level.block.Blocks.WATER)))
-            .cleanup(MlgStrategies.scoopItem(net.minecraft.world.level.block.Blocks.WATER, net.minecraft.world.item.Items.WATER_BUCKET))
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(true)
-            .reliabilityScore(95)
-            .cleanupDifficulty(3)
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireItem(net.minecraft.world.item.Items.SLIME_BLOCK)
-                .and(MlgStrategies.requireReplaceableLanding()))
-            .preparation(MlgStrategies.swapToItemAndLookDown(net.minecraft.world.item.Items.SLIME_BLOCK))
-            .execution(MlgStrategies.interactBlock(stack -> stack.is(net.minecraft.world.item.Items.SLIME_BLOCK), (client, pos) -> client.level != null && client.level.getBlockState(pos.above()).is(net.minecraft.world.level.block.Blocks.SLIME_BLOCK)))
-            .cleanup(MlgStrategies.breakBlock())
-            .requiresBounceSettlement(false)
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(true)
-            .reliabilityScore(90)
-            .cleanupDifficulty(5)
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireItem(net.minecraft.world.item.Items.COBWEB)
-                .and(MlgStrategies.requireReplaceableLanding()))
-            .preparation(MlgStrategies.swapToItemAndLookDown(net.minecraft.world.item.Items.COBWEB))
-            .execution(MlgStrategies.interactBlock(stack -> stack.is(net.minecraft.world.item.Items.COBWEB), (client, pos) -> client.level != null && client.level.getBlockState(pos.above()).is(net.minecraft.world.level.block.Blocks.COBWEB)))
-            .cleanup(MlgStrategies.breakBlockWithToolSwap(net.minecraft.world.item.Items.COBWEB))
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(true)
-            .reliabilityScore(80)
-            .cleanupDifficulty(4)
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireItemTag(net.minecraft.tags.ItemTags.BOATS)
-                .and(MlgStrategies.requireReplaceableLanding())
-                .and(MlgStrategies.requireClearSpace(1, net.minecraft.world.entity.vehicle.Boat.class)))
-            .preparation(MlgStrategies.swapToItemTagAndLookDown(net.minecraft.tags.ItemTags.BOATS))
-            .execution(MlgStrategies.placeAndMountEntity(stack -> stack.is(net.minecraft.tags.ItemTags.BOATS), net.minecraft.world.entity.vehicle.Boat.class, (client, pos) -> client.level != null && !client.level.getEntitiesOfClass(net.minecraft.world.entity.vehicle.Boat.class, new net.minecraft.world.phys.AABB(pos).inflate(2), e -> true).isEmpty()))
-            .cleanup(MlgStrategies.attackEntityWithWeaponSwap(net.minecraft.world.entity.vehicle.Boat.class))
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(true)
-            .reliabilityScore(80)
-            .cleanupDifficulty(4)
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireItemTag(net.minecraft.tags.ItemTags.CHEST_BOATS)
-                .and(MlgStrategies.requireReplaceableLanding())
-                .and(MlgStrategies.requireClearSpace(1, net.minecraft.world.entity.vehicle.ChestBoat.class)))
-            .preparation(MlgStrategies.swapToItemTagAndLookDown(net.minecraft.tags.ItemTags.CHEST_BOATS))
-            .execution(MlgStrategies.placeAndMountEntity(stack -> stack.is(net.minecraft.tags.ItemTags.CHEST_BOATS), net.minecraft.world.entity.vehicle.ChestBoat.class, (client, pos) -> client.level != null && !client.level.getEntitiesOfClass(net.minecraft.world.entity.vehicle.ChestBoat.class, new net.minecraft.world.phys.AABB(pos).inflate(2), e -> true).isEmpty()))
-            .cleanup(MlgStrategies.attackEntityWithWeaponSwap(net.minecraft.world.entity.vehicle.ChestBoat.class))
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(true)
-            .reliabilityScore(80)
-            .cleanupDifficulty(1)
-            .isPositionDependent(false)
-            .preparationTickOffset(MlgStrategies.fixedPreparationTicks(1000)) // Allows this to instantly prepare out of logic loop
-            .executionCondition(MlgStrategies.withinTicks(1000)) // Instantly start executing
-            .viability(MlgStrategies.requireItem(net.minecraft.world.item.Items.CHORUS_FRUIT)
-                .and(MlgStrategies.requireTicksToImpactGreaterThan(35))) // It physically takes 32 ticks to eat food
-            .preparation(MlgStrategies.swapToItem(net.minecraft.world.item.Items.CHORUS_FRUIT))
-            .execution(MlgStrategies.holdUseItem(stack -> stack.is(net.minecraft.world.item.Items.CHORUS_FRUIT), true))
-            .cleanup(MlgStrategies.releaseUseItem())
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(true)
-            .reliabilityScore(30) // Low reliability due to RNG
-            .cleanupDifficulty(2)
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireItem(net.minecraft.world.item.Items.BONE_MEAL)
-                .and((client, prediction) -> client.level != null && client.level.getBlockState(prediction.landingPos().below()).is(net.minecraft.world.level.block.Blocks.WARPED_NYLIUM))
-                .and(MlgStrategies.requireReplaceableLanding()))
-            .preparation(MlgStrategies.swapToItemAndLookDown(net.minecraft.world.item.Items.BONE_MEAL))
-            .execution(MlgStrategies.interactBlock(stack -> stack.is(net.minecraft.world.item.Items.BONE_MEAL), (client, pos) -> client.level != null && (client.level.getBlockState(pos.above()).is(net.minecraft.world.level.block.Blocks.TWISTING_VINES) || client.level.getBlockState(pos.above()).is(net.minecraft.world.level.block.Blocks.TWISTING_VINES_PLANT))))
-            .cleanup(MlgStrategies.breakBlock())
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(true) // Stops the physical fall natively via teleportation
-            .reliabilityScore(85)
-            .cleanupDifficulty(1)
-            .selfDamage(5.0f) // Ender Pearls inflict 5 points of raw Fall Damage intrinsically!
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.withinTicks(7)) // Throw natively a fraction of a second prior to impact
-            .viability(MlgStrategies.requireItem(net.minecraft.world.item.Items.ENDER_PEARL))
-            .preparation(MlgStrategies.swapToItemAndLookDown(net.minecraft.world.item.Items.ENDER_PEARL))
-            .execution((queue, client, prediction) -> {
-                net.minecraft.world.InteractionHand hand = net.minecraft.world.InteractionHand.MAIN_HAND;
-                if (client.player != null && client.player.getOffhandItem().is(net.minecraft.world.item.Items.ENDER_PEARL)) {
-                    hand = net.minecraft.world.InteractionHand.OFF_HAND;
-                }
-                queue.enqueue(new is.pig.minecraft.lib.action.world.UseItemAction(
-                        hand,
-                        "piggy-build",
-                        () -> true // Verified via physical inventory consumption and velocity changes intrinsically
-                ) {
-                    @Override
-                    public is.pig.minecraft.lib.action.ActionPriority getPriority() {
-                        return is.pig.minecraft.lib.action.ActionPriority.HIGHEST;
-                    }
-                });
-            })
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(false) // Hay Bales do NOT negate all damage natively!
-            .fallDamageMultiplier(0.2f) // Hay bales reduce fall damage by 80%
-            .reliabilityScore(85)
-            .cleanupDifficulty(3)
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireItem(net.minecraft.world.item.Items.HAY_BLOCK)
-                .and(MlgStrategies.requireReplaceableLanding()))
-            .preparation(MlgStrategies.swapToItemAndLookDown(net.minecraft.world.item.Items.HAY_BLOCK))
-            .execution(MlgStrategies.interactBlock(stack -> stack.is(net.minecraft.world.item.Items.HAY_BLOCK), (client, pos) -> client.level != null && client.level.getBlockState(pos.above()).is(net.minecraft.world.level.block.Blocks.HAY_BLOCK)))
-            .cleanup(MlgStrategies.breakBlock())
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(false) // Beds do NOT negate all damage natively!
-            .fallDamageMultiplier(0.5f) // Beds reduce fall damage by 50%
-            .reliabilityScore(70)
-            .cleanupDifficulty(5)
-            .requiresBounceSettlement(false)
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireItemClass(net.minecraft.world.item.BedItem.class)
-                .and(MlgStrategies.requireReplaceableLanding()))
-            .preparation(MlgStrategies.swapToItemClassAndLookDown(net.minecraft.world.item.BedItem.class))
-            .execution((queue, client, prediction) -> {
-                MlgStrategies.interactBlock(stack -> stack.getItem() instanceof net.minecraft.world.item.BedItem, (c, pos) -> c.level != null && c.level.getBlockState(pos.above()).is(net.minecraft.tags.BlockTags.BEDS)).queueExecution(queue, client, prediction);
-                queue.enqueue(new is.pig.minecraft.lib.action.player.HoldKeyAction(client.options.keyUse, false, "piggy-build") {
-                    @Override
-                    public is.pig.minecraft.lib.action.ActionPriority getPriority() {
-                        return is.pig.minecraft.lib.action.ActionPriority.HIGHEST;
-                    }
-                });
-            })
-            .cleanup(MlgStrategies.breakBlockWithToolSwap(net.minecraft.world.item.Items.WOODEN_AXE))
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(true)
-            .reliabilityScore(98)
-            .cleanupDifficulty(3)
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireItem(net.minecraft.world.item.Items.POWDER_SNOW_BUCKET)
-                .and(MlgStrategies.requireReplaceableLanding()))
-            .preparation(MlgStrategies.swapToItemAndLookDown(net.minecraft.world.item.Items.POWDER_SNOW_BUCKET))
-            .execution(MlgStrategies.interactBlock(stack -> stack.is(net.minecraft.world.item.Items.POWDER_SNOW_BUCKET), (client, pos) -> client.level != null && client.level.getBlockState(pos.above()).is(net.minecraft.world.level.block.Blocks.POWDER_SNOW)))
-            .cleanup(MlgStrategies.scoopItem(net.minecraft.world.level.block.Blocks.POWDER_SNOW, net.minecraft.world.item.Items.POWDER_SNOW_BUCKET))
-            .build(),
-
-        ComposedMlgMethod.builder()
-            .negatesAllDamage(true)
-            .reliabilityScore(85)
-            .cleanupDifficulty(3)
-            .preparationTickOffset(MlgStrategies.dynamicPreparation())
-            .executionCondition(MlgStrategies.dynamicReach())
-            .viability(MlgStrategies.requireItem(net.minecraft.world.item.Items.TWISTING_VINES)
-                .and(MlgStrategies.requireReplaceableLanding()))
-            .preparation(MlgStrategies.swapToItemAndLookDown(net.minecraft.world.item.Items.TWISTING_VINES))
-            .execution(MlgStrategies.interactBlock(stack -> stack.is(net.minecraft.world.item.Items.TWISTING_VINES), (client, pos) -> client.level != null && client.level.getBlockState(pos.above()).is(net.minecraft.world.level.block.Blocks.TWISTING_VINES)))
-            .cleanup(MlgStrategies.breakBlock())
-            .build()
+    private static final List<MlgMethod> METHODS = List.of(
+        ExistingMountableMlg.create(),
+        MinecartMlg.create(),
+        SaddleMlg.create(),
+        ExistingMountableMlg.create(), // Intentionally duplicated in original code for weight? Leaving as is
+        WaterBucketMlg.create(),
+        SlimeBlockMlg.create(),
+        CobwebMlg.create(),
+        BoatMlg.create(),
+        ChestBoatMlg.create(),
+        ChorusFruitMlg.create(),
+        TwistingVinesFertilizerMlg.create(),
+        EnderPearlMlg.create(),
+        HayBaleMlg.create(),
+        BedMlg.create(),
+        PowderSnowBucketMlg.create(),
+        TwistingVinesMlg.create()
     );
 
     private MlgState currentState = MlgState.IDLE;
