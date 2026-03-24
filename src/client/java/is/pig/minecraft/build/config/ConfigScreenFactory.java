@@ -176,6 +176,32 @@ public class ConfigScreenFactory {
                                         .controller(dev.isxander.yacl3.api.controller.StringControllerBuilder::create)
                                         .build())
                                 .build())
+
+                        // Auto MLG Group
+                        .group(OptionGroup.createBuilder()
+                                .name(Component.literal("Auto MLG"))
+                                .option(Option.<Boolean>createBuilder()
+                                        .name(Component.literal("Enable Auto MLG"))
+                                        .description(OptionDescription.of(
+                                                Component.literal("Automatically perform water/slime/boat MLGs to prevent fall damage."),
+                                                Component.literal("If Anti-Cheat is active, this cannot be enabled.")))
+                                        .available(config.isAutoMlgEditable())
+                                        .binding(
+                                                false,
+                                                config::isAutoMlgEnabled,
+                                                config::setAutoMlgEnabled)
+                                        .controller(TickBoxControllerBuilder::create)
+                                        .build())
+                                .option(Option.<String>createBuilder()
+                                        .name(Component.literal("Auto MLG Keybinding"))
+                                        .available(false)
+                                        .binding(
+                                                "",
+                                                () -> is.pig.minecraft.build.mvc.controller.InputController.autoMlgKey.getTranslatedKeyMessage().getString(),
+                                                v -> {})
+                                        .controller(dev.isxander.yacl3.api.controller.StringControllerBuilder::create)
+                                        .build())
+                                .build())
                         .build())
 
                 .save(ConfigPersistence::save)

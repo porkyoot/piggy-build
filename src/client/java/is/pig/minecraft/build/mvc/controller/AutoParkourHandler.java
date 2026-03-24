@@ -24,8 +24,19 @@ public class AutoParkourHandler {
         boolean isKeyDown = InputController.autoParkourKey.isDown();
         if (isKeyDown && !wasKeyDown) {
             is.pig.minecraft.build.config.PiggyBuildConfig config = is.pig.minecraft.build.config.PiggyBuildConfig.getInstance();
-            config.setAutoParkourEnabled(!config.isAutoParkourEnabled());
+            boolean newState = !config.isAutoParkourEnabled();
+            config.setAutoParkourEnabled(newState);
             is.pig.minecraft.build.config.ConfigPersistence.save();
+
+            if (client.player != null) {
+                // If it successfully toggled (was not blocked by AntiCheat), notify user
+                if (config.isAutoParkourEnabled() == newState) {
+                    is.pig.minecraft.lib.util.PiggyMessenger.sendClientMessage(
+                        (net.minecraft.client.player.LocalPlayer) client.player,
+                        "Auto Parkour is now " + (newState ? "§aENABLED" : "§cDISABLED")
+                    );
+                }
+            }
         }
         wasKeyDown = isKeyDown;
 

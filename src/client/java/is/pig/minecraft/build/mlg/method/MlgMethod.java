@@ -1,7 +1,7 @@
 package is.pig.minecraft.build.mlg.method;
 
-import is.pig.minecraft.build.mlg.prediction.FallPredictionResult;
 import is.pig.minecraft.lib.action.PiggyActionQueue;
+import is.pig.minecraft.build.mlg.prediction.FallPredictionResult;
 import net.minecraft.client.Minecraft;
 
 /**
@@ -17,21 +17,26 @@ public interface MlgMethod {
     /**
      * Queues actions to prepare for the MLG (e.g., swapping tools, rotating camera).
      */
-    void queuePreparationActions(PiggyActionQueue queue);
+    void queuePreparationActions(PiggyActionQueue queue, Minecraft client, FallPredictionResult prediction);
+
+    /**
+     * Determines how many ticks before impact the PREPARATION actions should be triggered.
+     * Defaults to 5; higher values trigger preparation immediately if required (e.g., Chorus Fruit consumption).
+     */
+    int getPreparationTickOffset();
 
     /**
      * Queues actions to execute the MLG placing.
      */
-    void queueExecutionActions(PiggyActionQueue queue, FallPredictionResult prediction);
+    void queueExecutionActions(PiggyActionQueue queue, Minecraft client, FallPredictionResult prediction);
 
     /**
      * Queues actions to clean up after the MLG (e.g., picking up water, breaking blocks).
      */
-    void queueCleanupActions(PiggyActionQueue queue);
+    void queueCleanupActions(PiggyActionQueue queue, Minecraft client, FallPredictionResult prediction);
 
     /**
-     * Determines how many ticks before impact the execution actions should be triggered.
-     * Usually 1 or 2.
+     * Dynamically determines whether the execution actions should be triggered based on player reach, velocity, or ticks to impact.
      */
-    int getExecutionTickOffset();
+    boolean canExecute(Minecraft client, FallPredictionResult prediction);
 }

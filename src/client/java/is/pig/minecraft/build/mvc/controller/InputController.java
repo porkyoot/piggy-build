@@ -17,6 +17,7 @@ public class InputController {
     public static KeyMapping diagonalKey;
     public static KeyMapping fastPlaceKey;
     public static KeyMapping autoParkourKey;
+    public static KeyMapping autoMlgKey;
 
     // Handlers (Logic separation)
     private final ShapeMenuHandler menuHandler = new ShapeMenuHandler();
@@ -25,6 +26,7 @@ public class InputController {
     private final FastBreakHandler fastBreakHandler = new FastBreakHandler();
     private static final LightLevelOverlayHandler lightLevelOverlayHandler = new LightLevelOverlayHandler();
     private static final AutoParkourHandler autoParkourHandler = new AutoParkourHandler();
+    private static final AutoMlgHandler autoMlgHandler = new AutoMlgHandler();
 
     public static FastPlacementHandler getFastPlacementHandler() {
         return fastPlacementHandler;
@@ -76,6 +78,12 @@ public class InputController {
                 GLFW.GLFW_KEY_P,
                 "Piggy Build"));
 
+        autoMlgKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+                "Toggle Auto MLG",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_M,
+                "Piggy Build"));
+
     }
 
     private void registerEvents() {
@@ -84,7 +92,7 @@ public class InputController {
         MouseScrollCallback.EVENT.register(menuHandler::onScroll);
 
         // 2. Client Tick -> Delegated to both handlers
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+        ClientTickEvents.START_CLIENT_TICK.register(client -> {
             if (client.player == null)
                 return;
 
@@ -97,6 +105,7 @@ public class InputController {
             ShapePlacementHandler.onTick(client);
             lightLevelOverlayHandler.onTick(client);
             autoParkourHandler.onTick(client);
+            autoMlgHandler.onTick(client);
         });
 
         // 3. Block placement is now handled via MinecraftClientMixin

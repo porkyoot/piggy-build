@@ -22,4 +22,12 @@ public class MouseHandlerMixin {
             }
         }
     }
+
+    @Inject(method = "turnPlayer", at = @At("HEAD"), cancellable = true)
+    private void onTurnPlayer(double timeOrDelta, CallbackInfo ci) {
+        is.pig.minecraft.build.mlg.statemachine.MlgState state = is.pig.minecraft.build.mlg.statemachine.MlgStateMachine.getInstance().getCurrentState();
+        if (state == is.pig.minecraft.build.mlg.statemachine.MlgState.EXECUTION || state == is.pig.minecraft.build.mlg.statemachine.MlgState.PREPARATION) {
+            ci.cancel();
+        }
+    }
 }

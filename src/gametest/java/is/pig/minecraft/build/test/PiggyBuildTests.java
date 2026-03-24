@@ -1,5 +1,7 @@
 package is.pig.minecraft.build.test;
 
+import java.util.Optional;
+
 import is.pig.minecraft.build.mvc.model.BuildSession;
 import is.pig.minecraft.build.mvc.model.BuildShape;
 import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
@@ -660,7 +662,7 @@ public class PiggyBuildTests {
 
         queue.enqueue(new is.pig.minecraft.lib.action.AbstractAction("test-timeout", is.pig.minecraft.lib.action.ActionPriority.NORMAL, 10) {
             @Override protected void onExecute(net.minecraft.client.Minecraft client) {}
-            @Override protected boolean verify(net.minecraft.client.Minecraft client) { return false; }
+            @Override protected Optional verify(net.minecraft.client.Minecraft client) { return Optional.empty(); }
             @Override public String getName() { return "Timeout Test Action"; }
         });
 
@@ -671,7 +673,7 @@ public class PiggyBuildTests {
         boolean[] executed = {false};
         queue.enqueue(new is.pig.minecraft.lib.action.AbstractAction("test-timeout") {
             @Override protected void onExecute(net.minecraft.client.Minecraft client) {}
-            @Override protected boolean verify(net.minecraft.client.Minecraft client) { executed[0] = true; return true; }
+            @Override protected Optional verify(net.minecraft.client.Minecraft client) { executed[0] = true; return Optional.empty(); }
             @Override public String getName() { return "Marker Action"; }
         });
 

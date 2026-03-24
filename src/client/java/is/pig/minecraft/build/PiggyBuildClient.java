@@ -60,6 +60,20 @@ public class PiggyBuildClient implements ClientModInitializer {
                         "Instantly place various block shapes",
                         false));
 
+        is.pig.minecraft.lib.features.CheatFeatureRegistry.register(
+                new is.pig.minecraft.lib.features.CheatFeature(
+                        "auto_parkour",
+                        "Auto Parkour",
+                        "Automatically place blocks to prevent falling",
+                        false));
+
+        is.pig.minecraft.lib.features.CheatFeatureRegistry.register(
+                new is.pig.minecraft.lib.features.CheatFeature(
+                        "auto_mlg",
+                        "Auto MLG",
+                        "Automatically perform MLG to survive falls",
+                        false));
+
         // 1. Load configuration
         ConfigPersistence.load();
 
