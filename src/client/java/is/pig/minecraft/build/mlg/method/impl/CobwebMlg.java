@@ -12,6 +12,7 @@ public class CobwebMlg {
             .negatesAllDamage(true)
             .reliabilityScore(90)
             .cleanupDifficulty(5)
+            .itemConsumptionCost(1)
             .preparationTickOffset(CommonMlgStrategies.dynamicPreparation())
             .executionCondition(CommonMlgStrategies.dynamicReach())
             .viability(CommonMlgStrategies.requireItem(Items.COBWEB)

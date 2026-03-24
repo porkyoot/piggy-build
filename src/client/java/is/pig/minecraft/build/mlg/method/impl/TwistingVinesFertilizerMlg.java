@@ -12,6 +12,7 @@ public class TwistingVinesFertilizerMlg {
             .negatesAllDamage(true)
             .reliabilityScore(10)
             .cleanupDifficulty(2)
+            .itemConsumptionCost(1)
             .preparationTickOffset(CommonMlgStrategies.dynamicPreparation())
             .executionCondition(CommonMlgStrategies.dynamicReach())
             .viability(CommonMlgStrategies.requireItem(Items.BONE_MEAL)

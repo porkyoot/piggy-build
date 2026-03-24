@@ -13,7 +13,8 @@ public class MlgMethodSelector {
         return availableMethods.stream()
                 .filter(method -> method.isViable(client, prediction))
                 .max(Comparator.comparing((MlgMethod m) -> m.negatesAllDamage() ? 1 : 0)
-                        .thenComparing(MlgMethod::getReliabilityScore)
+                        .thenComparing(m -> -m.getItemConsumptionCost())
+                        .thenComparing(m -> m.getReliabilityScore(client, prediction))
                         .thenComparing(m -> -m.getCleanupDifficulty()))
                 .map(m -> m);
     }

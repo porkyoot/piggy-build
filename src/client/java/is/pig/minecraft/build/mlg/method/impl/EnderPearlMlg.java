@@ -14,6 +14,7 @@ public class EnderPearlMlg {
             .negatesAllDamage(true)
             .reliabilityScore(85)
             .cleanupDifficulty(1)
+            .itemConsumptionCost(1)
             .selfDamage(5.0f)
             .preparationTickOffset(CommonMlgStrategies.dynamicPreparation())
             .executionCondition(CommonMlgStrategies.withinTicks(7))

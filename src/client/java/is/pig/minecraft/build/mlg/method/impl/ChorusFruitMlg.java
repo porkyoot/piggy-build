@@ -30,6 +30,7 @@ public class ChorusFruitMlg {
             .negatesAllDamage(true)
             .reliabilityScore(80)
             .cleanupDifficulty(1)
+            .itemConsumptionCost(1)
             .isPositionDependent(false)
             .preparationTickOffset(CommonMlgStrategies.fixedPreparationTicks(1000))
             .executionCondition(CommonMlgStrategies.withinTicks(1000))

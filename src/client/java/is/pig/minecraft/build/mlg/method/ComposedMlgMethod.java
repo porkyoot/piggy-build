@@ -12,7 +12,7 @@ import net.minecraft.client.Minecraft;
 
 public record ComposedMlgMethod(
         boolean negatesAllDamage,
-        int getReliabilityScore,
+        java.util.function.ToIntBiFunction<net.minecraft.client.Minecraft, is.pig.minecraft.build.mlg.prediction.FallPredictionResult> reliabilityScoreFunction,
         int getCleanupDifficulty,
         MlgTickOffsetStrategy preparationTickOffset,
         MlgViabilityStrategy viability,
@@ -23,7 +23,8 @@ public record ComposedMlgMethod(
         float getSelfDamage,
         float getFallDamageMultiplier,
         boolean requiresBounceSettlement,
-        boolean isPositionDependent
+        boolean isPositionDependent,
+        int getItemConsumptionCost
 ) implements MlgMethod {
 
     @Override
@@ -84,6 +85,12 @@ public record ComposedMlgMethod(
         if (cleanup == null) return true;
         return cleanup.isFinished(client, prediction);
     }
+    
+    @Override
+    public int getReliabilityScore(Minecraft client, FallPredictionResult prediction) {
+        if (reliabilityScoreFunction == null) return 50;
+        return reliabilityScoreFunction.applyAsInt(client, prediction);
+    }
 
     public int getPreparationTickOffset(Minecraft client, FallPredictionResult prediction) {
         if (preparationTickOffset == null) return 15;
@@ -96,13 +103,14 @@ public record ComposedMlgMethod(
 
     public static class Builder {
         private boolean negatesAllDamage = false;
-        private int reliabilityScore = 50;
+        private java.util.function.ToIntBiFunction<net.minecraft.client.Minecraft, is.pig.minecraft.build.mlg.prediction.FallPredictionResult> reliabilityScore = (c, p) -> 50;
         private int cleanupDifficulty = 1;
         private MlgTickOffsetStrategy preparationTickOffset;
         private float selfDamage = 0.0f;
         private float fallDamageMultiplier = 0.0f;
         private boolean requiresBounceSettlement = false;
         private boolean isPositionDependent = true;
+        private int itemConsumptionCost = 0;
         
         private MlgViabilityStrategy viability;
         private MlgPreparationStrategy preparation;
@@ -116,6 +124,11 @@ public record ComposedMlgMethod(
         }
 
         public Builder reliabilityScore(int reliabilityScore) {
+            this.reliabilityScore = (c, p) -> reliabilityScore;
+            return this;
+        }
+
+        public Builder dynamicReliabilityScore(java.util.function.ToIntBiFunction<net.minecraft.client.Minecraft, is.pig.minecraft.build.mlg.prediction.FallPredictionResult> reliabilityScore) {
             this.reliabilityScore = reliabilityScore;
             return this;
         }
@@ -175,6 +188,11 @@ public record ComposedMlgMethod(
             return this;
         }
 
+        public Builder itemConsumptionCost(int itemConsumptionCost) {
+            this.itemConsumptionCost = itemConsumptionCost;
+            return this;
+        }
+
         public ComposedMlgMethod build() {
             return new ComposedMlgMethod(
                     negatesAllDamage,
@@ -189,7 +207,8 @@ public record ComposedMlgMethod(
                     selfDamage,
                     fallDamageMultiplier,
                     requiresBounceSettlement,
-                    isPositionDependent
+                    isPositionDependent,
+                    itemConsumptionCost
             );
         }
     }

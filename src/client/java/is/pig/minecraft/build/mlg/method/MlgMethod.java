@@ -74,10 +74,15 @@ public interface MlgMethod {
     /**
      * Metric evaluating physics reliability globally [0-100].
      */
-    int getReliabilityScore();
+    int getReliabilityScore(Minecraft client, FallPredictionResult prediction);
 
     /**
      * Difficulty scale for automated cleanup organically.
      */
     int getCleanupDifficulty();
+
+    /**
+     * Determines the total item cost/consumption of this method (0 = perfectly reusable, 1+ = consumed)
+     */
+    int getItemConsumptionCost();
 }

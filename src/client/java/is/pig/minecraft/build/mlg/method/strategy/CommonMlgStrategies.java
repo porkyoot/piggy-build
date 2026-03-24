@@ -588,7 +588,7 @@ public final class CommonMlgStrategies {
                                             PiggyActionQueue.getInstance().enqueue(new SelectHotbarSlotAction(bestSlot, "piggy-build") {
                                                 @Override
                                                 public ActionPriority getPriority() {
-                                                    return ActionPriority.LOW;
+                                                    return ActionPriority.HIGHEST;
                                                 }
                                             });
                                         }
@@ -598,7 +598,7 @@ public final class CommonMlgStrategies {
                                 t.printStackTrace();
                             }
                         },
-                        () -> new AttackEntityAction(entityLocator, "piggy-build", ActionPriority.NORMAL),
+                        () -> new AttackEntityAction(entityLocator, "piggy-build", ActionPriority.HIGHEST),
                         () -> entityLocator.get() == null,
                         c -> c.player != null && c.player.getVehicle() == null
                     )

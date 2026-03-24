@@ -12,6 +12,7 @@ public class TwistingVinesMlg {
             .negatesAllDamage(true)
             .reliabilityScore(85)
             .cleanupDifficulty(3)
+            .itemConsumptionCost(1)
             .preparationTickOffset(CommonMlgStrategies.dynamicPreparation())
             .executionCondition(CommonMlgStrategies.dynamicReach())
             .viability(CommonMlgStrategies.requireItem(Items.TWISTING_VINES)
