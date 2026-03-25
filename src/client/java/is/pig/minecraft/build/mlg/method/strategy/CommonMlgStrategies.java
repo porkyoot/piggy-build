@@ -9,7 +9,7 @@ import is.pig.minecraft.lib.action.world.BreakBlockAction;
 import is.pig.minecraft.lib.action.world.InteractBlockAction;
 import is.pig.minecraft.lib.action.world.ScoopBlockAction;
 import is.pig.minecraft.lib.action.PiggyActionQueue;
-import is.pig.minecraft.build.mlg.prediction.FallPredictionResult;
+import is.pig.minecraft.lib.util.telemetry.data.FallPredictionResult;
 import is.pig.minecraft.lib.inventory.search.InventorySearcher;
 import is.pig.minecraft.lib.inventory.search.ItemCondition;
 import net.minecraft.client.Minecraft;

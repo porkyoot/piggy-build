@@ -1,13 +1,20 @@
 package is.pig.minecraft.build.mlg.method;
 
 import is.pig.minecraft.lib.action.PiggyActionQueue;
-import is.pig.minecraft.build.mlg.prediction.FallPredictionResult;
+import is.pig.minecraft.lib.util.telemetry.data.FallPredictionResult;
 import net.minecraft.client.Minecraft;
 
 /**
  * Interface representing a specific MLG method.
  */
 public interface MlgMethod {
+
+    /**
+     * @return The display name of the MLG method.
+     */
+    default String getName() {
+        return getClass().getSimpleName();
+    }
 
     /**
      * Determines if this MLG method is viable based on the prediction.

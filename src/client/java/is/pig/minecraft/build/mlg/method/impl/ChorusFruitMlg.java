@@ -7,7 +7,7 @@ import is.pig.minecraft.build.mlg.method.strategy.MlgCleanupStrategy;
 import is.pig.minecraft.build.mlg.method.strategy.MlgExecutionStrategy;
 import is.pig.minecraft.build.mlg.method.strategy.MlgPreparationStrategy;
 import is.pig.minecraft.build.mlg.method.strategy.MlgViabilityStrategy;
-import is.pig.minecraft.build.mlg.prediction.FallPredictionResult;
+import is.pig.minecraft.lib.util.telemetry.data.FallPredictionResult;
 import is.pig.minecraft.lib.action.ActionPriority;
 import is.pig.minecraft.lib.action.PiggyActionQueue;
 import is.pig.minecraft.lib.action.inventory.ClickWindowSlotAction;

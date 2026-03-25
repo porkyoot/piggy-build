@@ -17,7 +17,7 @@ public class PiggyBuildConfig extends PiggyClientConfig {
 
     public PiggyBuildConfig() {
         super();
-        PiggyClientConfig.setInstance(this);
+        PiggyClientConfig.setGlobalInstance(this);
         is.pig.minecraft.lib.config.PiggyConfigRegistry.getInstance().register(this);
     }
 

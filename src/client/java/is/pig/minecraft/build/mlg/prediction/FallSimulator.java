@@ -1,5 +1,7 @@
 package is.pig.minecraft.build.mlg.prediction;
 
+import is.pig.minecraft.lib.util.telemetry.data.FallPredictionResult;
+
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;

@@ -6,13 +6,13 @@ import is.pig.minecraft.build.mlg.method.strategy.MlgExecutionStrategy;
 import is.pig.minecraft.build.mlg.method.strategy.MlgPreparationStrategy;
 import is.pig.minecraft.build.mlg.method.strategy.MlgTickOffsetStrategy;
 import is.pig.minecraft.build.mlg.method.strategy.MlgViabilityStrategy;
-import is.pig.minecraft.build.mlg.prediction.FallPredictionResult;
+import is.pig.minecraft.lib.util.telemetry.data.FallPredictionResult;
 import is.pig.minecraft.lib.action.PiggyActionQueue;
 import net.minecraft.client.Minecraft;
 
 public record ComposedMlgMethod(
         boolean negatesAllDamage,
-        java.util.function.ToIntBiFunction<net.minecraft.client.Minecraft, is.pig.minecraft.build.mlg.prediction.FallPredictionResult> reliabilityScoreFunction,
+        java.util.function.ToIntBiFunction<net.minecraft.client.Minecraft, is.pig.minecraft.lib.util.telemetry.data.FallPredictionResult> reliabilityScoreFunction,
         int getCleanupDifficulty,
         MlgTickOffsetStrategy preparationTickOffset,
         MlgViabilityStrategy viability,
@@ -103,7 +103,7 @@ public record ComposedMlgMethod(
 
     public static class Builder {
         private boolean negatesAllDamage = false;
-        private java.util.function.ToIntBiFunction<net.minecraft.client.Minecraft, is.pig.minecraft.build.mlg.prediction.FallPredictionResult> reliabilityScore = (c, p) -> 50;
+        private java.util.function.ToIntBiFunction<net.minecraft.client.Minecraft, is.pig.minecraft.lib.util.telemetry.data.FallPredictionResult> reliabilityScore = (c, p) -> 50;
         private int cleanupDifficulty = 1;
         private MlgTickOffsetStrategy preparationTickOffset;
         private float selfDamage = 0.0f;
@@ -128,7 +128,7 @@ public record ComposedMlgMethod(
             return this;
         }
 
-        public Builder dynamicReliabilityScore(java.util.function.ToIntBiFunction<net.minecraft.client.Minecraft, is.pig.minecraft.build.mlg.prediction.FallPredictionResult> reliabilityScore) {
+        public Builder dynamicReliabilityScore(java.util.function.ToIntBiFunction<net.minecraft.client.Minecraft, is.pig.minecraft.lib.util.telemetry.data.FallPredictionResult> reliabilityScore) {
             this.reliabilityScore = reliabilityScore;
             return this;
         }
