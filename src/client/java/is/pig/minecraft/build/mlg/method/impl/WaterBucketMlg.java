@@ -25,8 +25,9 @@ public class WaterBucketMlg {
             .preparationTickOffset(CommonMlgStrategies.dynamicPreparation())
             .executionCondition(CommonMlgStrategies.dynamicReach())
             .viability(CommonMlgStrategies.requireItem(Items.WATER_BUCKET)
-                .and(CommonMlgStrategies.requireReplaceableLanding())
-                .and(CommonMlgStrategies.notUltrawarm()))
+                .and(CommonMlgStrategies.requireWaterloggableOrReplaceableLanding())
+                .and(CommonMlgStrategies.notUltrawarm())
+                .and(CommonMlgStrategies.notUnsafeWaterloggable()))
             .preparation(CommonMlgStrategies.swapToItemAndLookDown(Items.WATER_BUCKET))
             .execution((queue, client, prediction) -> {
                 if (client.level == null) return;
@@ -47,7 +48,13 @@ public class WaterBucketMlg {
                     );
                 } else {
                     CommonMlgStrategies.interactBlock(stack -> stack.is(Items.WATER_BUCKET), 
-                        (c, pos) -> c.level != null && c.level.getBlockState(pos.above()).is(Blocks.WATER))
+                        (c, pos) -> {
+                            if (c.level == null) return false;
+                            net.minecraft.world.level.block.state.BlockState blockState = c.level.getBlockState(pos);
+                            boolean isWaterlogged = blockState.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED) && 
+                                                 blockState.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED);
+                            return c.level.getBlockState(pos.above()).is(Blocks.WATER) || isWaterlogged;
+                        })
                     .queueExecution(queue, client, prediction);
                 }
             })

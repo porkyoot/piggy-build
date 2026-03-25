@@ -22,7 +22,12 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Half;
+import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
@@ -72,10 +77,6 @@ public final class CommonMlgStrategies {
                 hasItem = condition.matches(client.player.getOffhandItem()) || InventorySearcher.findSlotInHotbar(client.player.getInventory(), condition) != -1 ||
                           InventorySearcher.findSlotInMain(client.player.getInventory(), condition) != -1;
             }
-            if (!hasItem && prediction.ticksToImpact() <= 3) {
-                is.pig.minecraft.lib.util.PiggyLog logger = new is.pig.minecraft.lib.util.PiggyLog("piggy-build", "Viability");
-                logger.info("[MLG] Missing Required Item Class: " + targetClass.getSimpleName());
-            }
             return hasItem;
         };
     }
@@ -93,8 +94,50 @@ public final class CommonMlgStrategies {
         };
     }
 
+    public static MlgViabilityStrategy requireWaterloggableOrReplaceableLanding() {
+        return (client, prediction) -> {
+            if (client.level == null) return false;
+            BlockState landingSpace = client.level.getBlockState(prediction.landingPos());
+            boolean isWaterloggable = landingSpace.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED);
+            
+            if (!landingSpace.canBeReplaced() && !isWaterloggable) {
+                return false;
+            }
+
+            BlockState floorState = client.level.getBlockState(prediction.landingPos().below());
+            return !floorState.isAir() && !floorState.canBeReplaced();
+        };
+    }
+
     public static MlgViabilityStrategy notUltrawarm() {
         return (client, prediction) -> client.level != null && !client.level.dimensionType().ultraWarm();
+    }
+
+    /**
+     * Mark as non-viable if landing on leaves, stairs or upper slabs with a solid block below.
+     */
+    public static MlgViabilityStrategy notUnsafeWaterloggable() {
+        return (client, prediction) -> {
+            if (client.level == null) return true;
+            BlockPos surfacePos = prediction.landingPos();
+            BlockState surfaceState = client.level.getBlockState(surfacePos);
+
+            boolean isLeaves = surfaceState.is(BlockTags.LEAVES);
+            boolean isStairs = surfaceState.getBlock() instanceof StairBlock;
+            boolean isUpperStair = isStairs && surfaceState.getValue(StairBlock.HALF) == Half.TOP;
+            boolean isSlab = surfaceState.getBlock() instanceof SlabBlock;
+            boolean isUpperSlab = isSlab && surfaceState.getValue(SlabBlock.TYPE) == SlabType.TOP;
+
+            if (isLeaves || isUpperStair || isUpperSlab) {
+                BlockState belowSurfaceState = client.level.getBlockState(surfacePos.below());
+                // Check if the block below is solid
+                if (belowSurfaceState.isSolidRender(client.level, surfacePos.below())) {
+                    return false;
+                }
+            }
+
+            return true;
+        };
     }
 
     public static MlgViabilityStrategy requireClearSpace(int radius, Class<? extends Entity> targetEntity) {

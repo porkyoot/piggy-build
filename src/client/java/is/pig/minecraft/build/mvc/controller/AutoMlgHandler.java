@@ -38,8 +38,8 @@ public class AutoMlgHandler {
 
         if (client.player == null || client.level == null) return;
         
-        // Flash the MLG icon only if the State Machine has detected a fall and is actively handling it
-        if (MlgStateMachine.getInstance().getCurrentState() != is.pig.minecraft.build.mlg.statemachine.MlgState.IDLE) {
+        // Flash the MLG icon only if the State Machine has detected a fall and is actively handling it with a viable method
+        if (MlgStateMachine.getInstance().hasActiveMethod()) {
             is.pig.minecraft.lib.ui.IconQueueOverlay.queueIcon(
                 net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("piggy", "textures/gui/icons/auto_mlg.png"),
                 1000, true
