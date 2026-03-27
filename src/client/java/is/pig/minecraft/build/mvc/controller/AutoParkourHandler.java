@@ -112,7 +112,9 @@ public class AutoParkourHandler {
         
         net.minecraft.world.phys.Vec3 forwardOffset;
         if (speed > 0.01) {
-            forwardOffset = horizontalVel.normalize().scale(Math.max(0.8, speed * 3.5));
+            int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing();
+            double latencyOffset = speed * (ping / 1000.0);
+            forwardOffset = horizontalVel.normalize().scale(Math.max(0.8, speed * 3.5) + latencyOffset);
         } else {
             // Stationary fallback if jumping in place
             forwardOffset = net.minecraft.world.phys.Vec3.ZERO;
@@ -176,7 +178,15 @@ public class AutoParkourHandler {
             is.pig.minecraft.lib.action.PiggyActionQueue.getInstance().enqueue(bulkAction);
 
             lastPlacementTime = currentTime;
-            pendingVerifications.put(targetPos, currentTime + 250); // Validate 5 ticks later asynchronously
+            
+            // Adjust verification delay for high latency to prevent false-positive rollback detection
+            int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing();
+            long verificationDelay = 250;
+            if (ping > 150) {
+                verificationDelay += ping;
+            }
+            
+            pendingVerifications.put(targetPos, currentTime + verificationDelay); 
         }
     }
 }

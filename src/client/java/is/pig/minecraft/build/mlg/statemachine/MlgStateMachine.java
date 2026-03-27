@@ -127,7 +127,11 @@ public class MlgStateMachine {
                     Optional<MlgMethod> bestMethod = MlgMethodSelector.selectBestMethod(client, currentPrediction, METHODS);
                     if (bestMethod.isPresent()) {
                         activeMethod = bestMethod.get();
-                        if (currentPrediction.ticksToImpact() <= activeMethod.getPreparationTickOffset(client, currentPrediction)) {
+                        
+                        int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing();
+                        int latencyTicks = Math.min(10, (int) Math.ceil(ping / 50.0));
+                        
+                        if (currentPrediction.ticksToImpact() <= activeMethod.getPreparationTickOffset(client, currentPrediction) + latencyTicks) {
                             stateChangedThisTick = transitionTo(MlgState.PREPARATION);
                         }
                     } else {
