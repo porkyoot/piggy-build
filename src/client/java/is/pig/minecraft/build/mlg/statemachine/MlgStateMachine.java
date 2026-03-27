@@ -13,6 +13,11 @@ import is.pig.minecraft.lib.util.telemetry.formatter.PiggyTelemetryFormatter;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Central state machine for the MLG Survival Engine.
+ * Handles fall detection, method selection, and state transitions (PREPARATION, EXECUTION, RECOVERY)
+ * to ensure the player survives fatal falls using various environment-appropriate methods.
+ */
 public class MlgStateMachine {
 
     private static final MlgStateMachine INSTANCE = new MlgStateMachine();
@@ -51,6 +56,11 @@ public class MlgStateMachine {
         return INSTANCE;
     }
 
+    /**
+     * Ticks the state machine, managing fall predictions and state transitions.
+     * This method selects appropriate survival methods and delegates actions
+     * to the {@link PiggyActionQueue}.
+     */
     public void tick(Minecraft client) {
         if (client.player == null || client.level == null) return;
         
@@ -196,8 +206,7 @@ public class MlgStateMachine {
 
     private boolean transitionTo(MlgState newState) {
         if (this.currentState != newState) {
-            // Internal state transitions are now silent in chat/console, preserving telemetry only.
-            
+            // Log transitions to telemetry for forensic analysis
             if (newState == MlgState.FALLING && this.currentState == MlgState.IDLE) {
                 MetaActionSession session = MetaActionSessionManager.getInstance().startSession("MLG");
                 session.setPriority(true);

@@ -11,8 +11,21 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.Optional;
 
+/**
+ * Predictive physics engine for simulating player falls.
+ * Iteratively calculates trajectory by accounting for gravity, drag, and block collisions
+ * to determine the exact tick and location of impact for MLG strategies.
+ */
 public class FallSimulator {
 
+    /**
+     * Simulates a player's fall from their current position until they either reach the ground
+     * or exceed the maximum simulation depth (100 ticks).
+     * 
+     * @param player The player whose fall is being simulated.
+     * @param world The client-side level.
+     * @return An {@link Optional} containing the {@link FallPredictionResult} if a collision is detected within the window.
+     */
     public static Optional<FallPredictionResult> simulate(LocalPlayer player, ClientLevel world) {
         if (player.onClimbable() || player.isInWater() || player.isInLava()) {
             return Optional.empty();
