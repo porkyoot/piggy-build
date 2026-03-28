@@ -38,10 +38,19 @@ Feel free to fork the project or submit a Pull Request if you want to contribute
 ## Features
 
 ### 🛠️ Placement Helpers
-*   **Directional Placement**: Lock your placement direction relative to the block face. Handy for placing logs, pillars, or pistons in specific orientations without moving your character.
-*   **Diagonal Placement**: Easily place blocks diagonally, enabling faster construction of complex patterns.
-*   **Fast Placement**: Hold down the button to place blocks rapidly at a configurable speed.
+*   **Directional Placement**: Lock your placement direction relative to the block face. Handy for placing logs, pillars, or pistons in specific orientations.
+*   **Diagonal Placement**: Easily place blocks diagonally, enabling faster construction.
+*   **Fast Placement**: Hold down to place blocks rapidly.
 *   **Fast Breaking**: Creative-mode utility to break blocks faster.
+*   **Directional Lock**: Lock your cursor to a specific block face for rapid, aligned placements across a surface.
+
+### 🏃 Navigation & Survival
+*   **Auto-MLG Engine**: A high-performance survival system that uses a **FallSimulator** to predict lethal falls and automatically execute recovery actions.
+    *   **15+ Methods**: Water Bucket, Slime, Boats, Cobwebs, Twisting Vines, Powder Snow, Hay Bales, Bed, Ender Pearl, and more.
+    *   **Dynamic Ranking**: `MlgMethodSelector` ranks survival methods based on health, fall distance, and inventory availability.
+    *   **Precision Execution**: Uses the `PiggyActionQueue` at `HIGHEST` priority for frame-perfect, anti-cheat friendly interaction.
+    *   **Seamless Handlers**: Automatically manages "cleanup" (removing water, jumping off slime) once safe.
+*   **Auto-Parkour**: The `AutoParkourHandler` monitors your movement and automatically performs jumps for clearable gaps. It integrates with `PerfMonitor` to adjust jump timing based on current server latency.
 
 ### 📐 Shape & Visual Guides
 *   **Light Level Overlay**: Press `L` to toggle a completely dynamic overlay that highlights areas where monsters can spawn!
@@ -73,11 +82,12 @@ You can rebind these keys in the standard Minecraft Controls menu under **"Piggy
 
 | Action | Default Key | Description |
 | :--- | :--- | :--- |
-| **Shape Selector** | `V` | Opens the radial menu to select building shapes. Scroll to adjust size. |
-| **Directional Placement** | `Mouse Button 5` | Locks placement orientation to the face you are looking at. |
-| **Diagonal Placement** | `Mouse Button 4` | Toggles diagonal placement mode (45-degree angle). |
-| **Fast Block Placement** | `Mouse Button 6` | Activates rapid block placement while held. Scroll to adjust speed. |
-| **Light Level Overlay** | `L` | Toggles the dynamic danger boundary outlines for mob spawning. |
+| **Shape Selector** | `V` | Radial menu for shapes. Scroll to adjust size. |
+| **Directional Place** | `Mouse Button 5` | Locks placement orientation. |
+| **Auto-MLG Toggle** | `O` | Toggles the automatic survival engine. |
+| **Auto-Parkour** | `P` | Toggles the automatic jump handler. |
+| **Fast Place** | `Mouse Button 6` | Rapid placement while held. |
+| **Light Level Overlay** | `L` | Toggles the mob spawn danger boundary. |
 
 ---
 
