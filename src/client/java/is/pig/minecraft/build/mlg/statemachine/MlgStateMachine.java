@@ -128,7 +128,15 @@ public class MlgStateMachine {
                     if (bestMethod.isPresent()) {
                         activeMethod = bestMethod.get();
                         
-                        int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing();
+                        int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing(() -> {
+                            var conn = Minecraft.getInstance().getConnection();
+                            var p2 = Minecraft.getInstance().player;
+                            if (conn != null && p2 != null) {
+                                var entry = conn.getPlayerInfo(p2.getUUID());
+                                return entry != null ? entry.getLatency() : 0;
+                            }
+                            return 0;
+                        });
                         int latencyTicks = Math.min(10, (int) Math.ceil(ping / 50.0));
                         
                         if (currentPrediction.ticksToImpact() <= activeMethod.getPreparationTickOffset(client, currentPrediction) + latencyTicks) {
@@ -232,7 +240,15 @@ public class MlgStateMachine {
                 });
             } else if (newState == MlgState.IDLE && this.currentState != MlgState.IDLE) {
                 MetaActionSessionManager.getInstance().getCurrentSession().ifPresent(s -> {
-                    int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing();
+                    int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing(() -> {
+                        var conn = Minecraft.getInstance().getConnection();
+                        var p2 = Minecraft.getInstance().player;
+                        if (conn != null && p2 != null) {
+                            var entry = conn.getPlayerInfo(p2.getUUID());
+                            return entry != null ? entry.getLatency() : 0;
+                        }
+                        return 0;
+                    });
                     s.monitor(20 + ping / 50);
                 });
             }

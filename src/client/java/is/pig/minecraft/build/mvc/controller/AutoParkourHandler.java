@@ -112,7 +112,14 @@ public class AutoParkourHandler {
         
         net.minecraft.world.phys.Vec3 forwardOffset;
         if (speed > 0.01) {
-            int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing();
+            int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing(() -> {
+                var conn = client.getConnection();
+                if (conn != null && client.player != null) {
+                    var entry = conn.getPlayerInfo(client.player.getUUID());
+                    return entry != null ? entry.getLatency() : 0;
+                }
+                return 0;
+            });
             double latencyOffset = speed * (ping / 1000.0);
             forwardOffset = horizontalVel.normalize().scale(Math.max(0.8, speed * 3.5) + latencyOffset);
         } else {
@@ -180,7 +187,14 @@ public class AutoParkourHandler {
             lastPlacementTime = currentTime;
             
             // Adjust verification delay for high latency to prevent false-positive rollback detection
-            int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing();
+            int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing(() -> {
+                var conn = client.getConnection();
+                if (conn != null && client.player != null) {
+                    var entry = conn.getPlayerInfo(client.player.getUUID());
+                    return entry != null ? entry.getLatency() : 0;
+                }
+                return 0;
+            });
             long verificationDelay = 250;
             if (ping > 150) {
                 verificationDelay += ping;
