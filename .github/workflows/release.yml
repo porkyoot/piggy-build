@@ -85,7 +85,7 @@ jobs:
           EOF
 
       - name: Build
-        run: ./gradlew :piggy-build:build
+        run: ./gradlew :piggy-build:assemble
 
       - name: Release
         uses: softprops/action-gh-release@v2
