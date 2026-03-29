@@ -33,7 +33,6 @@ dependencies {
     modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
 
     implementation project(path: ':piggy-lib', configuration: 'namedElements')
-    clientImplementation project(path: ':piggy-lib', configuration: 'namedElements')
 
     // Also include the lib in the final jar if needed (optional fat-jar behavior)
     //include project(':piggy-lib')

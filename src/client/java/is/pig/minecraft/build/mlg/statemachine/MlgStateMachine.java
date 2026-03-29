@@ -26,7 +26,6 @@ public class MlgStateMachine {
         ExistingMountableMlg.create(),
         MinecartMlg.create(),
         SaddleMlg.create(),
-        ExistingMountableMlg.create(),
         WaterBucketMlg.create(),
         SlimeBlockMlg.create(),
         CobwebMlg.create(),
@@ -45,6 +44,7 @@ public class MlgStateMachine {
     private FallPredictionResult currentPrediction = null;
     private MlgMethod activeMethod = null;
     private int idleGroundTicks = 0;
+    private int idleCooldownTicks = 0;
 
     public boolean hasActiveMethod() {
         return activeMethod != null;
@@ -63,6 +63,10 @@ public class MlgStateMachine {
      */
     public void tick(Minecraft client) {
         if (client.player == null || client.level == null) return;
+        
+        if (idleCooldownTicks > 0) {
+            idleCooldownTicks--;
+        }
         
         if (client.player.isDeadOrDying()) {
             if (currentState != MlgState.IDLE) {
@@ -100,7 +104,7 @@ public class MlgStateMachine {
             stateChangedThisTick = false;
             switch (currentState) {
                 case IDLE -> {
-                    if (livePrediction.isPresent() && livePrediction.get().isFatal()) {
+                    if (livePrediction.isPresent() && livePrediction.get().isFatal() && idleCooldownTicks <= 0) {
                         currentPrediction = livePrediction.get();
                         stateChangedThisTick = transitionTo(MlgState.FALLING);
                     }
@@ -145,6 +149,8 @@ public class MlgStateMachine {
                     } else {
                         activeMethod = null;
                         if (currentPrediction.ticksToImpact() <= 5) {
+                            MetaActionSessionManager.getInstance().getCurrentSession().ifPresent(s -> s.fail("No viable survival method found"));
+                            idleCooldownTicks = 10; // Prevent immediate flip back
                             stateChangedThisTick = transitionTo(MlgState.IDLE);
                         }
                     }
