@@ -14,6 +14,8 @@ import is.pig.minecraft.build.mvc.view.DirectionalPlacementRenderer;
 import is.pig.minecraft.build.mvc.view.HighlightRenderType;
 import is.pig.minecraft.build.mvc.view.WorldShapeRenderer;
 
+import is.pig.minecraft.build.mlg.telemetry.MlgAttemptEvent;
+import is.pig.minecraft.lib.util.telemetry.EventTranslatorRegistry;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Camera;
@@ -33,10 +35,10 @@ public class PiggyBuildClient implements ClientModInitializer {
     @SuppressWarnings("unchecked")
     @Override
     public void onInitializeClient() {
-        // Ensure config is initialized and registered with base class
-        PiggyBuildConfig.getInstance();
-
         LOGGER.info("Ehlo from Piggy Build!");
+
+        // 0. Initialize Telemetry & History
+        is.pig.minecraft.build.mlg.telemetry.MlgHistoryManager.init();
 
         // 0. Register features
         is.pig.minecraft.lib.features.CheatFeatureRegistry.register(
@@ -91,7 +93,6 @@ public class PiggyBuildClient implements ClientModInitializer {
                 .registerConfigSyncListener((allowCheatsStart, featuresStart) -> {
                     // Fix raw type inference issues by casting
                     Boolean allowCheats = (Boolean) allowCheatsStart;
-                    @SuppressWarnings("unchecked")
                     java.util.Map<String, Boolean> features = (java.util.Map<String, Boolean>) featuresStart;
 
                     is.pig.minecraft.build.config.PiggyBuildConfig buildConfig = is.pig.minecraft.build.config.PiggyBuildConfig
@@ -124,6 +125,15 @@ public class PiggyBuildClient implements ClientModInitializer {
                             "[ANTI-CHEAT DEBUG] PiggyBuildConfig updated from server sync: allowCheats={}, features={}",
                             allowCheats, features);
                 });
+
+        // 5. Register Telemetry Translators
+        EventTranslatorRegistry.getInstance().register(MlgAttemptEvent.class, (event, i18n) -> 
+            i18n.translate("piggy.build.telemetry.mlg_attempt", 
+                    event.methodName(), 
+                    event.fallDistance(), 
+                    event.isFatal(), 
+                    event.impactTicks())
+        );
 
         // 4. Render loop (visualization)
         WorldRenderEvents.LAST.register(context -> {

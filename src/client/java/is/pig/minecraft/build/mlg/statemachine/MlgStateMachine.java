@@ -4,6 +4,7 @@ import is.pig.minecraft.build.mlg.method.MlgMethod;
 import is.pig.minecraft.build.mlg.method.MlgMethodSelector;
 import is.pig.minecraft.lib.util.telemetry.data.FallPredictionResult;
 import is.pig.minecraft.build.mlg.method.impl.*;
+import is.pig.minecraft.build.mlg.telemetry.MlgAttemptEvent;
 import is.pig.minecraft.lib.action.PiggyActionQueue;
 import net.minecraft.client.Minecraft;
 import is.pig.minecraft.lib.util.telemetry.MetaActionSession;
@@ -131,6 +132,18 @@ public class MlgStateMachine {
                     Optional<MlgMethod> bestMethod = MlgMethodSelector.selectBestMethod(client, currentPrediction, METHODS);
                     if (bestMethod.isPresent()) {
                         activeMethod = bestMethod.get();
+                        
+                        final FallPredictionResult prediction = currentPrediction;
+                        final MlgMethod method = activeMethod;
+                        MetaActionSessionManager.getInstance().getCurrentSession().ifPresent(s -> 
+                            s.logEvent(new MlgAttemptEvent(
+                                prediction.fallDistance(),
+                                method.getName(),
+                                true, // methodFound
+                                prediction.isFatal(),
+                                prediction.ticksToImpact()
+                            ))
+                        );
                         
                         int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing(() -> {
                             var conn = Minecraft.getInstance().getConnection();
