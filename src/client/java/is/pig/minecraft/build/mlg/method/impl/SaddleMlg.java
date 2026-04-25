@@ -83,7 +83,7 @@ public class SaddleMlg {
                             double targetEyeY = target.getY() + 3.0;
                             double targetFeetY = targetEyeY - c.player.getEyeHeight();
                             if (targetFeetY <= c.player.getY() && targetFeetY > target.getY()) {
-                                c.getConnection().send(new ServerboundMovePlayerPacket.Pos(
+                                c.getConnection().send((net.minecraft.network.protocol.Packet<?>) is.pig.minecraft.lib.util.CompatibilityHelper.createMovePlayerPacketPos(
                                         c.player.getX(), targetFeetY, c.player.getZ(), c.player.onGround()));
                             }
                         }

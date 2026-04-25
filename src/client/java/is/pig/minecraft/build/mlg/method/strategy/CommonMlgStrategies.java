@@ -130,8 +130,7 @@ public final class CommonMlgStrategies {
 
             if (isLeaves || isUpperStair || isUpperSlab) {
                 BlockState belowSurfaceState = client.level.getBlockState(surfacePos.below());
-                // Check if the block below is solid
-                if (belowSurfaceState.isSolidRender(client.level, surfacePos.below())) {
+                if (is.pig.minecraft.lib.util.CompatibilityHelper.isSolidRender(belowSurfaceState, client.level, surfacePos.below())) {
                     return false;
                 }
             }
@@ -383,7 +382,7 @@ public final class CommonMlgStrategies {
             double targetFeetY = targetEyeY - client.player.getEyeHeight();
             
             if (client.getConnection() != null && targetFeetY <= client.player.getY()) {
-                client.getConnection().send(new ServerboundMovePlayerPacket.Pos(
+                client.getConnection().send((net.minecraft.network.protocol.Packet<?>) is.pig.minecraft.lib.util.CompatibilityHelper.createMovePlayerPacketPos(
                         client.player.getX(), targetFeetY, client.player.getZ(), client.player.onGround()));
             }
 
@@ -433,7 +432,7 @@ public final class CommonMlgStrategies {
                         double targetEyeY = target.getY() + 3.0;
                         double targetFeetY = targetEyeY - c.player.getEyeHeight();
                         if (targetFeetY <= c.player.getY() && targetFeetY > target.getY()) {
-                            c.getConnection().send(new ServerboundMovePlayerPacket.Pos(
+                            c.getConnection().send((net.minecraft.network.protocol.Packet<?>) is.pig.minecraft.lib.util.CompatibilityHelper.createMovePlayerPacketPos(
                                     c.player.getX(), targetFeetY, c.player.getZ(), c.player.onGround()));
                         }
                     }

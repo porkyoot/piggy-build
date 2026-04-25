@@ -33,15 +33,7 @@ public class DirectionalPlacementRenderer {
     // a helper method
     // to get the RenderType for a specific texture.
     public static RenderType getRenderType(ResourceLocation texture) {
-        return RenderType.create("piggy_placement_" + texture.getPath(),
-                DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS, 256, false, true,
-                RenderType.CompositeState.builder()
-                        .setShaderState(new RenderStateShard.ShaderStateShard(GameRenderer::getPositionTexColorShader))
-                        .setTextureState(new RenderStateShard.TextureStateShard(texture, false, false))
-                        .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
-                        .setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST)
-                        .setCullState(RenderStateShard.NO_CULL)
-                        .createCompositeState(false));
+        return is.pig.minecraft.lib.util.CompatibilityHelper.getTranslucentRenderType(texture);
     }
 
     /**

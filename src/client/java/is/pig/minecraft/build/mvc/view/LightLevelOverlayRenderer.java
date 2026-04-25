@@ -24,15 +24,7 @@ public class LightLevelOverlayRenderer {
     private static final ResourceLocation MONSTER_OVERLAY_SIDE = ResourceLocation.fromNamespaceAndPath("piggy-build", "textures/misc/monster_overlay_side.png");
 
     public static RenderType getRenderType(ResourceLocation texture) {
-        return RenderType.create("piggy_light_level_" + texture.getPath().replace("/", "_").replace(".", "_"),
-                DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS, 256, false, true,
-                RenderType.CompositeState.builder()
-                        .setShaderState(new RenderStateShard.ShaderStateShard(GameRenderer::getPositionTexColorShader))
-                        .setTextureState(new RenderStateShard.TextureStateShard(texture, false, false))
-                        .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
-                        .setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST)
-                        .setCullState(RenderStateShard.NO_CULL)
-                        .createCompositeState(false));
+        return is.pig.minecraft.lib.util.CompatibilityHelper.getTranslucentRenderType(texture);
     }
 
     private static int getDangerLevel(Minecraft mc, BlockPos pos) {

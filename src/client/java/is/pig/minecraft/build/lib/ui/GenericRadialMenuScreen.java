@@ -149,46 +149,35 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         poseStack.pushPose();
         poseStack.translate(0, 0, 10); // Z-offset
 
-        // Use GuiGraphics built-in batch buffer for transparency instead of
-        // RenderSystem
-        VertexConsumer buffer = graphics.bufferSource().getBuffer(net.minecraft.client.renderer.RenderType.gui());
         Matrix4f mat = poseStack.last().pose();
-
-        // Render Radial Segments
         double anglePerItem = (2 * Math.PI) / radialItems.size();
-        for (int i = 0; i < radialItems.size(); i++) {
-            // Colors could be extracted to a Config object in the future
-            float r = 1f;
-            float g = 1f;
-            float b = 1f;
-            float a = 0.3f;
-            if ((radialItems.get(i) == selectedItem)) { // if hovered
-                PiggyBuildConfig config = PiggyBuildConfig.getInstance();
-                float[] rgba = config.getHighlightColor().getComponents(null);
-                r = rgba[0];
-                g = rgba[1];
-                b = rgba[2];
-                a = 0.6f;
+
+        is.pig.minecraft.lib.util.CompatibilityHelper.drawCustom(graphics, (bufferSourceObj) -> {
+            net.minecraft.client.renderer.MultiBufferSource bufferSource = (net.minecraft.client.renderer.MultiBufferSource) bufferSourceObj;
+            VertexConsumer buffer = bufferSource.getBuffer(net.minecraft.client.renderer.RenderType.gui());
+
+            for (int i = 0; i < radialItems.size(); i++) {
+                float r = 1f;
+                float g = 1f;
+                float b = 1f;
+                float a = 0.3f;
+                if ((radialItems.get(i) == selectedItem)) { // if hovered
+                    PiggyBuildConfig config = PiggyBuildConfig.getInstance();
+                    float[] rgba = config.getHighlightColor().getComponents(null);
+                    r = rgba[0];
+                    g = rgba[1];
+                    b = rgba[2];
+                    a = 0.6f;
+                }
+
+                double start = (i * anglePerItem) - Math.toRadians(90);
+                double end = ((i + 1) * anglePerItem) - Math.toRadians(90);
+                double gap = Math.toRadians(2);
+
+                drawArc(buffer, mat, cx, cy, INNER_RADIUS + 2, OUTER_RADIUS, start + gap, end - gap, r, g, b, a);
             }
+        });
 
-            double start = (i * anglePerItem) - Math.toRadians(90);
-            double end = ((i + 1) * anglePerItem) - Math.toRadians(90);
-            double gap = Math.toRadians(2);
-
-            drawArc(buffer, mat, cx, cy, INNER_RADIUS + 2, OUTER_RADIUS, start + gap, end - gap, r, g, b, a);
-        }
-
-        // Render Center
-        // boolean centerHovered = (centerItem == selectedItem);
-        // float cr = centerHovered ? 0f : 1f;
-        // float cg = centerHovered ? 1f : 1f;
-        // float cb = centerHovered ? 0.9f : 1f;
-        // float ca = centerHovered ? 0.5f : 0.15f;
-
-        // drawArc(buffer, mat, cx, cy, 0, INNER_RADIUS - 2, 0, Math.PI * 2, cr, cg, cb,
-        // ca);
-
-        graphics.bufferSource().endBatch(net.minecraft.client.renderer.RenderType.gui());
         poseStack.popPose();
     }
 
@@ -231,21 +220,15 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
     private void drawItemIcon(GuiGraphics graphics, T item, int x, int y) {
         boolean selected = (item == selectedItem);
         if (selected) {
-            // Use Config Color for Tinting
             PiggyBuildConfig config = PiggyBuildConfig.getInstance();
             float[] rgba = config.getHighlightColor().getComponents(null);
-            graphics.setColor(
-                    rgba[0],
-                    rgba[1],
-                    rgba[2],
-                    1.0f // Keep icon fully opaque, just tinted
-            );
+            is.pig.minecraft.lib.util.CompatibilityHelper.setColor(graphics, rgba[0], rgba[1], rgba[2], 1.0f);
         } else {
-            graphics.setColor(1f, 1f, 1f, 1f);
+            is.pig.minecraft.lib.util.CompatibilityHelper.setColor(graphics, 1f, 1f, 1f, 1f);
         }
 
-        graphics.blit(item.getIconLocation(selected), x, y, 0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
-        graphics.setColor(1f, 1f, 1f, 1f);
+        is.pig.minecraft.lib.util.CompatibilityHelper.blit(graphics, item.getIconLocation(selected), x, y, 0f, 0f, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
+        is.pig.minecraft.lib.util.CompatibilityHelper.setColor(graphics, 1f, 1f, 1f, 1f);
     }
 
     private void drawArc(VertexConsumer buffer, Matrix4f mat, float cx, float cy, float rIn, float rOut, double start,

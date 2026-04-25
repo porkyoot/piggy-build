@@ -10,14 +10,5 @@ import net.minecraft.resources.ResourceLocation;
 public class HighlightRenderType {
     public static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath("piggy-build", "textures/misc/highlight.png");
     
-    public static final RenderType TYPE = RenderType.create("piggy_highlight",
-        DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS, 256, false, true,
-        RenderType.CompositeState.builder()
-            .setShaderState(new RenderStateShard.ShaderStateShard(GameRenderer::getPositionTexColorShader))
-            .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
-            .setTextureState(new RenderStateShard.TextureStateShard(TEXTURE, false, false))
-            .setDepthTestState(RenderStateShard.NO_DEPTH_TEST)
-            .setCullState(RenderStateShard.NO_CULL)
-            .setWriteMaskState(RenderStateShard.COLOR_WRITE)
-            .createCompositeState(false));
+    public static final RenderType TYPE = is.pig.minecraft.lib.util.CompatibilityHelper.getTranslucentRenderType(TEXTURE);
 }
