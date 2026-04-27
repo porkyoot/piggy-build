@@ -168,11 +168,11 @@ public class PiggyBuildClient implements ClientModInitializer {
         stack.translate(rx, ry, rz);
 
         switch (session.getShape()) {
-            case BLOCK -> WorldShapeRenderer.drawBlock(builder, stack.last().pose(), 0, 0, 0, r, g, b, a);
-            case LINE -> WorldShapeRenderer.drawLine(builder, stack.last().pose(), session.getAnchorAxis(),
+            case BLOCK -> WorldShapeRenderer.drawBlock(builder, stack.last(), 0, 0, 0, r, g, b, a);
+            case LINE -> WorldShapeRenderer.drawLine(builder, stack.last(), session.getAnchorAxis(),
                     session.getRadius(), r, g, b, a);
-            case SPHERE -> WorldShapeRenderer.drawSphere(builder, stack.last().pose(), session.getRadius(), r, g, b, a);
-            case RING -> WorldShapeRenderer.drawRing(builder, stack.last().pose(), session.getAnchorAxis(),
+            case SPHERE -> WorldShapeRenderer.drawSphere(builder, stack.last(), session.getRadius(), r, g, b, a);
+            case RING -> WorldShapeRenderer.drawRing(builder, stack.last(), session.getAnchorAxis(),
                     session.getRadius(), r, g, b, a);
         }
 

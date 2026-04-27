@@ -125,9 +125,13 @@ public class LightLevelOverlayRenderer {
         float size = 0.5f;
 
         builder.addVertex(mat, -size, -size, 0).setUv(0, 0).setColor(r, g, b, a);
+        is.pig.minecraft.lib.util.CompatibilityHelper.applyVertexAttributes(builder, stack.last(), 0, 1, 0);
         builder.addVertex(mat, -size, size, 0).setUv(0, 1).setColor(r, g, b, a);
+        is.pig.minecraft.lib.util.CompatibilityHelper.applyVertexAttributes(builder, stack.last(), 0, 1, 0);
         builder.addVertex(mat, size, size, 0).setUv(1, 1).setColor(r, g, b, a);
+        is.pig.minecraft.lib.util.CompatibilityHelper.applyVertexAttributes(builder, stack.last(), 0, 1, 0);
         builder.addVertex(mat, size, -size, 0).setUv(1, 0).setColor(r, g, b, a);
+        is.pig.minecraft.lib.util.CompatibilityHelper.applyVertexAttributes(builder, stack.last(), 0, 1, 0);
         
         stack.popPose();
     }

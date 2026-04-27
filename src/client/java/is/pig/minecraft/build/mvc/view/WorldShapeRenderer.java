@@ -2,6 +2,7 @@ package is.pig.minecraft.build.mvc.view;
 
 import org.joml.Matrix4f;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 
@@ -9,14 +10,14 @@ public class WorldShapeRenderer {
 
     private static final float EPSILON = 0.002f;
 
-    public static void drawBlock(VertexConsumer builder, Matrix4f mat, int x, int y, int z, float r, float g, float b,
+    public static void drawBlock(VertexConsumer builder, PoseStack.Pose pose, int x, int y, int z, float r, float g, float b,
             float a) {
         for (Direction dir : Direction.values()) {
-            drawFace(builder, mat, x, y, z, dir, r, g, b, a);
+            drawFace(builder, pose, x, y, z, dir, r, g, b, a);
         }
     }
 
-    public static void drawLine(VertexConsumer builder, Matrix4f mat, Axis axis, double radius, float r, float g,
+    public static void drawLine(VertexConsumer builder, PoseStack.Pose pose, Axis axis, double radius, float r, float g,
             float b, float a) {
         int len = (int) Math.ceil(radius);
         for (int i = -len; i <= len; i++) {
@@ -26,14 +27,14 @@ public class WorldShapeRenderer {
                 case Y -> y = i;
                 case Z -> z = i;
             }
-            drawBlock(builder, mat, x, y, z, r, g, b, a);
+            drawBlock(builder, pose, x, y, z, r, g, b, a);
         }
     }
 
     /**
      * Restore full logic for the Ring
      */
-    public static void drawRing(VertexConsumer builder, Matrix4f mat, Axis axis, double radius, float r, float g,
+    public static void drawRing(VertexConsumer builder, PoseStack.Pose pose, Axis axis, double radius, float r, float g,
             float b, float a) {
         double innerRadius = Math.max(0, radius - 1.0);
         double radiusSq = radius * radius;
@@ -106,7 +107,7 @@ public class WorldShapeRenderer {
                         boolean neighborIsSolid = (neighborDistSq <= radiusSq && neighborDistSq > innerRadiusSq);
                         if (!neighborIsSolid) {
                             if (neighborDistSq > currentDistSq) {
-                                drawFace(builder, mat, x, y, z, dir, r, g, b, a);
+                                drawFace(builder, pose, x, y, z, dir, r, g, b, a);
                             }
                         }
                     }
@@ -118,7 +119,7 @@ public class WorldShapeRenderer {
     /**
      * Restore full logic for the Sphere
      */
-    public static void drawSphere(VertexConsumer builder, Matrix4f mat, double radius, float r, float g, float b,
+    public static void drawSphere(VertexConsumer builder, PoseStack.Pose pose, double radius, float r, float g, float b,
             float a) {
         double innerRadius = Math.max(0, radius - 1.0);
         double radiusSq = radius * radius;
@@ -145,7 +146,7 @@ public class WorldShapeRenderer {
 
                             if (!neighborIsSolid) {
                                 if (neighborDistSq > currentDistSq) {
-                                    drawFace(builder, mat, x, y, z, dir, r, g, b, a);
+                                    drawFace(builder, pose, x, y, z, dir, r, g, b, a);
                                 }
                             }
                         }
@@ -165,27 +166,32 @@ public class WorldShapeRenderer {
         return ((double) x * x) + ((double) y * y) + ((double) z * z);
     }
 
-    private static void drawFace(VertexConsumer builder, Matrix4f mat, int x, int y, int z, Direction face, float r,
+    private static void drawFace(VertexConsumer builder, PoseStack.Pose pose, int x, int y, int z, Direction face, float r,
             float g, float b, float a) {
         float x0 = x - EPSILON, x1 = x + 1 + EPSILON;
         float y0 = y - EPSILON, y1 = y + 1 + EPSILON;
         float z0 = z - EPSILON, z1 = z + 1 + EPSILON;
 
         switch (face) {
-            case DOWN -> quad(builder, mat, x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1, r, g, b, a);
-            case UP -> quad(builder, mat, x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0, r, g, b, a);
-            case NORTH -> quad(builder, mat, x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0, r, g, b, a);
-            case SOUTH -> quad(builder, mat, x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1, r, g, b, a);
-            case WEST -> quad(builder, mat, x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0, r, g, b, a);
-            case EAST -> quad(builder, mat, x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1, r, g, b, a);
+            case DOWN -> quad(builder, pose, x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1, r, g, b, a);
+            case UP -> quad(builder, pose, x0, y1, z0, x0, y1, z1, x1, y1, z1, x1, y1, z0, r, g, b, a);
+            case NORTH -> quad(builder, pose, x0, y0, z0, x0, y1, z0, x1, y1, z0, x1, y0, z0, r, g, b, a);
+            case SOUTH -> quad(builder, pose, x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1, r, g, b, a);
+            case WEST -> quad(builder, pose, x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0, r, g, b, a);
+            case EAST -> quad(builder, pose, x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1, r, g, b, a);
         }
     }
 
-    private static void quad(VertexConsumer b, Matrix4f m, float x1, float y1, float z1, float x2, float y2, float z2,
+    private static void quad(VertexConsumer b, PoseStack.Pose pose, float x1, float y1, float z1, float x2, float y2, float z2,
             float x3, float y3, float z3, float x4, float y4, float z4, float r, float g, float blue, float a) {
+        Matrix4f m = pose.pose();
         b.addVertex(m, x1, y1, z1).setUv(0, 1).setColor(r, g, blue, a);
+        is.pig.minecraft.lib.util.CompatibilityHelper.applyVertexAttributes(b, pose, 0, 1, 0);
         b.addVertex(m, x2, y2, z2).setUv(1, 1).setColor(r, g, blue, a);
+        is.pig.minecraft.lib.util.CompatibilityHelper.applyVertexAttributes(b, pose, 0, 1, 0);
         b.addVertex(m, x3, y3, z3).setUv(1, 0).setColor(r, g, blue, a);
+        is.pig.minecraft.lib.util.CompatibilityHelper.applyVertexAttributes(b, pose, 0, 1, 0);
         b.addVertex(m, x4, y4, z4).setUv(0, 0).setColor(r, g, blue, a);
+        is.pig.minecraft.lib.util.CompatibilityHelper.applyVertexAttributes(b, pose, 0, 1, 0);
     }
 }

@@ -86,9 +86,13 @@ public class DirectionalPlacementRenderer {
 
         // Note: The builder MUST correspond to the texture used (handled in Client)
         builder.addVertex(mat, min, 0, min).setUv(0, 0).setColor(r, g, b, a);
+        is.pig.minecraft.lib.util.CompatibilityHelper.applyVertexAttributes(builder, stack.last(), 0, 1, 0);
         builder.addVertex(mat, min, 0, max).setUv(0, 1).setColor(r, g, b, a);
+        is.pig.minecraft.lib.util.CompatibilityHelper.applyVertexAttributes(builder, stack.last(), 0, 1, 0);
         builder.addVertex(mat, max, 0, max).setUv(1, 1).setColor(r, g, b, a);
+        is.pig.minecraft.lib.util.CompatibilityHelper.applyVertexAttributes(builder, stack.last(), 0, 1, 0);
         builder.addVertex(mat, max, 0, min).setUv(1, 0).setColor(r, g, b, a);
+        is.pig.minecraft.lib.util.CompatibilityHelper.applyVertexAttributes(builder, stack.last(), 0, 1, 0);
 
         stack.popPose();
     }
