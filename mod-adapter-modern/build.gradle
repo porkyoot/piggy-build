@@ -1,0 +1,4 @@
+dependencies {
+    implementation project(':mod-api-spi')
+    compileOnly files('../../libs/minecraft-26.X.jar')
+}

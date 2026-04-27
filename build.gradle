@@ -1,39 +1,31 @@
-// Pas de plugins, tout vient de la racine
-
-base {
-    // On fixe le nom pour qu'il soit unique
-    archivesName = "piggy-build"
+plugins {
+    id 'fabric-loom' version '1.17.0-alpha.7' apply false
 }
 
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'maven-publish'
 
-loom {
-    mods {
-        "piggy-build" {
-            sourceSet sourceSets.main
-            sourceSet sourceSets.client
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
         }
     }
-}
 
-fabricApi {
-    configureDataGeneration {
-        client = true
+    tasks.withType(JavaCompile).configureEach {
+        it.options.release = 21
     }
-    
-    // Configure GameTest framework
-    configureTests {
-        createSourceSet = true  // Creates src/gametest/java
-        modId = "piggy-build-test"
-        eula = true  // Accept EULA for GameTest server
+
+    group = "is.pig.minecraft"
+    version = "2.0.1"
+
+    repositories {
+        mavenCentral()
+        maven { url = 'https://maven.fabricmc.net/' }
+        maven { url = 'https://maven.isxander.dev/releases' }
+        maven {
+            name = "Terraformers"
+            url = "https://maven.terraformersmc.com/"
+        }
     }
-}
-
-dependencies {
-    modImplementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
-    modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
-
-    implementation project(path: ':piggy-lib', configuration: 'namedElements')
-
-    // Also include the lib in the final jar if needed (optional fat-jar behavior)
-    //include project(':piggy-lib')
 }
