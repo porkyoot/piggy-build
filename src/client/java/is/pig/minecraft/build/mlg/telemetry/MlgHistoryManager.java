@@ -12,7 +12,7 @@ public class MlgHistoryManager {
         mlgStore = new JsonHistoryStore("piggy-mlg.json", event -> 
             event instanceof MlgAttemptEvent || event.getEventKey().contains("mlg")
         );
-        mlgStore.register();
+        mlgStore.register("mlg");
     }
 
     public static JsonHistoryStore getStore() {

@@ -23,7 +23,7 @@ public class PiggyBuildConfig extends PiggyClientConfig {
 
     @Override
     public void save() {
-        ConfigPersistence.save();
+        ConfigPersistence.saveConfig();
     }
 
     // --- CONFIG FIELDS ---

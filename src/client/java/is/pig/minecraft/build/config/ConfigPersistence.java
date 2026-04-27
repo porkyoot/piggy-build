@@ -47,14 +47,14 @@ public class ConfigPersistence extends PiggyConfigManager<PiggyBuildConfig> {
     /**
      * Loads the configuration from disk.
      */
-    public static void load() {
+    public static void loadConfig() {
         INSTANCE.load();
     }
 
     /**
      * Saves the current configuration to disk.
      */
-    public static void save() {
+    public static void saveConfig() {
         INSTANCE.save();
     }
 }

@@ -77,7 +77,7 @@ public class PiggyBuildClient implements ClientModInitializer {
                         false));
 
         // 1. Load configuration
-        ConfigPersistence.load();
+        ConfigPersistence.loadConfig();
 
         // 2. Initialize controller
         controller.initialize();

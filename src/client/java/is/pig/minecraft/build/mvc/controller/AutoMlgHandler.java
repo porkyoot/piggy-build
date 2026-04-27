@@ -16,7 +16,7 @@ public class AutoMlgHandler {
             is.pig.minecraft.build.config.PiggyBuildConfig config = is.pig.minecraft.build.config.PiggyBuildConfig.getInstance();
             boolean newState = !config.isAutoMlgEnabled();
             config.setAutoMlgEnabled(newState);
-            is.pig.minecraft.build.config.ConfigPersistence.save();
+            is.pig.minecraft.build.config.ConfigPersistence.saveConfig();
 
             if (client.player != null) {
                 // If it successfully toggled (was not blocked by AntiCheat), show icon

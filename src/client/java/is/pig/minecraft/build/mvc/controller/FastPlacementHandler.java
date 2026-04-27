@@ -56,7 +56,7 @@ public class FastPlacementHandler {
         config.setFastPlaceEnabled(newState);
         // Only persist and log if the setter actually changed the state
         if (config.isFastPlaceEnabled() == newState) {
-            ConfigPersistence.save();
+            ConfigPersistence.saveConfig();
         }
     }
 

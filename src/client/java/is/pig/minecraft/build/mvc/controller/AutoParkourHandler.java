@@ -26,7 +26,7 @@ public class AutoParkourHandler {
             is.pig.minecraft.build.config.PiggyBuildConfig config = is.pig.minecraft.build.config.PiggyBuildConfig.getInstance();
             boolean newState = !config.isAutoParkourEnabled();
             config.setAutoParkourEnabled(newState);
-            is.pig.minecraft.build.config.ConfigPersistence.save();
+            is.pig.minecraft.build.config.ConfigPersistence.saveConfig();
 
             if (client.player != null) {
                 // If it successfully toggled (was not blocked by AntiCheat), notify user

@@ -204,7 +204,7 @@ public class ConfigScreenFactory {
                                 .build())
                         .build())
 
-                .save(ConfigPersistence::save)
+                .save(ConfigPersistence::saveConfig)
                 .build()
                 .generateScreen(parent);
     }
