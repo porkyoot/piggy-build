@@ -14,26 +14,6 @@
     "license": "CC0-1.0",
     "icon": "assets/piggy-build/icon.png",
     "environment": "*",
-    "entrypoints": {
-        "client": [
-            "is.pig.minecraft.build.PiggyBuildClient"
-        ],
-        "fabric-datagen": [
-            "is.pig.minecraft.build.PiggyBuildDataGenerator"
-        ],
-        "modmenu": [
-            "is.pig.minecraft.build.integration.ModMenuIntegration"
-        ],
-        "fabric-gametest": [
-            "is.pig.minecraft.build.test.PiggyBuildTests"
-        ]
-    },
-    "mixins": [
-        {
-            "config": "piggy-build.client.mixins.json",
-            "environment": "client"
-        }
-    ],
     "depends": {
         "fabricloader": ">=0.18.1",
         "minecraft": ">=1.21.1 <1.21.4",

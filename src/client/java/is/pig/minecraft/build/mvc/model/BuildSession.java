@@ -1,12 +1,6 @@
 package is.pig.minecraft.build.mvc.model;
+import is.pig.minecraft.api.*;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-
-/**
- * Holds the current state of the building session.
- * Follows the Singleton pattern for easy access across mixins and renderers.
- */
 public class BuildSession {
     
     private static final BuildSession INSTANCE = new BuildSession();
@@ -16,7 +10,6 @@ public class BuildSession {
     private BlockPos anchorPos = null;
     private Direction.Axis anchorAxis = Direction.Axis.Y;
 
-    // Private constructor
     private BuildSession() {}
 
     public static BuildSession getInstance() {

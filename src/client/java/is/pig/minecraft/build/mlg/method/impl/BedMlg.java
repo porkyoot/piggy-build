@@ -1,13 +1,13 @@
 package is.pig.minecraft.build.mlg.method.impl;
-
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.ItemDataAdapter;
+import is.pig.minecraft.api.spi.WorldStateAdapter;
 import is.pig.minecraft.build.mlg.method.ComposedMlgMethod;
 import is.pig.minecraft.build.mlg.method.MlgMethod;
 import is.pig.minecraft.build.mlg.method.strategy.CommonMlgStrategies;
-import is.pig.minecraft.lib.action.ActionPriority;
+import is.pig.minecraft.api.ActionPriority;
 import is.pig.minecraft.lib.action.player.HoldKeyAction;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.world.item.BedItem;
-import net.minecraft.world.item.Items;
 
 public class BedMlg {
     public static MlgMethod create() {
@@ -19,23 +19,27 @@ public class BedMlg {
             .requiresBounceSettlement(false)
             .preparationTickOffset(CommonMlgStrategies.dynamicPreparation())
             .executionCondition(CommonMlgStrategies.dynamicReach())
-            .viability(CommonMlgStrategies.requireItemClass(BedItem.class)
+            .viability(CommonMlgStrategies.requireItemTag("minecraft:beds")
                 .and(CommonMlgStrategies.requireReplaceableLanding()))
-            .preparation(CommonMlgStrategies.swapToItemClassAndLookDown(BedItem.class))
+            .preparation(CommonMlgStrategies.swapToItemTagAndLookDown("minecraft:beds"))
             .execution((queue, client, prediction) -> {
+                ItemDataAdapter itemData = PiggyServiceRegistry.getItemDataAdapter();
                 CommonMlgStrategies.interactBlock(
-                    stack -> stack.getItem() instanceof BedItem, 
-                    (c, pos) -> c.level != null && c.level.getBlockState(pos.above()).is(BlockTags.BEDS)
+                    stack -> itemData.hasTag(stack, "minecraft:beds"), 
+                    (c, pos) -> {
+                        WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+                        return !worldState.isEmpty(worldState.getCurrentWorldId(), pos);
+                    }
                 ).queueExecution(queue, client, prediction);
                 
-                queue.enqueue(new HoldKeyAction(client.options.keyUse, false, "piggy-build") {
+                queue.enqueue(new HoldKeyAction("minecraft:use", false, "piggy-build") {
                     @Override
                     public ActionPriority getPriority() {
                         return ActionPriority.HIGHEST;
                     }
                 });
             })
-            .cleanup(CommonMlgStrategies.breakBlockWithToolSwap(Items.WOODEN_AXE))
+            .cleanup(CommonMlgStrategies.breakBlock())
             .build();
     }
 }

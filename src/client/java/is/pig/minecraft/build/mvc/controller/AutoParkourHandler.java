@@ -1,205 +1,142 @@
 package is.pig.minecraft.build.mvc.controller;
 
-import is.pig.minecraft.lib.placement.BlockPlacer;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.ItemStack;
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.InputAdapter;
+import is.pig.minecraft.api.spi.WorldStateAdapter;
+import is.pig.minecraft.build.config.ConfigPersistence;
+import is.pig.minecraft.build.config.PiggyBuildConfig;
+import is.pig.minecraft.build.lib.placement.BlockPlacer;
+import is.pig.minecraft.lib.action.BulkAction;
+import is.pig.minecraft.lib.action.PiggyActionQueue;
+import is.pig.minecraft.lib.ui.IconQueueOverlay;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class AutoParkourHandler {
 
     private long lastPlacementTime = 0;
     private boolean wasKeyDown = false;
     
-    // Track block placements for async rollback detection
-    private final java.util.Map<BlockPos, Long> pendingVerifications = new java.util.HashMap<>();
+    private final Map<BlockPos, Long> pendingVerifications = new HashMap<>();
 
-    public void onTick(Minecraft client) {
-        if (InputController.autoParkourKey == null) return;
-        
-        // Toggle logic
-        boolean isKeyDown = InputController.autoParkourKey.isDown();
+    public void onTick(Object client) {
+        InputAdapter input = PiggyServiceRegistry.getInputAdapter();
+        boolean isKeyDown = input.isKeyDown("piggy-build:auto_parkour");
+
         if (isKeyDown && !wasKeyDown) {
-            is.pig.minecraft.build.config.PiggyBuildConfig config = is.pig.minecraft.build.config.PiggyBuildConfig.getInstance();
+            PiggyBuildConfig config = PiggyBuildConfig.getInstance();
             boolean newState = !config.isAutoParkourEnabled();
             config.setAutoParkourEnabled(newState);
-            is.pig.minecraft.build.config.ConfigPersistence.save();
+            ConfigPersistence.save();
 
-            if (client.player != null) {
-                // If it successfully toggled (was not blocked by AntiCheat), notify user
-                if (config.isAutoParkourEnabled() == newState) {
-                    is.pig.minecraft.lib.util.PiggyMessenger.sendClientMessage(
-                        (net.minecraft.client.player.LocalPlayer) client.player,
-                        "Auto Parkour is now " + (newState ? "§aENABLED" : "§cDISABLED")
-                    );
-                }
+            if (config.isAutoParkourEnabled() == newState && newState) {
+                IconQueueOverlay.queueIcon(
+                    ResourceLocation.of("piggy", "textures/gui/icons/auto_parkour.png"),
+                    1000, false
+                );
             }
         }
         wasKeyDown = isKeyDown;
 
-        if (!is.pig.minecraft.build.config.PiggyBuildConfig.getInstance().isFeatureAutoParkourEnabled() ||
-            !is.pig.minecraft.build.config.PiggyBuildConfig.getInstance().isAutoParkourEnabled()) {
+        PiggyBuildConfig config = PiggyBuildConfig.getInstance();
+        if (!config.isFeatureAutoParkourEnabled() || !config.isAutoParkourEnabled()) {
             return;
         }
 
-        // Async failure check for server rollbacks
+        WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
         long now = System.currentTimeMillis();
-        var it = pendingVerifications.entrySet().iterator();
-        while (it.hasNext()) {
-            var entry = it.next();
+        String worldId = worldState.getCurrentWorldId();
+        
+        pendingVerifications.entrySet().removeIf(entry -> {
             if (now >= entry.getValue()) {
                 BlockPos pos = entry.getKey();
-                if (client.level != null && client.level.getBlockState(pos).canBeReplaced()) {
-                    is.pig.minecraft.build.PiggyBuildClient.LOGGER.warn("AutoParkour block reverted! Falling back to MLG...");
-                    is.pig.minecraft.build.mlg.statemachine.MlgStateMachine.getInstance().forceFallState(client);
+                if (worldState.isBlockReplaceable(worldId, pos)) {
+                    worldState.sendMessage(client, "§cAutoParkour block reverted! Falling back to MLG...");
                 }
-                it.remove();
+                return true;
             }
-        }
+            return false;
+        });
 
-        LocalPlayer player = client.player;
-        if (player == null || client.level == null || client.gameMode == null) {
-            return;
-        }
+        if (worldState.isPlayerDeadOrDying(client)) return;
 
-        ItemStack mainHandItem = player.getMainHandItem();
-        boolean isHoldingBlock = !mainHandItem.isEmpty() && (mainHandItem.getItem() instanceof BlockItem);
-        boolean flashing = false;
+        Object mainHandItem = worldState.getPlayerMainHandItem(client);
+        boolean isHoldingBlock = PiggyServiceRegistry.getItemDataAdapter().isBlockItem(mainHandItem);
         
-        if (!isHoldingBlock) {
-            flashing = true;
+        if (!isHoldingBlock) return;
+
+        if (worldState.getPlayerDeltaMovement(client).y() > 0) return;
+
+        BlockPos playerPos = worldState.getPlayerBlockPos(client);
+        Vec3 vel = worldState.getPlayerDeltaMovement(client);
+        Vec3 horizontalVel = new Vec3(vel.x(), 0, vel.z());
+        double speed = Math.sqrt(horizontalVel.x() * horizontalVel.x() + horizontalVel.z() * horizontalVel.z());
+        
+        Vec3 forwardOffset;
+        if (speed > 0.01) {
+            int ping = worldState.getPing();
+            double latencyOffset = speed * (ping / 1000.0);
+            double scale = Math.max(0.8, speed * 3.5) + latencyOffset;
+            forwardOffset = new Vec3((horizontalVel.x() / speed) * scale, 0, (horizontalVel.z() / speed) * scale);
         } else {
-            int blockCount = 0;
-            for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-                ItemStack stack = player.getInventory().getItem(i);
-                if (!stack.isEmpty() && stack.getItem() == mainHandItem.getItem()) {
-                    blockCount += stack.getCount();
-                }
-            }
-            if (blockCount <= 16) {
-                flashing = true;
-            }
+            forwardOffset = new Vec3(0, 0, 0);
         }
 
-        is.pig.minecraft.lib.ui.IconQueueOverlay.queueIcon(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("piggy", "textures/gui/icons/auto_parkour.png"),
-            1000, flashing
+        Vec3 playerVecPos = worldState.getPlayerPosition(client);
+        BlockPos predictedBelow = new BlockPos(
+            (int) Math.floor(playerVecPos.x() + forwardOffset.x()),
+            (int) Math.floor(playerVecPos.y() - 1),
+            (int) Math.floor(playerVecPos.z() + forwardOffset.z())
         );
 
-        if (!isHoldingBlock) {
-            return;
-        }
-
-        // Rule 1: Never place if jumping upwards
-        // player.getDeltaMovement().y > 0 means the player is rising towards the apex
-        if (player.getDeltaMovement().y > 0) {
-            return;
-        }
-
+        BlockPos directlyBelow = new BlockPos(playerPos.x(), playerPos.y() - 1, playerPos.z());
         BlockPos targetPos = null;
 
-        // Base check block below feet
-        BlockPos playerFeet = player.blockPosition();
-        BlockPos directlyBelow = playerFeet.relative(Direction.DOWN);
-
-        // Preemptive target calculation: scale lookahead by speed so fast players don't fall off edges
-        net.minecraft.world.phys.Vec3 vel = player.getDeltaMovement();
-        net.minecraft.world.phys.Vec3 horizontalVel = new net.minecraft.world.phys.Vec3(vel.x, 0, vel.z);
-        double speed = horizontalVel.length();
-        
-        net.minecraft.world.phys.Vec3 forwardOffset;
-        if (speed > 0.01) {
-            int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing(() -> {
-                var conn = client.getConnection();
-                if (conn != null && client.player != null) {
-                    var entry = conn.getPlayerInfo(client.player.getUUID());
-                    return entry != null ? entry.getLatency() : 0;
-                }
-                return 0;
-            });
-            double latencyOffset = speed * (ping / 1000.0);
-            forwardOffset = horizontalVel.normalize().scale(Math.max(0.8, speed * 3.5) + latencyOffset);
-        } else {
-            // Stationary fallback if jumping in place
-            forwardOffset = net.minecraft.world.phys.Vec3.ZERO;
-        }
-
-        BlockPos predictedBelow = BlockPos.containing(player.getX() + forwardOffset.x, playerFeet.getY(), player.getZ() + forwardOffset.z).relative(Direction.DOWN);
-
-        // Rule 2 & 3: Find the best target
-        if (player.isSprinting() && player.onGround()) {
-            // When sprinting on the ground, always try to place ahead to prevent falling
+        if (worldState.isPlayerSprinting(client) && worldState.isPlayerOnGround(client)) {
             targetPos = predictedBelow;
-        }
-        else if (!player.onGround() && player.getDeltaMovement().y <= 0) {
-            // When falling after a jump, prioritize where they will land
-            if (client.level.getBlockState(predictedBelow).canBeReplaced() && speed > 0.1) {
+        } else if (!worldState.isPlayerOnGround(client) && vel.y() <= 0) {
+            if (worldState.isBlockReplaceable(worldId, predictedBelow) && speed > 0.1) {
                 targetPos = predictedBelow;
             } else {
                 targetPos = directlyBelow;
             }
             
-            // Failsafe: if we are over an empty gap directly below us, ensure we place there first
-            if (client.level.getBlockState(directlyBelow).canBeReplaced()) {
+            if (worldState.isBlockReplaceable(worldId, directlyBelow)) {
                 targetPos = directlyBelow;
             }
         }
 
-        if (targetPos == null) {
-            return;
-        }
+        if (targetPos == null || !worldState.isBlockReplaceable(worldId, targetPos)) return;
 
-        // Must be air/replaceable
-        if (!client.level.getBlockState(targetPos).canBeReplaced()) {
-            return;
-        }
-
-        // Check CPS limit locally so we don't spam the global queue continuously
         long currentTime = System.currentTimeMillis();
-        int cps = is.pig.minecraft.build.config.PiggyBuildConfig.getInstance().getTickDelay();
+        int cps = config.getTickDelay();
         long minDelay = cps > 0 ? 1000L / cps : 0;
 
-        if (currentTime - lastPlacementTime < minDelay) {
-            return;
-        }
+        if (currentTime - lastPlacementTime < minDelay) return;
 
         boolean ignoreGlobalCps = (cps <= 0);
-        net.minecraft.world.phys.BlockHitResult hitResult = BlockPlacer.createHitResult(targetPos, Direction.UP);
-        is.pig.minecraft.lib.action.IAction act = BlockPlacer.createAction(hitResult, InteractionHand.MAIN_HAND, ignoreGlobalCps);
+        BlockHitResult hitResult = BlockPlacer.createHitResult(targetPos, Direction.UP);
+        Action act = BlockPlacer.createAction(hitResult, InteractionHand.MAIN_HAND, ignoreGlobalCps);
         
         if (act != null) {
-            // AutoParkour uses HIGH priority 
-            var bulkAction = new is.pig.minecraft.lib.action.BulkAction(
+            var bulkAction = new BulkAction(
                     "piggy-build-parkour",
-                    is.pig.minecraft.lib.action.ActionPriority.HIGH,
-                    java.util.Collections.singletonList(act),
-                    () -> true, // Instant pass, let the ActionQueue advance immediately
+                    ActionPriority.HIGH,
+                    Collections.singletonList(act),
+                    () -> true,
                     0, 
                     "Auto Parkour Placement"
             );
             
             if (ignoreGlobalCps) bulkAction.setIgnoreGlobalCps(true);
-            is.pig.minecraft.lib.action.PiggyActionQueue.getInstance().enqueue(bulkAction);
+            PiggyActionQueue.getInstance().enqueue(bulkAction);
 
             lastPlacementTime = currentTime;
-            
-            // Adjust verification delay for high latency to prevent false-positive rollback detection
-            int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing(() -> {
-                var conn = client.getConnection();
-                if (conn != null && client.player != null) {
-                    var entry = conn.getPlayerInfo(client.player.getUUID());
-                    return entry != null ? entry.getLatency() : 0;
-                }
-                return 0;
-            });
-            long verificationDelay = 250;
-            if (ping > 150) {
-                verificationDelay += ping;
-            }
-            
+            int ping = worldState.getPing();
+            long verificationDelay = 250 + (ping > 150 ? ping : 0);
             pendingVerifications.put(targetPos, currentTime + verificationDelay); 
         }
     }

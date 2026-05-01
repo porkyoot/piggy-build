@@ -1,8 +1,7 @@
 package is.pig.minecraft.build.mvc.model;
+import is.pig.minecraft.api.*;
 
-import is.pig.minecraft.lib.ui.RadialMenuItem; // Imported from lib
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import is.pig.minecraft.lib.ui.RadialMenuItem;
 
 public enum BuildShape implements RadialMenuItem {
     BLOCK("block", "Block"),
@@ -11,11 +10,11 @@ public enum BuildShape implements RadialMenuItem {
     SPHERE("sphere", "Sphere");
 
     private final ResourceLocation icon;
-    private final Component displayName;
+    private final String displayName;
 
     BuildShape(String filename, String name) {
-        this.icon = ResourceLocation.fromNamespaceAndPath("piggy-build", "textures/gui/" + filename + ".png");
-        this.displayName = Component.literal(name);
+        this.icon = ResourceLocation.of("piggy-build", "textures/gui/" + filename + ".png");
+        this.displayName = name;
     }
 
     @Override
@@ -24,7 +23,7 @@ public enum BuildShape implements RadialMenuItem {
     }
 
     @Override
-    public Component getDisplayName() {
+    public String getDisplayName() {
         return displayName;
     }
 }

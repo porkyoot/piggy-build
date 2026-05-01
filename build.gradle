@@ -29,10 +29,12 @@ fabricApi {
 }
 
 dependencies {
+    implementation project(':piggy-api')
     modImplementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
     modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
 
     implementation project(path: ':piggy-lib', configuration: 'namedElements')
+    implementation project(':piggy-inventory')
 
     // Also include the lib in the final jar if needed (optional fat-jar behavior)
     //include project(':piggy-lib')

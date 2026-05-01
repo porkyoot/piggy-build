@@ -1,4 +1,5 @@
 package is.pig.minecraft.build.config;
+import is.pig.minecraft.api.*;
 
 import java.awt.Color;
 

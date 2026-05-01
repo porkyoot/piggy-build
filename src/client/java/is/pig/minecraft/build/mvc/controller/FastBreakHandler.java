@@ -1,88 +1,60 @@
 package is.pig.minecraft.build.mvc.controller;
-
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.InputAdapter;
+import is.pig.minecraft.api.spi.WorldStateAdapter;
 import is.pig.minecraft.build.PiggyBuildClient;
 import is.pig.minecraft.build.config.PiggyBuildConfig;
-import is.pig.minecraft.build.mixin.client.MinecraftAccessorMixin;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.GameType;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
+import is.pig.minecraft.lib.action.PiggyActionQueue;
+import is.pig.minecraft.lib.action.world.BreakBlockAction;
 
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Handles fast block breaking when fast placement is active and player is in
- * creative mode.
- * Spams the break block action while the attack button is held down.
- */
 public class FastBreakHandler {
 
-
-
     private long lastBreakTime = 0;
-
-    // Track recently broken blocks to prevent ghost blocks
     private final Map<BlockPos, Long> recentlyBroken = new HashMap<>();
-    private static final long GHOST_PREVENTION_MS = 100; // Don't re-break same block for 100ms
+    private static final long GHOST_PREVENTION_MS = 100;
 
-    /**
-     * Called every client tick to handle fast breaking logic
-     */
-    public void onTick(Minecraft client) {
-        // Only work when fast placement is enabled
+    public void onTick(Object client) {
         if (!PiggyBuildConfig.getInstance().isFastPlaceEnabled()) {
             return;
         }
 
-        // Only work in creative mode
-        if (client.player == null || client.gameMode == null) {
+        WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+        if (!worldState.isCreative(client)) {
             return;
         }
 
-        if (client.gameMode.getPlayerMode() != GameType.CREATIVE) {
-            return;
-        }
-
-        // Clean up old entries from recently broken map
         long currentTime = System.currentTimeMillis();
         recentlyBroken.entrySet().removeIf(entry -> currentTime - entry.getValue() > GHOST_PREVENTION_MS);
 
-        // Try to break blocks continuously
         tryFastBreak(client);
     }
 
-    /**
-     * Attempt to break a block if conditions are met
-     */
-    private void tryFastBreak(Minecraft client) {
-        // Check if we're looking at a block
-        if (!(client.hitResult instanceof BlockHitResult blockHit)) {
+    private void tryFastBreak(Object client) {
+        WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+        HitResult hitResult = worldState.getCrosshairTarget(client);
+
+        if (!(hitResult instanceof BlockHitResult blockHit)) {
             return;
         }
 
-        if (blockHit.getType() != HitResult.Type.BLOCK) {
-            return;
-        }
+        BlockPos blockPos = blockHit.blockPos();
 
-        BlockPos blockPos = blockHit.getBlockPos();
-
-        // Don't break the same block we just broke (ghost block prevention)
         long currentTime = System.currentTimeMillis();
         if (recentlyBroken.containsKey(blockPos)) {
             long timeSinceBreak = currentTime - recentlyBroken.get(blockPos);
             if (timeSinceBreak < GHOST_PREVENTION_MS) {
-                return; // Skip this block, it was recently broken
+                return;
             }
         }
 
-        // Avoid flooding the action queue
-        if (is.pig.minecraft.lib.action.PiggyActionQueue.getInstance().hasActions("piggy-build-fastbreak")) {
+        if (PiggyActionQueue.getInstance().hasActions("piggy-build-fastbreak")) {
             return;
         }
 
-        // Check if enough time has passed since last break
         int cps = PiggyBuildConfig.getInstance().getTickDelay();
         long minDelay = cps > 0 ? 1000L / cps : 0;
 
@@ -92,37 +64,29 @@ public class FastBreakHandler {
 
         boolean unlimited = (cps <= 0);
 
-        // Check if left mouse button (attack) is held down
-        if (!client.options.keyAttack.isDown()) {
+        InputAdapter input = PiggyServiceRegistry.getInputAdapter();
+        if (!input.isKeyDown("minecraft:attack")) {
             return;
         }
 
-        // Perform the break
         performFastBreak(client, blockHit, unlimited);
     }
 
-    /**
-     * Actually perform the block breaking
-     */
-    private void performFastBreak(Minecraft client, BlockHitResult hitResult, boolean unlimited) {
-        // Reset vanilla attack cooldown/delay
-        ((MinecraftAccessorMixin) client).setMissTime(0);
-
+    private void performFastBreak(Object client, BlockHitResult hitResult, boolean unlimited) {
         try {
-            var action = new is.pig.minecraft.lib.action.world.BreakBlockAction(
-                    hitResult.getBlockPos(),
+            var action = new BreakBlockAction(
+                    hitResult.blockPos(),
                     "piggy-build-fastbreak",
-                    is.pig.minecraft.lib.action.ActionPriority.NORMAL
+                    ActionPriority.NORMAL
             );
             if (unlimited) {
                 action.setIgnoreGlobalCps(true);
             }
-            is.pig.minecraft.lib.action.PiggyActionQueue.getInstance().enqueue(action);
+            PiggyActionQueue.getInstance().enqueue(action);
 
-            // Track this position to prevent re-breaking ghost blocks locally
             long currentTime = System.currentTimeMillis();
             lastBreakTime = currentTime;
-            recentlyBroken.put(hitResult.getBlockPos().immutable(), currentTime);
+            recentlyBroken.put(hitResult.blockPos(), currentTime);
 
         } catch (Exception e) {
             PiggyBuildClient.LOGGER.error("[FastBreak] Breaking error", e);

@@ -1,10 +1,10 @@
 package is.pig.minecraft.build.mlg.method.impl;
-
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.WorldStateAdapter;
 import is.pig.minecraft.build.mlg.method.ComposedMlgMethod;
 import is.pig.minecraft.build.mlg.method.MlgMethod;
 import is.pig.minecraft.build.mlg.method.strategy.CommonMlgStrategies;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.Blocks;
 
 public class SlimeBlockMlg {
     public static MlgMethod create() {
@@ -14,11 +14,14 @@ public class SlimeBlockMlg {
             .cleanupDifficulty(3)
             .preparationTickOffset(CommonMlgStrategies.dynamicPreparation())
             .executionCondition(CommonMlgStrategies.dynamicReach())
-            .viability(CommonMlgStrategies.requireItem(Items.SLIME_BLOCK)
+            .viability(CommonMlgStrategies.requireItem("minecraft:slime_block")
                 .and(CommonMlgStrategies.requireReplaceableLanding()))
-            .preparation(CommonMlgStrategies.swapToItemAndLookDown(Items.SLIME_BLOCK))
-            .execution(CommonMlgStrategies.interactBlock(stack -> stack.is(Items.SLIME_BLOCK), 
-                (client, pos) -> client.level != null && client.level.getBlockState(pos.above()).is(Blocks.SLIME_BLOCK)))
+            .preparation(CommonMlgStrategies.swapToItemAndLookDown("minecraft:slime_block"))
+            .execution(CommonMlgStrategies.interactBlock(stack -> true, 
+                (client, pos) -> {
+                    WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+                    return !worldState.isEmpty(worldState.getCurrentWorldId(), pos);
+                }))
             .cleanup(CommonMlgStrategies.breakBlock())
             .requiresBounceSettlement(false)
             .build();

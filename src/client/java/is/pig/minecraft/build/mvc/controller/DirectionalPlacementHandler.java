@@ -1,16 +1,15 @@
 package is.pig.minecraft.build.mvc.controller;
-
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.InputAdapter;
+import is.pig.minecraft.api.spi.WorldStateAdapter;
 import is.pig.minecraft.build.config.PiggyBuildConfig;
-import is.pig.minecraft.lib.placement.PlacementCalculator;
-import is.pig.minecraft.lib.placement.BlockPlacer;
+import is.pig.minecraft.build.lib.placement.PlacementCalculator;
+import is.pig.minecraft.build.lib.placement.BlockPlacer;
 import is.pig.minecraft.lib.placement.PlacementMode;
 import is.pig.minecraft.build.mvc.model.PlacementSession;
 import is.pig.minecraft.lib.ui.AntiCheatFeedbackManager;
 import is.pig.minecraft.lib.ui.BlockReason;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.world.phys.BlockHitResult;
 
 public class DirectionalPlacementHandler {
 
@@ -18,50 +17,39 @@ public class DirectionalPlacementHandler {
     private boolean wasDiagonalKeyDown = false;
     private boolean hasShownFeedback = false;
 
-    public void onTick(Minecraft client) {
-        boolean directionalDown = InputController.directionalKey.isDown();
-        boolean diagonalDown = InputController.diagonalKey.isDown();
+    public void onTick(Object client) {
+        InputAdapter input = PiggyServiceRegistry.getInputAdapter();
+        boolean directionalDown = input.isKeyDown("piggy-build:directional");
+        boolean diagonalDown = input.isKeyDown("piggy-build:diagonal");
 
-        // Check permissions
         PiggyBuildConfig config = PiggyBuildConfig.getInstance();
         boolean isEnabled = config.isFeatureFlexiblePlacementEnabled();
 
-        // 1. Handle Anti-Cheat Feedback logic
-        // If user presses keys but feature is disabled, show feedback and reset session
         if ((directionalDown || diagonalDown) && !isEnabled) {
-            PlacementSession.getInstance().setActive(false); // Hide overlay
-
+            PlacementSession.getInstance().setActive(false);
             if (!hasShownFeedback) {
-                // Determine reason (Client safety or Server enforced)
                 boolean serverForces = !config.serverAllowCheats
                         || (config.serverFeatures != null && config.serverFeatures.containsKey("flexible_placement")
                                 && !Boolean.TRUE.equals(config.serverFeatures.get("flexible_placement")));
-
                 BlockReason reason = serverForces ? BlockReason.SERVER_ENFORCEMENT : BlockReason.LOCAL_CONFIG;
-
                 AntiCheatFeedbackManager.getInstance().onFeatureBlocked("flexible_placement", reason);
-                hasShownFeedback = true; // Prevent spamming every tick
+                hasShownFeedback = true;
             }
-
-            // Do not process further
             wasDirectionalKeyDown = directionalDown;
             wasDiagonalKeyDown = diagonalDown;
             return;
         }
 
-        // Reset feedback flag when keys are released
         if (!directionalDown && !diagonalDown) {
             hasShownFeedback = false;
         }
 
-        // 2. Normal Logic (only if enabled)
-        PlacementMode mode = getActiveMode(); // Returns VANILLA if keys not down
+        PlacementMode mode = getActiveMode();
         boolean isActive = (mode != PlacementMode.VANILLA) && isEnabled;
 
         PlacementSession session = PlacementSession.getInstance();
         session.setActive(isActive);
 
-        // Unlock when keys are released
         if (!directionalDown && wasDirectionalKeyDown) {
             session.unlock();
         }
@@ -72,7 +60,10 @@ public class DirectionalPlacementHandler {
         wasDirectionalKeyDown = directionalDown;
         wasDiagonalKeyDown = diagonalDown;
 
-        if (isActive && client.hitResult instanceof BlockHitResult hit) {
+        WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+        HitResult hitResult = worldState.getCrosshairTarget(client);
+
+        if (isActive && hitResult instanceof BlockHitResult hit) {
             Direction offset = PlacementCalculator.getOffsetDirection(hit);
             session.setCurrentOffset(offset);
         } else {
@@ -80,64 +71,49 @@ public class DirectionalPlacementHandler {
         }
     }
 
-    /**
-     * Determine which placement mode is currently active based on key states
-     */
     public PlacementMode getActiveMode() {
-        if (InputController.directionalKey.isDown()) {
+        InputAdapter input = PiggyServiceRegistry.getInputAdapter();
+        if (input.isKeyDown("piggy-build:directional")) {
             return PlacementMode.DIRECTIONAL;
-        } else if (InputController.diagonalKey.isDown()) {
+        } else if (input.isKeyDown("piggy-build:diagonal")) {
             return PlacementMode.DIAGONAL;
         }
         return PlacementMode.VANILLA;
     }
 
-    /**
-     * Called from MinecraftClientMixin to modify the hit result.
-     */
-    public BlockHitResult modifyHitResult(Minecraft client, BlockHitResult hitResult) {
-        if (!client.isSameThread())
-            return hitResult;
-
+    public BlockHitResult modifyHitResult(Object client, BlockHitResult hitResult) {
         PlacementMode mode = getActiveMode();
         if (mode == PlacementMode.VANILLA)
             return hitResult;
 
-        // Double check config here, though onTick usually handles the state
         PiggyBuildConfig config = PiggyBuildConfig.getInstance();
         if (!config.isFeatureFlexiblePlacementEnabled()) {
             return hitResult;
         }
 
         PlacementSession session = PlacementSession.getInstance();
-
         Direction offset;
         Direction clickedFace;
         BlockPos pos;
 
         if (session.isLocked() && session.getLockedMode() == mode && session.getLastPlacedPos() != null) {
             pos = session.getLastPlacedPos();
-
-            // Check if the previous block is STILL replaceable (i.e. not yet confirmed by
-            // the server)
-            if (client.level != null && client.level.getBlockState(pos).canBeReplaced()) {
-                // Instead of returning null effectively canceling the sequence,
-                // we return null to simply PAUSE the sequence until it's placed.
+            WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+            if (worldState.isReplaceable(worldState.getCurrentWorldId(), pos)) {
                 return null;
             }
-
             offset = session.getLockedOffset();
             clickedFace = session.getLockedFace();
         } else {
             offset = PlacementCalculator.getOffsetDirection(hitResult);
-            clickedFace = hitResult.getDirection();
-            pos = hitResult.getBlockPos();
+            clickedFace = hitResult.side();
+            pos = hitResult.blockPos();
             session.lock(offset, clickedFace, mode);
         }
 
         BlockHitResult workingHitResult = hitResult;
-        if (session.isLocked() && clickedFace != hitResult.getDirection()) {
-            workingHitResult = BlockPlacer.createHitResult(hitResult.getBlockPos(), clickedFace);
+        if (session.isLocked() && clickedFace != hitResult.side()) {
+            workingHitResult = BlockPlacer.createHitResult(hitResult.blockPos(), clickedFace);
         }
 
         BlockHitResult result;
@@ -149,12 +125,12 @@ public class DirectionalPlacementHandler {
             result = hitResult;
         }
 
-        // Skip existing blocks in the placement path
-        if (result != null && session.isLocked() && client.level != null) {
+        if (result != null && session.isLocked()) {
+            WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+            String worldId = worldState.getCurrentWorldId();
             BlockPos targetPlacementPos = getExpectedPlacementPos(mode, pos, clickedFace, offset);
             int maxIter = 100;
-            while (maxIter-- > 0 && client.level.isLoaded(targetPlacementPos)
-                    && !client.level.getBlockState(targetPlacementPos).canBeReplaced()) {
+            while (maxIter-- > 0 && !worldState.isReplaceable(worldId, targetPlacementPos)) {
                 pos = targetPlacementPos;
                 session.setLastPlacedPos(pos);
 
@@ -163,21 +139,16 @@ public class DirectionalPlacementHandler {
                 } else if (mode == PlacementMode.DIAGONAL) {
                     result = handleDiagonalMode(workingHitResult, pos, offset);
                 }
-
                 targetPlacementPos = getExpectedPlacementPos(mode, pos, clickedFace, offset);
             }
         }
 
         if (result != null) {
-            double reach = client.player != null ? client.player.blockInteractionRange() : 4.5;
-            if (client.player != null
-                    && client.player.getEyePosition().distanceToSqr(result.getLocation()) > reach * reach) {
-                // Out of reach: do not update lastPlacedPos so we can try again next tick
+            WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+            double reach = worldState.getPlayerReachDistance(client);
+            if (worldState.getPlayerEyePosition(client).distanceToSqr(result.hitVec()) > reach * reach) {
                 return null;
             }
-
-            // Do NOT update lastPlacedPos yet. We must wait until the block is ACTUALLY
-            // placed.
             BlockPos expectedPos = getExpectedPlacementPos(mode, pos, clickedFace, offset);
             session.setPendingLastPlacedPos(expectedPos);
         }
@@ -188,24 +159,18 @@ public class DirectionalPlacementHandler {
     public void onBlockPlaced(BlockHitResult result) {
         PlacementSession session = PlacementSession.getInstance();
         if (!session.isLocked() || session.getPendingLastPlacedPos() == null) {
-            return; // State progression only matters if we are in a sequence
+            return;
         }
-
         session.setLastPlacedPos(session.getPendingLastPlacedPos());
     }
 
     private BlockHitResult handleDirectionalMode(BlockHitResult hitResult, BlockPos pos, Direction offset) {
-        Direction targetFace;
-        if (offset == null) {
-            targetFace = hitResult.getDirection().getOpposite();
-        } else {
-            targetFace = offset;
-        }
+        Direction targetFace = (offset == null) ? hitResult.side().getOpposite() : offset;
         return BlockPlacer.createHitResult(pos, targetFace);
     }
 
     private BlockHitResult handleDiagonalMode(BlockHitResult hitResult, BlockPos pos, Direction offset) {
-        Direction clickedFace = hitResult.getDirection();
+        Direction clickedFace = hitResult.side();
         if (offset == null) {
             BlockPos skippedPos = pos.relative(clickedFace, 2);
             Direction placementFace = clickedFace.getOpposite();

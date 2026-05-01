@@ -1,8 +1,7 @@
 package is.pig.minecraft.build.mvc.model;
+import is.pig.minecraft.api.*;
 
 import is.pig.minecraft.lib.placement.PlacementMode;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 
 public class PlacementSession {
     private static final PlacementSession INSTANCE = new PlacementSession();

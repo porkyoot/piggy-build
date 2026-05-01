@@ -1,25 +1,10 @@
 package is.pig.minecraft.build.mvc.controller;
-
-import com.mojang.blaze3d.platform.InputConstants;
-import is.pig.minecraft.build.lib.event.MouseScrollCallback;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.KeyMapping;
-
-import org.lwjgl.glfw.GLFW;
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.InputAdapter;
 
 public class InputController {
 
-    // Static keys accessible by handlers/views
-    public static KeyMapping triggerKey;
-    public static KeyMapping lightLevelOverlayKey;
-    public static KeyMapping directionalKey;
-    public static KeyMapping diagonalKey;
-    public static KeyMapping fastPlaceKey;
-    public static KeyMapping autoParkourKey;
-    public static KeyMapping autoMlgKey;
-
-    // Handlers (Logic separation)
     private final ShapeMenuHandler menuHandler = new ShapeMenuHandler();
     private static DirectionalPlacementHandler placementHandler = new DirectionalPlacementHandler();
     private static final FastPlacementHandler fastPlacementHandler = new FastPlacementHandler();
@@ -37,84 +22,28 @@ public class InputController {
     }
 
     public void initialize() {
-        registerKeys();
-        registerEvents();
+        InputAdapter input = PiggyServiceRegistry.getInputAdapter();
+        input.registerKey("piggy-build:shape_selector", "GLFW_KEY_V", "Piggy Build");
+        input.registerKey("piggy-build:directional", "GLFW_MOUSE_BUTTON_5", "Piggy Build");
+        input.registerKey("piggy-build:diagonal", "GLFW_MOUSE_BUTTON_4", "Piggy Build");
+        input.registerKey("piggy-build:fast_place", "GLFW_MOUSE_BUTTON_6", "Piggy Build");
+        input.registerKey("piggy-build:light_level", "GLFW_KEY_L", "Piggy Build");
+        input.registerKey("piggy-build:auto_parkour", "GLFW_KEY_P", "Piggy Build");
+        input.registerKey("piggy-build:auto_mlg", "GLFW_KEY_M", "Piggy Build");
     }
 
-    private void registerKeys() {
-        triggerKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "Shape Selector",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_V,
-                "Piggy Build"));
-
-        directionalKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "Directional Block Placement",
-                InputConstants.Type.MOUSE,
-                GLFW.GLFW_MOUSE_BUTTON_5,
-                "Piggy Build"));
-
-        diagonalKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "Diagonal Block Placement",
-                InputConstants.Type.MOUSE,
-                GLFW.GLFW_MOUSE_BUTTON_4,
-                "Piggy Build"));
-
-        fastPlaceKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "Fast Block Placement",
-                InputConstants.Type.MOUSE,
-                GLFW.GLFW_MOUSE_BUTTON_6,
-                "Piggy Build"));
-
-        lightLevelOverlayKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "Toggle Light Level Overlay",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_L,
-                "Piggy Build"));
-
-        autoParkourKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "Toggle Auto Parkour",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_P,
-                "Piggy Build"));
-
-        autoMlgKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-                "Toggle Auto MLG",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_M,
-                "Piggy Build"));
-
+    public void onTick(Object client) {
+        menuHandler.onTick(client);
+        placementHandler.onTick(client);
+        fastPlacementHandler.onTick(client);
+        fastBreakHandler.onTick(client);
+        ShapePlacementHandler.onTick(client);
+        lightLevelOverlayHandler.onTick(client);
+        autoParkourHandler.onTick(client);
+        autoMlgHandler.onTick(client);
     }
 
-    private void registerEvents() {
-        // 1. Scroll Event -> Delegated to Handlers
-        MouseScrollCallback.EVENT.register(fastPlacementHandler::onScroll);
-        MouseScrollCallback.EVENT.register(menuHandler::onScroll);
-
-        // 2. Client Tick -> Delegated to both handlers
-        ClientTickEvents.START_CLIENT_TICK.register(client -> {
-            if (client.player == null)
-                return;
-
-            // Handle Toggles
-
-            menuHandler.onTick(client);
-            placementHandler.onTick(client);
-            fastPlacementHandler.onTick(client);
-            fastBreakHandler.onTick(client);
-            ShapePlacementHandler.onTick(client);
-            lightLevelOverlayHandler.onTick(client);
-            autoParkourHandler.onTick(client);
-            autoMlgHandler.onTick(client);
-        });
-
-        // 3. Block placement is now handled via MinecraftClientMixin
-        // The mixin calls getDirectionalPlacementHandler() to modify hit results
-    }
-
-    // Static accessor for the mixin to use
     public static DirectionalPlacementHandler getDirectionalPlacementHandler() {
         return placementHandler;
     }
-
 }

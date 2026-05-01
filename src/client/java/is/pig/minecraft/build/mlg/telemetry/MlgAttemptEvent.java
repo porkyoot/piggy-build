@@ -1,7 +1,8 @@
 package is.pig.minecraft.build.mlg.telemetry;
+import is.pig.minecraft.api.*;
 
 import is.pig.minecraft.lib.util.perf.PerfMonitor;
-import is.pig.minecraft.lib.util.telemetry.StructuredEvent;
+import is.pig.minecraft.api.StructuredEvent;
 import net.minecraft.client.Minecraft;
 import org.slf4j.event.Level;
 

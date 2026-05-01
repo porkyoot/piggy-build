@@ -1,18 +1,21 @@
 package is.pig.minecraft.build.mvc.controller;
 
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.ItemDataAdapter;
+import is.pig.minecraft.api.spi.WorldStateAdapter;
 import is.pig.minecraft.build.mvc.model.BuildShape;
 import is.pig.minecraft.build.config.PiggyBuildConfig;
 import is.pig.minecraft.lib.ui.AntiCheatFeedbackManager;
 import is.pig.minecraft.lib.ui.BlockReason;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.Direction.Axis;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import is.pig.minecraft.build.mvc.model.BuildSession;
+import is.pig.minecraft.build.lib.placement.BlockPlacer;
+import is.pig.minecraft.lib.action.BulkAction;
+import is.pig.minecraft.lib.action.PiggyActionQueue;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 public class ShapePlacementHandler {
@@ -21,44 +24,32 @@ public class ShapePlacementHandler {
     
     private static final Queue<BlockPos> placementQueue = new LinkedList<>();
 
-    public static void onTick(Minecraft client) {
-        // Handled via BulkActions natively in PiggyActionQueue now
+    public static void onTick(Object client) {
     }
 
-    public static InteractionResult tryPlaceShape(Minecraft client, InteractionHand hand) {
+    public static InteractionResult tryPlaceShape(Object client, InteractionHand hand) {
         BuildSession session = BuildSession.getInstance();
         if (!session.isActive()) {
-            return null; // Not active, let vanilla handle it
+            return null;
         }
 
-        net.minecraft.world.item.ItemStack stackInHand = client.player.getItemInHand(hand);
-        if (!(stackInHand.getItem() instanceof net.minecraft.world.item.BlockItem)) {
-            return null; // Standard placement/interaction handles non-blocks
+        WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+        ItemDataAdapter itemData = PiggyServiceRegistry.getItemDataAdapter();
+        
+        Object player = client;
+        Object stackInHand = worldState.getPlayerMainHandItem(player);
+        
+        if (!itemData.isBlockItem(stackInHand)) {
+            return null;
         }
 
         BlockPos anchor = session.getAnchorPos();
-        Axis axis = session.getAnchorAxis();
+        Direction.Axis axis = session.getAnchorAxis();
         double radius = session.getRadius();
         BuildShape shape = session.getShape();
 
         if (shape == BuildShape.BLOCK) {
-            return null; // Standard placement handles this
-        }
-
-        if (!client.player.isShiftKeyDown()) {
-            net.minecraft.world.level.block.state.BlockState hitState = client.level.getBlockState(anchor);
-            if (hitState.hasBlockEntity()) {
-                return null; // Let vanilla open the chest/container
-            }
-            if (hitState.getBlock() instanceof net.minecraft.world.level.block.CraftingTableBlock ||
-                hitState.getBlock() instanceof net.minecraft.world.level.block.AnvilBlock ||
-                hitState.getBlock() instanceof net.minecraft.world.level.block.FenceGateBlock ||
-                hitState.getBlock() instanceof net.minecraft.world.level.block.DoorBlock ||
-                hitState.getBlock() instanceof net.minecraft.world.level.block.TrapDoorBlock ||
-                hitState.getBlock() instanceof net.minecraft.world.level.block.ButtonBlock ||
-                hitState.getBlock() instanceof net.minecraft.world.level.block.LeverBlock) {
-                return null; // Let vanilla interact with basic functional blocks
-            }
+            return null;
         }
 
         if (!PiggyBuildConfig.getInstance().isFeatureShapeBuilderEnabled()) {
@@ -67,33 +58,36 @@ public class ShapePlacementHandler {
         }
 
         if (shape == BuildShape.LINE) {
-            queueLine(client, anchor, axis, radius);
+            queueLine(anchor, axis, radius);
         } else if (shape == BuildShape.RING) {
-            queueRing(client, anchor, axis, radius);
+            queueRing(anchor, axis, radius);
         } else if (shape == BuildShape.SPHERE) {
-            queueSphere(client, anchor, radius);
+            queueSphere(anchor, radius);
         }
 
         if (!placementQueue.isEmpty()) {
             int cps = PiggyBuildConfig.getInstance().getTickDelay();
             boolean ignoreGlobalCps = (cps <= 0);
             
-            java.util.List<is.pig.minecraft.lib.action.IAction> actions = new java.util.ArrayList<>();
+            List<Action> actions = new ArrayList<>();
             while (!placementQueue.isEmpty()) {
                 BlockPos pos = placementQueue.poll();
-                net.minecraft.world.phys.BlockHitResult hitResult = is.pig.minecraft.lib.placement.BlockPlacer.createHitResult(pos, Direction.UP);
-                is.pig.minecraft.lib.action.IAction act = is.pig.minecraft.lib.placement.BlockPlacer.createAction(hitResult, InteractionHand.MAIN_HAND, ignoreGlobalCps);
+                BlockHitResult hitResult = BlockPlacer.createHitResult(pos, Direction.UP);
+                Action act = BlockPlacer.createAction(hitResult, InteractionHand.MAIN_HAND, ignoreGlobalCps);
                 if (act != null) actions.add(act);
             }
             
             if (!actions.isEmpty()) {
-                var bulkAction = new is.pig.minecraft.lib.action.BulkAction(
+                var bulkAction = new BulkAction(
                         "piggy-build",
-                        "Shape Placement",
-                        actions
+                        ActionPriority.NORMAL,
+                        actions,
+                        () -> true,
+                        0,
+                        "Shape Placement"
                 );
                 if (ignoreGlobalCps) bulkAction.setIgnoreGlobalCps(true);
-                is.pig.minecraft.lib.action.PiggyActionQueue.getInstance().enqueue(bulkAction);
+                PiggyActionQueue.getInstance().enqueue(bulkAction);
             }
             
             return InteractionResult.SUCCESS;
@@ -102,26 +96,26 @@ public class ShapePlacementHandler {
         return InteractionResult.PASS;
     }
 
-    private static void queueIfValid(Minecraft client, BlockPos anchor, BlockPos targetPos) {
+    private static void queueIfValid(BlockPos anchor, BlockPos targetPos) {
         if (!targetPos.equals(anchor)) {
             placementQueue.add(targetPos);
         }
     }
 
-    private static void queueLine(Minecraft client, BlockPos anchor, Axis axis, double radius) {
+    private static void queueLine(BlockPos anchor, Direction.Axis axis, double radius) {
         int len = (int) Math.ceil(radius);
 
         for (int i = -len; i <= len; i++) {
             BlockPos targetPos = switch (axis) {
-                case X -> anchor.offset(i, 0, 0);
-                case Y -> anchor.offset(0, i, 0);
-                case Z -> anchor.offset(0, 0, i);
+                case X -> new BlockPos(anchor.x() + i, anchor.y(), anchor.z());
+                case Y -> new BlockPos(anchor.x(), anchor.y() + i, anchor.z());
+                case Z -> new BlockPos(anchor.x(), anchor.y(), anchor.z() + i);
             };
-            queueIfValid(client, anchor, targetPos);
+            queueIfValid(anchor, targetPos);
         }
     }
 
-    private static void queueRing(Minecraft client, BlockPos anchor, Axis axis, double radius) {
+    private static void queueRing(BlockPos anchor, Direction.Axis axis, double radius) {
         double innerRadius = Math.max(0, radius - 1.0);
         double radiusSq = radius * radius;
         double innerRadiusSq = innerRadius * innerRadius;
@@ -135,18 +129,18 @@ public class ShapePlacementHandler {
 
                 if (distSq <= radiusSq && distSq > innerRadiusSq) {
                     BlockPos targetPos = switch (axis) {
-                        case Y -> anchor.offset(u, 0, v);
-                        case Z -> anchor.offset(u, v, 0);
-                        case X -> anchor.offset(0, v, u);
+                        case Y -> new BlockPos(anchor.x() + u, anchor.y(), anchor.z() + v);
+                        case Z -> new BlockPos(anchor.x() + u, anchor.y() + v, anchor.z());
+                        case X -> new BlockPos(anchor.x(), anchor.y() + v, anchor.z() + u);
                     };
 
-                    queueIfValid(client, anchor, targetPos);
+                    queueIfValid(anchor, targetPos);
                 }
             }
         }
     }
 
-    private static void queueSphere(Minecraft client, BlockPos anchor, double radius) {
+    private static void queueSphere(BlockPos anchor, double radius) {
         double innerRadius = Math.max(0, radius - 1.0);
         double radiusSq = radius * radius;
         double innerRadiusSq = innerRadius * innerRadius;
@@ -160,13 +154,11 @@ public class ShapePlacementHandler {
                     double distSq = ((double) x * x) + ((double) y * y) + ((double) z * z);
 
                     if (distSq <= radiusSq && distSq > innerRadiusSq) {
-                        BlockPos targetPos = anchor.offset(x, y, z);
-                        queueIfValid(client, anchor, targetPos);
+                        BlockPos targetPos = new BlockPos(anchor.x() + x, anchor.y() + y, anchor.z() + z);
+                        queueIfValid(anchor, targetPos);
                     }
                 }
             }
         }
     }
-
-
 }

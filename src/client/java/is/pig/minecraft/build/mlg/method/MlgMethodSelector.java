@@ -1,6 +1,7 @@
 package is.pig.minecraft.build.mlg.method;
+import is.pig.minecraft.api.*;
 
-import is.pig.minecraft.lib.util.telemetry.data.FallPredictionResult;
+import is.pig.minecraft.api.FallPredictionResult;
 import net.minecraft.client.Minecraft;
 
 import java.util.Comparator;

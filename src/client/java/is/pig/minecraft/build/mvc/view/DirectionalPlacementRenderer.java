@@ -1,8 +1,10 @@
 package is.pig.minecraft.build.mvc.view;
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.build.lib.placement.PlacementBridge;
 
 import com.mojang.blaze3d.vertex.*;
 
-import is.pig.minecraft.lib.placement.PlacementCalculator;
+import is.pig.minecraft.build.lib.placement.PlacementCalculator;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
@@ -79,7 +81,7 @@ public class DirectionalPlacementRenderer {
         // 4. Handle Rotation vs Center
         if (offset != null) {
             // EDGE CASE: Rotate arrow
-            float rotationAngle = PlacementCalculator.getTextureRotation(face, offset);
+            float rotationAngle = PlacementCalculator.getTextureRotation(PlacementBridge.fromMinecraft(face), PlacementBridge.fromMinecraft(offset));
             stack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(rotationAngle));
         } else {
             // CENTER CASE: No rotation needed (or fixed rotation)

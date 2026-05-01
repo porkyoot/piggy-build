@@ -1,4 +1,5 @@
 package is.pig.minecraft.build.mlg.method.impl;
+import is.pig.minecraft.api.*;
 
 import is.pig.minecraft.build.mlg.method.ComposedMlgMethod;
 import is.pig.minecraft.build.mlg.method.MlgMethod;
@@ -16,7 +17,7 @@ public class TwistingVinesFertilizerMlg {
             .preparationTickOffset(CommonMlgStrategies.dynamicPreparation())
             .executionCondition(CommonMlgStrategies.dynamicReach())
             .viability(CommonMlgStrategies.requireItem(Items.BONE_MEAL)
-                .and((client, prediction) -> client.level != null && client.level.getBlockState(prediction.landingPos().below()).is(Blocks.WARPED_NYLIUM))
+                .and((client, prediction) -> client.level != null && client.level.getBlockState(is.pig.minecraft.lib.util.TypeConverter.toMinecraft(prediction.landingPos()).below()).is(Blocks.WARPED_NYLIUM))
                 .and(CommonMlgStrategies.requireReplaceableLanding()))
             .preparation(CommonMlgStrategies.swapToItemAndLookDown(Items.BONE_MEAL))
             .execution(CommonMlgStrategies.interactBlock(stack -> stack.is(Items.BONE_MEAL), 

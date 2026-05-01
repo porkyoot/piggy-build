@@ -1,4 +1,5 @@
 package is.pig.minecraft.build.test;
+import is.pig.minecraft.api.*;
 
 import java.util.Optional;
 
@@ -660,7 +661,7 @@ public class PiggyBuildTests {
         is.pig.minecraft.lib.action.PiggyActionQueue queue = is.pig.minecraft.lib.action.PiggyActionQueue.getInstance();
         queue.clear("test-timeout");
 
-        queue.enqueue(new is.pig.minecraft.lib.action.AbstractAction("test-timeout", is.pig.minecraft.lib.action.ActionPriority.NORMAL, 10) {
+        queue.enqueue(new is.pig.minecraft.api.AbstractAction("test-timeout", is.pig.minecraft.api.ActionPriority.NORMAL, 10) {
             @Override protected void onExecute(net.minecraft.client.Minecraft client) {}
             @Override protected Optional<Boolean> verify(net.minecraft.client.Minecraft client) { return Optional.empty(); }
             @Override public String getName() { return "Timeout Test Action"; }
@@ -671,7 +672,7 @@ public class PiggyBuildTests {
         }
 
         boolean[] executed = {false};
-        queue.enqueue(new is.pig.minecraft.lib.action.AbstractAction("test-timeout") {
+        queue.enqueue(new is.pig.minecraft.api.AbstractAction("test-timeout") {
             @Override protected void onExecute(net.minecraft.client.Minecraft client) {}
             @Override protected Optional<Boolean> verify(net.minecraft.client.Minecraft client) { executed[0] = true; return Optional.empty(); }
             @Override public String getName() { return "Marker Action"; }

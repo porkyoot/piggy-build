@@ -1,4 +1,5 @@
 package is.pig.minecraft.build.mlg.method.impl;
+import is.pig.minecraft.api.*;
 
 import is.pig.minecraft.build.mlg.method.ComposedMlgMethod;
 import is.pig.minecraft.build.mlg.method.MlgMethod;
@@ -8,6 +9,7 @@ import is.pig.minecraft.build.mlg.method.strategy.MlgExecutionStrategy;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
+import is.pig.minecraft.lib.util.TypeConverter;
 
 import java.util.List;
 
@@ -41,7 +43,7 @@ public class ExistingMountableMlg {
             if (client.level == null) return false;
             List<? extends Entity> entities = client.level.getEntitiesOfClass(
                     Entity.class, 
-                    new AABB(prediction.landingPos()).inflate(3), 
+                    new AABB(TypeConverter.toMinecraft(prediction.landingPos())).inflate(3), 
                     e -> isExistingMountable(client, e)
             );
             return !entities.isEmpty();

@@ -1,12 +1,14 @@
 package is.pig.minecraft.build.mlg.statemachine;
 
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.PhysicsAdapter;
+import is.pig.minecraft.api.spi.WorldStateAdapter;
 import is.pig.minecraft.build.mlg.method.MlgMethod;
 import is.pig.minecraft.build.mlg.method.MlgMethodSelector;
-import is.pig.minecraft.lib.util.telemetry.data.FallPredictionResult;
+import is.pig.minecraft.api.*;
 import is.pig.minecraft.build.mlg.method.impl.*;
 import is.pig.minecraft.build.mlg.telemetry.MlgAttemptEvent;
 import is.pig.minecraft.lib.action.PiggyActionQueue;
-import net.minecraft.client.Minecraft;
 import is.pig.minecraft.lib.util.telemetry.MetaActionSession;
 import is.pig.minecraft.lib.util.telemetry.MetaActionSessionManager;
 import is.pig.minecraft.lib.util.telemetry.formatter.PiggyTelemetryFormatter;
@@ -14,32 +16,9 @@ import is.pig.minecraft.lib.util.telemetry.formatter.PiggyTelemetryFormatter;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Central state machine for the MLG Survival Engine.
- * Handles fall detection, method selection, and state transitions (PREPARATION, EXECUTION, RECOVERY)
- * to ensure the player survives fatal falls using various environment-appropriate methods.
- */
 public class MlgStateMachine {
-
     private static final MlgStateMachine INSTANCE = new MlgStateMachine();
-
-    private static final List<MlgMethod> METHODS = List.of(
-        ExistingMountableMlg.create(),
-        MinecartMlg.create(),
-        SaddleMlg.create(),
-        WaterBucketMlg.create(),
-        SlimeBlockMlg.create(),
-        CobwebMlg.create(),
-        BoatMlg.create(),
-        ChestBoatMlg.create(),
-        ChorusFruitMlg.create(),
-        TwistingVinesFertilizerMlg.create(),
-        EnderPearlMlg.create(),
-        HayBaleMlg.create(),
-        BedMlg.create(),
-        PowderSnowBucketMlg.create(),
-        TwistingVinesMlg.create()
-    );
+    private static final List<MlgMethod> METHODS = List.of();
 
     private MlgState currentState = MlgState.IDLE;
     private FallPredictionResult currentPrediction = null;
@@ -57,30 +36,27 @@ public class MlgStateMachine {
         return INSTANCE;
     }
 
-    /**
-     * Ticks the state machine, managing fall predictions and state transitions.
-     * This method selects appropriate survival methods and delegates actions
-     * to the {@link PiggyActionQueue}.
-     */
-    public void tick(Minecraft client) {
-        if (client.player == null || client.level == null) return;
+    public void tick(Object client) {
+        WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+        Object player = client;
         
         if (idleCooldownTicks > 0) {
             idleCooldownTicks--;
         }
         
-        if (client.player.isDeadOrDying()) {
+        if (worldState.isDeadOrDying(player)) {
             if (currentState != MlgState.IDLE) {
                 MetaActionSessionManager.getInstance().getCurrentSession().ifPresent(s -> s.fail("Player died during MLG"));
                 PiggyActionQueue.getInstance().clear("piggy-build");
                 activeMethod = null;
                 currentPrediction = null;
-                transitionTo(MlgState.IDLE);
+                transitionTo(client, MlgState.IDLE);
             }
             return;
         }
 
-        Optional<FallPredictionResult> livePrediction = is.pig.minecraft.build.mlg.prediction.FallSimulator.simulate(client.player, client.level);
+        PhysicsAdapter physicsAdapter = PiggyServiceRegistry.getPhysicsAdapter();
+        Optional<FallPredictionResult> livePrediction = physicsAdapter.simulateFall(player);
 
         if (currentState == MlgState.PREPARATION || currentState == MlgState.EXECUTION) {
             if (livePrediction.isEmpty() || !activeMethod.isViable(client, livePrediction.get())) {
@@ -93,7 +69,7 @@ public class MlgStateMachine {
                     activeMethod.queueCleanupActions(PiggyActionQueue.getInstance(), client, currentPrediction);
                 }
                 activeMethod = null;
-                transitionTo(MlgState.FALLING);
+                transitionTo(client, MlgState.FALLING);
             } else {
                 currentPrediction = livePrediction.get();
             }
@@ -107,25 +83,21 @@ public class MlgStateMachine {
                 case IDLE -> {
                     if (livePrediction.isPresent() && livePrediction.get().isFatal() && idleCooldownTicks <= 0) {
                         currentPrediction = livePrediction.get();
-                        stateChangedThisTick = transitionTo(MlgState.FALLING);
+                        stateChangedThisTick = transitionTo(client, MlgState.FALLING);
                     }
                 }
                 case FALLING -> {
-                    final net.minecraft.world.entity.player.Player p = client.player;
                     MetaActionSessionManager.getInstance().getCurrentSession().ifPresent(s -> {
                         s.logAction("Started MLG tracking", 
-                                    is.pig.minecraft.lib.util.telemetry.formatter.PiggyTelemetryFormatter.formatPhysics(p),
+                                    "Player: " + worldState.getPlayerPos(player),
                                     "Searching for methods");
-                        s.info("Block beneath: " + is.pig.minecraft.lib.util.telemetry.formatter.PiggyTelemetryFormatter.formatBlock(
-                            p.blockPosition().below(), client.level.getBlockState(p.blockPosition().below()), client.level));
-                        s.info("Inventory Snapshot: " + is.pig.minecraft.lib.util.telemetry.formatter.PiggyTelemetryFormatter.formatContainer(p.getInventory()));
                     });
 
                     if (livePrediction.isPresent() && livePrediction.get().isFatal()) {
                         currentPrediction = livePrediction.get();
                     } else {
                         activeMethod = null;
-                        stateChangedThisTick = transitionTo(MlgState.IDLE);
+                        stateChangedThisTick = transitionTo(client, MlgState.IDLE);
                         break;
                     }
 
@@ -139,32 +111,23 @@ public class MlgStateMachine {
                             s.logEvent(new MlgAttemptEvent(
                                 prediction.fallDistance(),
                                 method.getName(),
-                                true, // methodFound
+                                true,
                                 prediction.isFatal(),
                                 prediction.ticksToImpact()
                             ))
                         );
                         
-                        int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing(() -> {
-                            var conn = Minecraft.getInstance().getConnection();
-                            var p2 = Minecraft.getInstance().player;
-                            if (conn != null && p2 != null) {
-                                var entry = conn.getPlayerInfo(p2.getUUID());
-                                return entry != null ? entry.getLatency() : 0;
-                            }
-                            return 0;
-                        });
-                        int latencyTicks = Math.min(10, (int) Math.ceil(ping / 50.0));
+                        int latencyTicks = Math.min(10, (int) Math.ceil(worldState.getPlayerLatency(client) / 50.0));
                         
                         if (currentPrediction.ticksToImpact() <= activeMethod.getPreparationTickOffset(client, currentPrediction) + latencyTicks) {
-                            stateChangedThisTick = transitionTo(MlgState.PREPARATION);
+                            stateChangedThisTick = transitionTo(client, MlgState.PREPARATION);
                         }
                     } else {
                         activeMethod = null;
                         if (currentPrediction.ticksToImpact() <= 5) {
                             MetaActionSessionManager.getInstance().getCurrentSession().ifPresent(s -> s.fail("No viable survival method found"));
-                            idleCooldownTicks = 10; // Prevent immediate flip back
-                            stateChangedThisTick = transitionTo(MlgState.IDLE);
+                            idleCooldownTicks = 10;
+                            stateChangedThisTick = transitionTo(client, MlgState.IDLE);
                         }
                     }
                 }
@@ -173,30 +136,27 @@ public class MlgStateMachine {
                     final FallPredictionResult prediction = currentPrediction;
                     MetaActionSessionManager.getInstance().getCurrentSession().ifPresent(s -> {
                         s.logAction("Impact imminent: " + prediction.ticksToImpact() + " ticks", 
-                                    "Method: " + method.getName() + " | " + is.pig.minecraft.lib.util.telemetry.formatter.PiggyTelemetryFormatter.formatTrajectory(prediction, client.level),
+                                    "Method: " + method.getName(),
                                     "Enqueuing Prep Actions");
-                        s.info(is.pig.minecraft.lib.util.telemetry.formatter.PiggyTelemetryFormatter.formatNearbyEntities(prediction.landingPos(), 5.0, client.level));
                     });
                     activeMethod.queuePreparationActions(PiggyActionQueue.getInstance(), client, currentPrediction);
-                    stateChangedThisTick = transitionTo(MlgState.EXECUTION);
+                    stateChangedThisTick = transitionTo(client, MlgState.EXECUTION);
                 }
                 case EXECUTION -> {
                     if (activeMethod.canExecute(client, currentPrediction)) {
                         final MlgMethod method = activeMethod;
-                        final FallPredictionResult prediction = currentPrediction;
                         MetaActionSessionManager.getInstance().getCurrentSession().ifPresent(s -> 
                             s.logAction("Reached execution condition", 
-                                        "Method: " + method.getName() + " | " + PiggyTelemetryFormatter.formatTrajectory(prediction, client.level),
+                                        "Method: " + method.getName(),
                                         "Enqueuing Execution Actions"));
                         activeMethod.queueExecutionActions(PiggyActionQueue.getInstance(), client, currentPrediction);
-                        stateChangedThisTick = transitionTo(MlgState.RECOVERY);
+                        stateChangedThisTick = transitionTo(client, MlgState.RECOVERY);
                         PiggyActionQueue.getInstance().tick(client);
                     }
                 }
                 case RECOVERY -> {
-                    if (client.player.onGround() && Math.abs(client.player.getDeltaMovement().y) < 0.001) {
-                        idleGroundTicks++;
-                    } else if ((client.player.isInWater() || client.player.onClimbable()) && Math.abs(client.player.getDeltaMovement().y) < 0.001) {
+                    Vec3 velocity = worldState.getPlayerVelocity(player);
+                    if ((worldState.isOnGround(player) || worldState.isInWater(player)) && Math.abs(velocity.y()) < 0.001) {
                         idleGroundTicks++;
                     } else {
                         idleGroundTicks = 0;
@@ -204,28 +164,27 @@ public class MlgStateMachine {
                     
                     int requiredTicks = activeMethod.requiresBounceSettlement() ? 15 : 0;
                     if (idleGroundTicks >= requiredTicks) {
-                        if (livePrediction.isEmpty() || !livePrediction.get().isFatal() || client.player.getDeltaMovement().y > 0 || idleGroundTicks > 10) {
+                        if (livePrediction.isEmpty() || !livePrediction.get().isFatal() || velocity.y() > 0 || idleGroundTicks > 10) {
                             activeMethod.queueCleanupActions(PiggyActionQueue.getInstance(), client, currentPrediction);
                             activeMethod = null;
                             currentPrediction = null;
-                            stateChangedThisTick = transitionTo(MlgState.IDLE);
+                            stateChangedThisTick = transitionTo(client, MlgState.IDLE);
                         }
-                    } else if (client.player.getDeltaMovement().y < 0) {
+                    } else if (velocity.y() < 0) {
                         if (activeMethod.isPositionDependent() && livePrediction.isPresent() && livePrediction.get().isFatal()) {
-                            net.minecraft.core.BlockPos oldPos = currentPrediction.landingPos();
-                            net.minecraft.core.BlockPos newPos = livePrediction.get().landingPos();
-                            boolean severelyMissed = Math.abs(oldPos.getX() - newPos.getX()) > 0 || Math.abs(oldPos.getZ() - newPos.getZ()) > 0;
+                            BlockPos oldPos = currentPrediction.landingPos();
+                            BlockPos newPos = livePrediction.get().landingPos();
+                            boolean severelyMissed = Math.abs(oldPos.x() - newPos.x()) > 0 || Math.abs(oldPos.z() - newPos.z()) > 0;
 
                             if (severelyMissed) {
-                                String how = String.format("Old:%s | New:%s", PiggyTelemetryFormatter.formatBlock(oldPos, null, client.level), PiggyTelemetryFormatter.formatBlock(newPos, null, client.level));
                                 MetaActionSessionManager.getInstance().getCurrentSession().ifPresent(s -> 
-                                    s.info("Positional drift detected: " + how + ". Aborting current method, returning to FALLING"));
+                                    s.info("Positional drift detected. Aborting current method, returning to FALLING"));
                                 
                                 PiggyActionQueue.getInstance().clear("piggy-build");
                                 activeMethod.queueCleanupActions(PiggyActionQueue.getInstance(), client, currentPrediction);
                                 currentPrediction = livePrediction.get();
                                 activeMethod = null;
-                                stateChangedThisTick = transitionTo(MlgState.FALLING);
+                                stateChangedThisTick = transitionTo(client, MlgState.FALLING);
                             }
                         }
                     }
@@ -235,46 +194,28 @@ public class MlgStateMachine {
         } while (stateChangedThisTick && loopCount < 5);
     }
 
-    private boolean transitionTo(MlgState newState) {
+    private boolean transitionTo(Object client, MlgState newState) {
         if (this.currentState != newState) {
-            // Log transitions to telemetry for forensic analysis
+            WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
             if (newState == MlgState.FALLING && this.currentState == MlgState.IDLE) {
                 MetaActionSession session = MetaActionSessionManager.getInstance().startSession("MLG");
                 session.setPriority(true);
                 session.info("Started fatal fall tracking");
-                
-                Minecraft client = Minecraft.getInstance();
-                if (client.player != null) {
-                    session.info("Initial Context: " + PiggyTelemetryFormatter.formatPlayer(client.player));
-                }
-                if (currentPrediction != null) {
-                    session.info("Initial Prediction: " + PiggyTelemetryFormatter.formatTrajectory(currentPrediction, client.level));
-                }
+                session.info("Initial Context: " + worldState.getPlayerPos(client));
             } else if (newState == MlgState.PREPARATION) {
                 MetaActionSessionManager.getInstance().getCurrentSession().ifPresent(s -> {
                     s.info("Preparation with method: " + (activeMethod != null ? activeMethod.getName() : "none"));
-                    if (currentPrediction != null) {
-                        s.info("Target: " + PiggyTelemetryFormatter.formatBlock(currentPrediction.landingPos(), null, Minecraft.getInstance().level));
-                    }
                 });
             } else if (newState == MlgState.IDLE && this.currentState != MlgState.IDLE) {
                 MetaActionSessionManager.getInstance().getCurrentSession().ifPresent(s -> {
-                    int ping = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getPing(() -> {
-                        var conn = Minecraft.getInstance().getConnection();
-                        var p2 = Minecraft.getInstance().player;
-                        if (conn != null && p2 != null) {
-                            var entry = conn.getPlayerInfo(p2.getUUID());
-                            return entry != null ? entry.getLatency() : 0;
-                        }
-                        return 0;
-                    });
+                    int ping = worldState.getPlayerLatency(client);
                     s.monitor(20 + ping / 50);
                 });
             }
 
             this.currentState = newState;
             this.idleGroundTicks = 0;
-            is.pig.minecraft.lib.action.PiggyActionQueue.getInstance().setSuppressAutoRefill(newState != MlgState.IDLE);
+            PiggyActionQueue.getInstance().setSuppressAutoRefill(newState != MlgState.IDLE);
             return true;
         }
         return false;
@@ -288,13 +229,12 @@ public class MlgStateMachine {
         return currentState;
     }
 
-    public void forceFallState(Minecraft client) {
-        if (client.player == null || client.level == null) return;
-        
-        Optional<FallPredictionResult> livePrediction = is.pig.minecraft.build.mlg.prediction.FallSimulator.simulate(client.player, client.level);
+    public void forceFallState(Object client) {
+        PhysicsAdapter physicsAdapter = PiggyServiceRegistry.getPhysicsAdapter();
+        Optional<FallPredictionResult> livePrediction = physicsAdapter.simulateFall(client);
         if (livePrediction.isPresent() && livePrediction.get().isFatal()) {
             this.currentPrediction = livePrediction.get();
-            transitionTo(MlgState.FALLING);
+            transitionTo(client, MlgState.FALLING);
         }
     }
 }

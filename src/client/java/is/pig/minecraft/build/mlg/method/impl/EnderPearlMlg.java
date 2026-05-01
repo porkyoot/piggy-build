@@ -1,9 +1,10 @@
 package is.pig.minecraft.build.mlg.method.impl;
+import is.pig.minecraft.api.*;
 
 import is.pig.minecraft.build.mlg.method.ComposedMlgMethod;
 import is.pig.minecraft.build.mlg.method.MlgMethod;
 import is.pig.minecraft.build.mlg.method.strategy.CommonMlgStrategies;
-import is.pig.minecraft.lib.action.ActionPriority;
+import is.pig.minecraft.api.ActionPriority;
 import is.pig.minecraft.lib.action.world.UseItemAction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.Items;

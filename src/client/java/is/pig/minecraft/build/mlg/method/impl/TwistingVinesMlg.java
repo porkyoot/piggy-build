@@ -1,10 +1,10 @@
 package is.pig.minecraft.build.mlg.method.impl;
-
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.WorldStateAdapter;
 import is.pig.minecraft.build.mlg.method.ComposedMlgMethod;
 import is.pig.minecraft.build.mlg.method.MlgMethod;
 import is.pig.minecraft.build.mlg.method.strategy.CommonMlgStrategies;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.Blocks;
 
 public class TwistingVinesMlg {
     public static MlgMethod create() {
@@ -15,11 +15,14 @@ public class TwistingVinesMlg {
             .itemConsumptionCost(1)
             .preparationTickOffset(CommonMlgStrategies.dynamicPreparation())
             .executionCondition(CommonMlgStrategies.dynamicReach())
-            .viability(CommonMlgStrategies.requireItem(Items.TWISTING_VINES)
+            .viability(CommonMlgStrategies.requireItem("minecraft:twisting_vines")
                 .and(CommonMlgStrategies.requireReplaceableLanding()))
-            .preparation(CommonMlgStrategies.swapToItemAndLookDown(Items.TWISTING_VINES))
-            .execution(CommonMlgStrategies.interactBlock(stack -> stack.is(Items.TWISTING_VINES), 
-                (client, pos) -> client.level != null && client.level.getBlockState(pos.above()).is(Blocks.TWISTING_VINES)))
+            .preparation(CommonMlgStrategies.swapToItemAndLookDown("minecraft:twisting_vines"))
+            .execution(CommonMlgStrategies.interactBlock(stack -> true, 
+                (client, pos) -> {
+                    WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+                    return !worldState.isEmpty(worldState.getCurrentWorldId(), pos);
+                }))
             .cleanup(CommonMlgStrategies.breakBlock())
             .build();
     }

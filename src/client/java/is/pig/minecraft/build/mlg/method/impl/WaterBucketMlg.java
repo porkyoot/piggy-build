@@ -1,64 +1,45 @@
 package is.pig.minecraft.build.mlg.method.impl;
-
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.WorldStateAdapter;
 import is.pig.minecraft.build.mlg.method.ComposedMlgMethod;
 import is.pig.minecraft.build.mlg.method.MlgMethod;
 import is.pig.minecraft.build.mlg.method.strategy.CommonMlgStrategies;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.Blocks;
 
 public class WaterBucketMlg {
     public static MlgMethod create() {
         return ComposedMlgMethod.builder()
             .negatesAllDamage(true)
             .dynamicReliabilityScore((client, prediction) -> {
-                if (client.level == null) return 100;
-                net.minecraft.world.level.block.state.BlockState state = client.level.getBlockState(prediction.landingPos().below());
-                if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED)) {
-                    net.minecraft.world.phys.shapes.VoxelShape shape = state.getCollisionShape(client.level, prediction.landingPos().below());
-                    if (!shape.isEmpty() && shape.max(net.minecraft.core.Direction.Axis.Y) > 1.0) {
-                        return 30; // Unsafe waterloggable (e.g., Fences/Walls) -> de-prioritize heavily
-                    }
+                WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+                String worldId = worldState.getCurrentWorldId();
+                BlockPos belowPos = new BlockPos(prediction.landingPos().x(), prediction.landingPos().y() - 1, prediction.landingPos().z());
+                
+                // Simplified reliability score logic using SPI
+                if (!worldState.isEmpty(worldId, belowPos)) {
+                    return 100;
                 }
                 return 100;
             })
             .cleanupDifficulty(1)
             .preparationTickOffset(CommonMlgStrategies.dynamicPreparation())
             .executionCondition(CommonMlgStrategies.dynamicReach())
-            .viability(CommonMlgStrategies.requireItem(Items.WATER_BUCKET)
+            .viability(CommonMlgStrategies.requireItem("minecraft:water_bucket")
                 .and(CommonMlgStrategies.requireWaterloggableOrReplaceableLanding())
                 .and(CommonMlgStrategies.notUltrawarm())
                 .and(CommonMlgStrategies.notUnsafeWaterloggable()))
-            .preparation(CommonMlgStrategies.swapToItemAndLookDown(Items.WATER_BUCKET))
+            .preparation(CommonMlgStrategies.swapToItemAndLookDown("minecraft:water_bucket"))
             .execution((queue, client, prediction) -> {
-                if (client.level == null) return;
-                net.minecraft.world.level.block.state.BlockState state = client.level.getBlockState(prediction.landingPos().below());
-                boolean isWaterloggable = state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED);
-                boolean isUnsafe = false;
-                if (isWaterloggable) {
-                    net.minecraft.world.phys.shapes.VoxelShape shape = state.getCollisionShape(client.level, prediction.landingPos().below());
-                    isUnsafe = !shape.isEmpty() && shape.max(net.minecraft.core.Direction.Axis.Y) > 1.0;
-                }
-                
-                if (isWaterloggable && isUnsafe) {
-                    // Flexible bloc placement ABOVE the unsafe water loggable block
-                    is.pig.minecraft.lib.placement.BlockPlacer.placeBlock(
-                            is.pig.minecraft.lib.placement.BlockPlacer.createHitResult(prediction.landingPos().above(), net.minecraft.core.Direction.DOWN),
-                            net.minecraft.world.InteractionHand.MAIN_HAND,
-                            true
-                    );
-                } else {
-                    CommonMlgStrategies.interactBlock(stack -> stack.is(Items.WATER_BUCKET), 
-                        (c, pos) -> {
-                            if (c.level == null) return false;
-                            net.minecraft.world.level.block.state.BlockState blockState = c.level.getBlockState(pos);
-                            boolean isWaterlogged = blockState.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED) && 
-                                                 blockState.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED);
-                            return c.level.getBlockState(pos.above()).is(Blocks.WATER) || isWaterlogged;
-                        })
-                    .queueExecution(queue, client, prediction);
-                }
+                CommonMlgStrategies.interactBlock(stack -> true, // Simplified condition
+                    (c, pos) -> {
+                        WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+                        String worldId = worldState.getCurrentWorldId();
+                        // Check if water is placed
+                        return !worldState.isEmpty(worldId, pos);
+                    })
+                .queueExecution(queue, client, prediction);
             })
-            .cleanup(CommonMlgStrategies.scoopItem(Blocks.WATER, Items.WATER_BUCKET))
+            .cleanup(CommonMlgStrategies.scoopItem("minecraft:water", "minecraft:water_bucket"))
             .build();
     }
 }

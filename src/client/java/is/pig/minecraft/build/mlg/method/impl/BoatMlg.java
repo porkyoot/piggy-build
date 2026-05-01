@@ -1,4 +1,5 @@
 package is.pig.minecraft.build.mlg.method.impl;
+import is.pig.minecraft.api.*;
 
 import is.pig.minecraft.build.mlg.method.ComposedMlgMethod;
 import is.pig.minecraft.build.mlg.method.MlgMethod;

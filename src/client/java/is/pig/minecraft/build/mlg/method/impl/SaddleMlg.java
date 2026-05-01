@@ -1,14 +1,16 @@
 package is.pig.minecraft.build.mlg.method.impl;
+import is.pig.minecraft.api.*;
 
 import is.pig.minecraft.build.mlg.method.ComposedMlgMethod;
 import is.pig.minecraft.build.mlg.method.MlgMethod;
 import is.pig.minecraft.build.mlg.method.strategy.CommonMlgStrategies;
 import is.pig.minecraft.build.mlg.method.strategy.MlgViabilityStrategy;
 import is.pig.minecraft.build.mlg.method.strategy.MlgExecutionStrategy;
-import is.pig.minecraft.lib.action.AbstractAction;
-import is.pig.minecraft.lib.action.ActionPriority;
-import is.pig.minecraft.lib.inventory.search.InventorySearcher;
-import is.pig.minecraft.lib.inventory.search.ItemCondition;
+import is.pig.minecraft.api.AbstractAction;
+import is.pig.minecraft.api.ActionPriority;
+import is.pig.minecraft.inventory.util.InventorySearcher;
+import is.pig.minecraft.inventory.util.ItemCondition;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.world.InteractionHand;
@@ -19,6 +21,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
+import is.pig.minecraft.lib.util.TypeConverter;
 
 import java.util.List;
 import java.util.Optional;
@@ -42,7 +45,7 @@ public class SaddleMlg {
     private static MlgViabilityStrategy requireSaddleAndUnsaddledAnimal() {
         return (client, prediction) -> {
             if (client.level == null || client.player == null) return false;
-            ItemCondition saddleCondition = stack -> stack.is(Items.SADDLE);
+            ItemCondition saddleCondition = stack -> PiggyServiceRegistry.getItemDataAdapter().isItem(stack, Items.SADDLE.toString());
             boolean hasSaddle = saddleCondition.matches(client.player.getOffhandItem()) || 
                                 InventorySearcher.findSlotInHotbar(client.player.getInventory(), saddleCondition) != -1 ||
                                 InventorySearcher.findSlotInMain(client.player.getInventory(), saddleCondition) != -1;
@@ -50,7 +53,7 @@ public class SaddleMlg {
 
             List<? extends Entity> entities = client.level.getEntitiesOfClass(
                     Entity.class, 
-                    new AABB(prediction.landingPos()).inflate(3), 
+                    new AABB(TypeConverter.toMinecraft(prediction.landingPos())).inflate(3), 
                     e -> {
                         if (e.hasPassenger(client.player)) return false;
                         if (!e.getPassengers().isEmpty()) return false;
@@ -69,9 +72,10 @@ public class SaddleMlg {
             queue.enqueue(new AbstractAction("piggy-build", ActionPriority.HIGHEST) {
                 private long start = System.currentTimeMillis();
                 @Override
-                protected void onExecute(Minecraft c) {
+                protected void onExecute(Object clientObj) {
+        Minecraft c = (Minecraft) clientObj;
                     if (c.level == null || c.player == null) return;
-                    var entities = c.level.getEntitiesOfClass(Entity.class, new AABB(prediction.landingPos()).inflate(3), e -> {
+                    var entities = c.level.getEntitiesOfClass(Entity.class, new AABB(TypeConverter.toMinecraft(prediction.landingPos())).inflate(3), e -> {
                         if (e instanceof Saddleable s && !s.isSaddled()) return true;
                         if (e instanceof AbstractHorse h && h.isTamed() && !h.isSaddled()) return true;
                         return false;
@@ -97,9 +101,10 @@ public class SaddleMlg {
                     }
                 }
                 @Override
-                protected Optional<Boolean> verify(Minecraft c) {
+                protected Optional<Boolean> verify(Object clientObj) {
+        Minecraft c = (Minecraft) clientObj;
                     if (c.level == null || c.player == null) return Optional.of(false);
-                    var entities = c.level.getEntitiesOfClass(Entity.class, new AABB(prediction.landingPos()).inflate(3), e -> {
+                    var entities = c.level.getEntitiesOfClass(Entity.class, new AABB(TypeConverter.toMinecraft(prediction.landingPos())).inflate(3), e -> {
                         if (e instanceof Saddleable s && s.isSaddled()) return true;
                         if (e instanceof AbstractHorse h && h.isSaddled()) return true;
                         return false;

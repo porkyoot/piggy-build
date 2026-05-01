@@ -1,15 +1,18 @@
 package is.pig.minecraft.build.mvc.controller;
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.InputAdapter;
+import is.pig.minecraft.api.spi.WorldStateAdapter;
+import is.pig.minecraft.build.lib.placement.PlacementBridge;
 
 import is.pig.minecraft.build.PiggyBuildClient;
 import is.pig.minecraft.build.config.PiggyBuildConfig;
 import is.pig.minecraft.build.config.ConfigPersistence;
-import is.pig.minecraft.build.mixin.client.MinecraftAccessorMixin;
 import is.pig.minecraft.lib.ui.IconQueueOverlay;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
+import is.pig.minecraft.lib.util.PiggyMessenger;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Handles fast block placement by reducing or removing the click delay.
@@ -21,14 +24,15 @@ public class FastPlacementHandler {
     private long lastPlacementTime = 0;
 
     // Track recently placed blocks to prevent ghost blocks
-    private final java.util.Map<net.minecraft.core.BlockPos, Long> recentlyPlaced = new java.util.HashMap<>();
+    private final Map<BlockPos, Long> recentlyPlaced = new HashMap<>();
     private static final long GHOST_PREVENTION_MS = 100; // Don't re-place same block for 100ms
 
     /**
      * Called every client tick to handle fast placement logic
      */
-    public void onTick(Minecraft client) {
-        boolean isKeyDown = InputController.fastPlaceKey.isDown();
+    public void onTick(Object client) {
+        InputAdapter input = PiggyServiceRegistry.getInputAdapter();
+        boolean isKeyDown = input.isKeyDown("piggy-build:fast_place");
 
         // Key just pressed - toggle the mode
         if (isKeyDown && !wasKeyDown) {
@@ -63,11 +67,9 @@ public class FastPlacementHandler {
     /**
      * Attempt to place a block if conditions are met
      */
-    private void tryFastPlace(Minecraft client) {
-        // Check basic conditions
-        if (client.player == null || client.gameMode == null) {
-            return;
-        }
+    private void tryFastPlace(Object client) {
+        WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+        InputAdapter input = PiggyServiceRegistry.getInputAdapter();
 
         // Check if feature is enabled (considers server overrides)
         PiggyBuildConfig config = PiggyBuildConfig.getInstance();
@@ -80,17 +82,14 @@ public class FastPlacementHandler {
         }
 
         // Check if we're looking at a block
-        if (!(client.hitResult instanceof BlockHitResult blockHit)) {
-            return;
-        }
-
-        if (blockHit.getType() != HitResult.Type.BLOCK) {
+        HitResult hitResult = worldState.getCrosshairTarget(client);
+        if (!(hitResult instanceof BlockHitResult blockHit)) {
             return;
         }
 
         // Suppress vanilla placement unconditionally when fast place is active
         // and pointing at block, let this handler do the rest.
-        ((MinecraftAccessorMixin) client).setRightClickDelay(100);
+        worldState.setInteractionDelay(client, 100);
 
         // Check if enough time has passed since last placement
         long currentTime = System.currentTimeMillis();
@@ -103,7 +102,7 @@ public class FastPlacementHandler {
         }
 
         // Check if right mouse button is held down
-        if (!client.options.keyUse.isDown()) {
+        if (!input.isKeyDown("minecraft:use")) {
             return;
         }
 
@@ -118,7 +117,9 @@ public class FastPlacementHandler {
     /**
      * Actually perform the block placement
      */
-    private void performFastPlace(Minecraft client, BlockHitResult hitResult) {
+    private void performFastPlace(Object client, BlockHitResult hitResult) {
+        WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
+        InputAdapter input = PiggyServiceRegistry.getInputAdapter();
 
         // Update last placement time immediately to enforce rate limit
         // We do this regardless of success to prevent spamming the server/client logic
@@ -129,8 +130,8 @@ public class FastPlacementHandler {
             InteractionHand hand = InteractionHand.MAIN_HAND;
 
             // Check if directional or diagonal mode is active
-            boolean directionalActive = InputController.directionalKey.isDown();
-            boolean diagonalActive = InputController.diagonalKey.isDown();
+            boolean directionalActive = input.isKeyDown("piggy-build:directional");
+            boolean diagonalActive = input.isKeyDown("piggy-build:diagonal");
 
             BlockHitResult finalHitResult = hitResult;
 
@@ -149,10 +150,11 @@ public class FastPlacementHandler {
                 return;
             }
 
-            net.minecraft.core.BlockPos blockPos = finalHitResult.getBlockPos();
-            if (finalHitResult.getType() == HitResult.Type.BLOCK) {
-                boolean replaceClicked = client.level != null && client.level.getBlockState(blockPos).canBeReplaced();
-                blockPos = replaceClicked ? blockPos : blockPos.relative(finalHitResult.getDirection());
+            BlockPos blockPos = finalHitResult.blockPos();
+            if (worldState.isReplaceable(worldState.getCurrentWorldId(), blockPos)) {
+                // Keep blockPos
+            } else {
+                blockPos = blockPos.relative(finalHitResult.side());
             }
 
             // Don't place at the same position we just placed at (ghost block prevention)
@@ -165,7 +167,11 @@ public class FastPlacementHandler {
             }
 
             // Perform the placement through the centralized block placer which queues an InteractBlockAction
-            boolean success = is.pig.minecraft.lib.placement.BlockPlacer.placeBlock(finalHitResult, hand, ignoreGlobalCps);
+            boolean success = is.pig.minecraft.build.lib.placement.BlockPlacer.placeBlock(
+                finalHitResult, 
+                hand, 
+                ignoreGlobalCps
+            );
 
             if (success) {
                 // Advance the session lock ONLY if the block placed actually consumed an action
@@ -176,12 +182,12 @@ public class FastPlacementHandler {
 
                 // Notify overlay for cooldown tracking
                 IconQueueOverlay.queueIcon(
-                    net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("piggy", "textures/gui/icons/fast_place.png"),
+                    ResourceLocation.of("piggy", "textures/gui/icons/fast_place.png"),
                     1000, false
                 );
 
                 // Track this position to prevent re-placing ghost blocks locally
-                recentlyPlaced.put(blockPos.immutable(), System.currentTimeMillis());
+                recentlyPlaced.put(blockPos, System.currentTimeMillis());
             }
 
         } catch (Exception e) {
@@ -199,8 +205,9 @@ public class FastPlacementHandler {
     /**
      * Handles scroll wheel to change fast placement delay.
      */
-    public boolean onScroll(double amount) {
-        if (InputController.fastPlaceKey.isDown()) {
+    public boolean onScroll(Object client, double amount) {
+        InputAdapter input = PiggyServiceRegistry.getInputAdapter();
+        if (input.isKeyDown("piggy-build:fast_place")) {
             PiggyBuildConfig config = PiggyBuildConfig.getInstance();
 
             // 1. Auto-enable if currently disabled
@@ -239,11 +246,7 @@ public class FastPlacementHandler {
                         .info("Config updated - New CPS: " + newCps + " blocks/sec");
 
                 // 3. Simplified Feedback
-                LocalPlayer player = Minecraft.getInstance().player;
-                if (player != null) {
-                    is.pig.minecraft.lib.util.PiggyMessenger.sendClientMessage(
-                            player, "piggy.build.fast_place.speed_update", newCps);
-                }
+                PiggyMessenger.sendClientMessage(client, "piggy.build.fast_place.speed_update", newCps);
             }
             return true;
         }

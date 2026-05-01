@@ -1,16 +1,17 @@
 package is.pig.minecraft.build.mvc.controller;
-
-import net.minecraft.client.Minecraft;
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.InputAdapter;
+import is.pig.minecraft.lib.ui.IconQueueOverlay;
 
 public class LightLevelOverlayHandler {
     
     private boolean active = false;
     private boolean wasPressed = false;
 
-    public void onTick(Minecraft client) {
-        if (client.player == null) return;
-
-        boolean isPressed = InputController.lightLevelOverlayKey.isDown();
+    public void onTick(Object client) {
+        InputAdapter input = PiggyServiceRegistry.getInputAdapter();
+        boolean isPressed = input.isKeyDown("piggy-build:light_level");
 
         if (isPressed && !wasPressed) {
             active = !active;
@@ -19,8 +20,8 @@ public class LightLevelOverlayHandler {
         wasPressed = isPressed;
 
         if (active) {
-            is.pig.minecraft.lib.ui.IconQueueOverlay.queueIcon(
-                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("piggy", "textures/gui/icons/light_level.png"),
+            IconQueueOverlay.queueIcon(
+                ResourceLocation.of("piggy", "textures/gui/icons/light_level.png"),
                 1000, false
             );
         }
